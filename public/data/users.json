@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "username": "paramz",
+    "name": "Ramel Panis",
+    "email": "ramel.panis@ricklee.com.ph",
+    "role": "superadmin",
+    "password": "super@dmin12345"
+  },
+  {
+    "id": 2,
+    "username": "nikol",
+    "name": "Nichole Anne Joser",
+    "email": "nichole.joser@ricklee.com.ph",
+    "role": "admin",
+    "password": "nikolnet"
+  }
+]
