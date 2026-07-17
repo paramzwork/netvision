@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const reqType = searchParams.get("type");
 
-  if (reqType === "login") {
+  if (reqType === "sign-in") {
     const filePath = path.join(process.cwd(), "public", "data", "users.json");
 
     const fileData = fs.readFileSync(filePath, "utf-8");
@@ -63,39 +63,59 @@ export async function POST(req: NextRequest) {
     // ensure folder exists
     fs.mkdirSync(dir, { recursive: true });
 
-    // one file per login (simple approach)
+    // one file per sign-in (simple approach)
     const fileName = `${Date.now()}.json`;
     const logsPath = path.join(dir, fileName);
 
     fs.writeFileSync(logsPath, JSON.stringify(logEntry, null, 2));
 
-    return NextResponse.json({ message: "Login successful" });
-  } else if (reqType === "cacti-login") {
-    const targetUrl = "http://10.0.3.161/cacti/index.php";
-
+    return NextResponse.json({ message: "Sign in successful" });
+  } else if (reqType === "cacti-sign-in") {
     try {
-      const payload = await req.json();
-      const res = await fetch(targetUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      console.log("CACTI DATA:", data);
-      if (!res.ok) {
+      const targetUrl = "http://10.0.3.161/cacti/index.php";
+      const loginPage = await fetch(targetUrl);
+      const html = await loginPage.text();
+      const cookie = loginPage.headers.get("set-cookie");
+      const input = html.match(/<input[^>]*__csrf_magic[^>]*>/i)?.[0];
+      console.log(input);
+      const csrf = input?.match(/value=["']([^"']+)["']/i)?.[1];
+      if (!csrf) {
         return NextResponse.json(
-          { error: "Login failed", details: data },
-          { status: res.status },
+          { error: "Unable to retrieve CSRF token" },
+          { status: 500 },
         );
       }
 
-      // Assuming the server returns a token, you can send it back to your frontend
-      return NextResponse.json(data, { status: 200 });
+      const payload = await req.json();
+
+      const formData = new URLSearchParams();
+
+      formData.append("__csrf_magic", csrf);
+      formData.append("action", "login");
+      formData.append("login_username", payload.login_username);
+      formData.append("login_password", payload.login_password);
+      formData.append("remember_me", "on");
+      const res = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Cookie: cookie ?? "",
+        },
+        body: formData.toString(),
+        redirect: "manual",
+      });
+      const text = await res.text();
+
+      console.log("Status:", res.status);
+      console.log("Location:", res.headers.get("location"));
+      console.log("Set-Cookie:", res.headers.get("set-cookie"));
+      console.log(text);
+      return NextResponse.json({
+        status: res.status,
+        cookie: res.headers.get("set-cookie"),
+      });
     } catch (error: unknown) {
-      console.error("Login Request Error:", error);
+      console.error("Sign in Request Error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
 
@@ -107,10 +127,18 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
-  } else if (reqType === "logout") {
+  } else if (reqType === "sign-out") {
     const cookieStore = await cookies();
-    cookieStore.delete("auth_token");
-
-    return NextResponse.json({ message: "Logged out" });
+    const kill = tripleEncode("paramz");
+    // Delete cookie
+    cookieStore.set(kill, "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      expires: new Date(0),
+    });
+    cookieStore.delete(kill);
+    return NextResponse.json({ message: "Logged out successfully" });
   }
 }

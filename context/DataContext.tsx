@@ -11,8 +11,8 @@ interface DataContextType {
   consumptionGroupData: ConsumptionGroupedByClient[];
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  fvKill: string;
-  setFVKill: React.Dispatch<React.SetStateAction<string>>;
+  cactiKill: string;
+  setCactiKill: React.Dispatch<React.SetStateAction<string>>;
   setConsumptionGroupData: React.Dispatch<
     React.SetStateAction<ConsumptionGroupedByClient[]>
   >;
@@ -25,7 +25,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     ConsumptionGroupedByClient[]
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [fvKill, setFVKill] = useState<string>("");
+  const [cactiKill, setCactiKill] = useState<string>("");
 
   return (
     <DataContext.Provider
@@ -33,8 +33,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         consumptionGroupData,
         isLoading,
         setIsLoading,
-        fvKill,
-        setFVKill,
+        cactiKill,
+        setCactiKill,
         setConsumptionGroupData,
       }}
     >

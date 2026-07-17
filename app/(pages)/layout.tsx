@@ -2,7 +2,6 @@ import { cookies, headers } from "next/headers";
 import jwt from "jsonwebtoken";
 import { DataProvider } from "@/context/DataContext";
 import { redirect } from "next/navigation";
-import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { User } from "@/lib/types";
 import HeaderComponent from "@/components/HeaderComponent";
@@ -23,7 +22,7 @@ export default async function DashboardLayout({
 
   const token = cookieStore.get("WTBkR2VWbFhNVFk9")?.value;
   let currentUser = null;
-  let fiberKill = null;
+  let cactiKill = null;
   if (!token) {
     redirect("/");
   }
@@ -32,8 +31,8 @@ export default async function DashboardLayout({
       id: string;
     };
     const payload = {
-      username: "admin_nichole",
-      password: "Admin@101",
+      login_username: "admin_nichole",
+      login_password: "Admin@101",
       action: "login",
       remember_me: "on",
     };
@@ -42,19 +41,17 @@ export default async function DashboardLayout({
         method: "GET",
         cache: "no-store",
       }),
-      fetch(`${baseUrl}/api/request?type=cacti-login`, {
+      fetch(`${baseUrl}/api/request?type=cacti-sign-in`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
         cache: "no-store",
       }),
     ]);
-
     const localData = await res.json();
-    const fiberData = await cactiRes.json();
+    const cactiData = await cactiRes.json();
 
     if (!res.ok || !cactiRes.ok) {
-      toast.error("Failed to sign in.");
       redirect("/");
     }
 
@@ -65,9 +62,10 @@ export default async function DashboardLayout({
     const foundUser = localData.find(
       (u: User) => String(u.id) === String(decoded.id),
     );
+    console.log(cactiData.cookie)
     if (foundUser) {
       currentUser = foundUser;
-      fiberKill = fiberData.token.id;
+      cactiKill = cactiData.token.id;
     }
   } catch (error) {
     console.error("Invalid token:", error);
@@ -76,7 +74,7 @@ export default async function DashboardLayout({
   return (
     <DataProvider>
       <div className="flex h-screen overflow-hidden bg-gray-50 font-sans">
-        <SidebarComponent currentUser={currentUser} fiberKill={fiberKill} />
+        <SidebarComponent currentUser={currentUser} cactiKill={cactiKill} />
         <div className="flex flex-col flex-1">
           <HeaderComponent />
           <main className="p-6 overflow-y-auto">
