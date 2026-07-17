@@ -32,15 +32,17 @@ export default async function DashboardLayout({
       id: string;
     };
     const payload = {
-      username: "broadband_api",
-      password: "broadband_api",
+      username: "admin_nichole",
+      password: "Admin@101",
+      action: "login",
+      remember_me: "on",
     };
-    const [localRes, fiberRes] = await Promise.all([
+    const [res, cactiRes] = await Promise.all([
       fetch(`${baseUrl}/api/users`, {
         method: "GET",
         cache: "no-store",
       }),
-      fetch(`${baseUrl}/api/requests?type=fibervu-login`, {
+      fetch(`${baseUrl}/api/request?type=cacti-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -48,10 +50,10 @@ export default async function DashboardLayout({
       }),
     ]);
 
-    const localData = await localRes.json();
-    const fiberData = await fiberRes.json();
+    const localData = await res.json();
+    const fiberData = await cactiRes.json();
 
-    if (!localRes.ok || !fiberRes.ok) {
+    if (!res.ok || !cactiRes.ok) {
       toast.error("Failed to sign in.");
       redirect("/");
     }
