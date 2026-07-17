@@ -57,13 +57,13 @@ export const menuItems = [
 ];
 interface SidebarProps {
   currentUser: Partial<User> | null;
-  fiberKill: string;
+  cactiKill: string;
 }
 export default function SidebarComponent({
   currentUser,
-  fiberKill,
+  cactiKill,
 }: SidebarProps) {
-  const { setFVKill } = useData();
+  const { setCactiKill } = useData();
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -71,7 +71,7 @@ export default function SidebarComponent({
     const toastId = toast.loading("Logging out...");
 
     try {
-      await fetch("/api/logout", {
+      await fetch("/api/request?type=sign-out", {
         method: "POST",
       });
 
@@ -81,16 +81,16 @@ export default function SidebarComponent({
 
       router.push("/");
     } catch {
-      toast.error("Logout failed", {
+      toast.error("Sign Out failed", {
         id: toastId,
       });
     }
   };
   useEffect(() => {
-    if (fiberKill) {
-      setFVKill(fiberKill);
+    if (cactiKill) {
+      setCactiKill(cactiKill);
     }
-  }, [fiberKill, setFVKill]);
+  }, [cactiKill, setCactiKill]);
   const filteredMenu = menuItems.filter(
     (item) => !item.roles || item.roles.includes(currentUser?.role ?? ""),
   );
@@ -322,7 +322,7 @@ export default function SidebarComponent({
       `}
         >
           <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Logout</span>}
+          {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
 
