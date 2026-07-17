@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   ChevronLeft,
   ChevronRight,
-  Coffee,
   LogOut,
   Server,
   Search,
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/accordion";
 import { useData } from "@/context/DataContext";
 import { User } from "@/lib/types";
+import Image from "next/image";
 
 export const menuItems = [
   {
@@ -97,7 +97,7 @@ export default function SidebarComponent({
   const defaultItem = menuItems.find((item) =>
     item.subMenu?.some((sub) => pathname.startsWith(sub.href)),
   )?.name;
-  console.log(defaultItem)
+  console.log(defaultItem);
   return (
     <aside
       className={`
@@ -112,16 +112,27 @@ export default function SidebarComponent({
     >
       {/* ================= LOGO ================= */}
       <div
-        className={`flex items-center gap-3 px-6 border-b border-gray-200 ${!collapsed ? "py-3.25" : "py-3.5"}`}
+        className={`flex items-center gap-3 px-6 border-b border-gray-200 bg-slate-700 text-white ${!collapsed ? "py-3.25" : "py-3.5"}`}
       >
-        <div className="w-10 h-10 bg-linear-to-br from-[#0ea5e9] to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
-          <Coffee className="w-5 h-5 text-white" />
+        <div className="w-10 h-10 bg-linear-to-br from-[#f4f5f5] to-gray-300 rounded-xl flex items-center justify-center shadow-md">
+          <div className="flex flex-col justify-center items-center gap-2">
+            <div className="relative h-15 w-15">
+              <Image
+                src="/images/nv-logo.png"
+                alt="NetVision Logo"
+                fill
+                priority
+                sizes="500px"
+                className="object-contain"
+              />
+            </div>
+          </div>
         </div>
 
         {!collapsed && (
           <div>
             <h1 className=" font-semibold text-lg tracking-wide">NetVision</h1>
-            <p className="text-gray-500 text-xs tracking-wide capitalize">
+            <p className="text-gray-300 text-xs tracking-wide capitalize">
               {currentUser?.role} Dashboard
             </p>
           </div>
