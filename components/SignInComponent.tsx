@@ -30,9 +30,11 @@ export default function SignInComponent() {
         },
         body: JSON.stringify({ username, password }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        toast.error("Invalid username or password.");
-
+        toast.error(data.message, {
+          description: "Incorrect username or password.",
+        });
         setLoading(false);
         return;
       }

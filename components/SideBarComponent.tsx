@@ -57,13 +57,10 @@ export const menuItems = [
 ];
 interface SidebarProps {
   currentUser: Partial<User> | null;
-  cactiKill: string;
 }
 export default function SidebarComponent({
   currentUser,
-  cactiKill,
 }: SidebarProps) {
-  const { setCactiKill } = useData();
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -86,11 +83,6 @@ export default function SidebarComponent({
       });
     }
   };
-  useEffect(() => {
-    if (cactiKill) {
-      setCactiKill(cactiKill);
-    }
-  }, [cactiKill, setCactiKill]);
   const filteredMenu = menuItems.filter(
     (item) => !item.roles || item.roles.includes(currentUser?.role ?? ""),
   );
