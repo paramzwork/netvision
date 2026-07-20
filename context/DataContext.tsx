@@ -1,11 +1,14 @@
 "use client";
-
-import { ConsumptionGroupedByClient } from "@/lib/types";
+import { CactiDevice, ConsumptionGroupedByClient } from "@/lib/types";
 import React, {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
+  useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
 
 interface DataContextType {
   consumptionGroupData: ConsumptionGroupedByClient[];
@@ -16,6 +19,8 @@ interface DataContextType {
   setConsumptionGroupData: React.Dispatch<
     React.SetStateAction<ConsumptionGroupedByClient[]>
   >;
+  cactiDevice: CactiDevice[];
+  setCactiDevice: React.Dispatch<React.SetStateAction<CactiDevice[]>>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -26,7 +31,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [cactiKill, setCactiKill] = useState<string>("");
+  const [cactiDevice, setCactiDevice] = useState<CactiDevice[]>([]);
+  const hasMountedRef = useRef<boolean>(false);
+  const fetchDevice = useCallback(async () => {
+    try {
+      const res = await fetch("/api/cacti/host", { method: "POST" });
 
+      if (!res.ok) {
+        throw new Error("Failed to fetch devices");
+      }
+
+      const data: CactiDevice[] = await res.json();
+      setCactiDevice(data);
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Failed to fetch data.", {
+        description: "Cacti devices are not available.",
+      });
+    }
+  }, []);
+  useEffect(() => {
+    if (hasMountedRef.current) return;
+    fetchDevice();
+    hasMountedRef.current = true;
+  }, [fetchDevice]);
   return (
     <DataContext.Provider
       value={{
@@ -36,6 +65,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         cactiKill,
         setCactiKill,
         setConsumptionGroupData,
+        cactiDevice,
+        setCactiDevice,
       }}
     >
       {children}

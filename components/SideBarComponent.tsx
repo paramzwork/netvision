@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -9,9 +9,7 @@ import {
   ChevronRight,
   LogOut,
   Server,
-  Search,
   BarChart,
-  Logs,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,7 +18,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useData } from "@/context/DataContext";
 import { User } from "@/lib/types";
 import Image from "next/image";
 
@@ -32,38 +29,23 @@ export const menuItems = [
     roles: ["admin", "superadmin"],
   },
   {
-    name: "Terminal Nodes",
+    name: "Devices",
     icon: Server, // Main icon for the category
     href: "/terminal-nodes", // Parent link can go to the overview
     roles: ["superadmin"],
     subMenu: [
       {
-        name: "Node Overview",
+        name: "Test page",
         icon: BarChart, // Or a more specific icon
-        href: "/terminal-nodes", // Page to view all node data
-      },
-      {
-        name: "Find by Client",
-        icon: Search,
-        href: "/terminal-nodes/search", // Page with a search input for a specific client
-      },
-      {
-        name: "Logs",
-        icon: Logs,
-        href: "/terminal-nodes/logs", // Page with a search input for a specific client
+        href: "#", // Page to view all node data
       },
     ],
   },
 ];
 interface SidebarProps {
   currentUser: Partial<User> | null;
-  cactiKill: string;
 }
-export default function SidebarComponent({
-  currentUser,
-  cactiKill,
-}: SidebarProps) {
-  const { setCactiKill } = useData();
+export default function SidebarComponent({ currentUser }: SidebarProps) {
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -86,18 +68,12 @@ export default function SidebarComponent({
       });
     }
   };
-  useEffect(() => {
-    if (cactiKill) {
-      setCactiKill(cactiKill);
-    }
-  }, [cactiKill, setCactiKill]);
   const filteredMenu = menuItems.filter(
     (item) => !item.roles || item.roles.includes(currentUser?.role ?? ""),
   );
   const defaultItem = menuItems.find((item) =>
     item.subMenu?.some((sub) => pathname.startsWith(sub.href)),
   )?.name;
-  console.log(defaultItem);
   return (
     <aside
       className={`
