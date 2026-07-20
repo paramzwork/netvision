@@ -32,25 +32,15 @@ export const menuItems = [
     roles: ["admin", "superadmin"],
   },
   {
-    name: "Terminal Nodes",
+    name: "Devices",
     icon: Server, // Main icon for the category
     href: "/terminal-nodes", // Parent link can go to the overview
     roles: ["superadmin"],
     subMenu: [
       {
-        name: "Node Overview",
+        name: "Test page",
         icon: BarChart, // Or a more specific icon
-        href: "/terminal-nodes", // Page to view all node data
-      },
-      {
-        name: "Find by Client",
-        icon: Search,
-        href: "/terminal-nodes/search", // Page with a search input for a specific client
-      },
-      {
-        name: "Logs",
-        icon: Logs,
-        href: "/terminal-nodes/logs", // Page with a search input for a specific client
+        href: "#", // Page to view all node data
       },
     ],
   },
@@ -89,7 +79,6 @@ export default function SidebarComponent({
   const defaultItem = menuItems.find((item) =>
     item.subMenu?.some((sub) => pathname.startsWith(sub.href)),
   )?.name;
-  console.log(defaultItem);
   return (
     <aside
       className={`

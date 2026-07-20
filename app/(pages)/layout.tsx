@@ -1,13 +1,11 @@
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import { DataProvider } from "@/context/DataContext";
 import { redirect } from "next/navigation";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { User } from "@/lib/types";
 import HeaderComponent from "@/components/HeaderComponent";
 import SidebarComponent from "@/components/SideBarComponent";
 import { getUserById } from "@/lib/users";
-import { cactiFetch } from "@/lib/cacti";
 
 export default async function DashboardLayout({
   children,
@@ -31,10 +29,6 @@ export default async function DashboardLayout({
     if (!currentUser) {
       redirect("/");
     }
-    const res = await cactiFetch("http://10.0.3.161/cacti/host.php");
-
-    const html = await res.text();
-    console.log("HTML:", html);
   } catch {
     redirect("/");
   }

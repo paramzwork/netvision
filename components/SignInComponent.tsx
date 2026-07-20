@@ -43,17 +43,30 @@ export default function SignInComponent() {
       router.refresh();
     } catch {
       toast.error("Something went wrong. Try again.");
+      setLoading(false);
     } finally {
       toast.dismiss(toastID);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40 p-5">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-2 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-muted/40">
+      <Card className="w-full max-w-md shadow-lg border border-slate-100">
+        {/* <div className="w-full flex items-center justify-start px-5 py-2 bg-[#1B263B]">
+          <div className="relative h-12 w-30">
+            <Image
+              src="/images/ricklee-logo.png"
+              alt="NetVision Logo"
+              fill
+              priority
+              sizes="500px"
+              className="object-contain"
+            />
+          </div>
+        </div> */}
+        <CardHeader className="w-full space-y-2 text-center">
           <div className="flex flex-col justify-center items-center gap-2">
-            <div className="relative h-40 w-40">
+            <div className="relative h-35 w-40">
               <Image
                 src="/images/nv-logo.png"
                 alt="NetVision Logo"
@@ -72,7 +85,7 @@ export default function SignInComponent() {
           </CardDescription> */}
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="pb-5">
           <form onSubmit={handleLogin} className="space-y-4 p-5">
             {/* Username */}
             <div className="space-y-2">
@@ -140,7 +153,7 @@ export default function SignInComponent() {
           </form>
 
           {/* Footer */}
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          <p className="text-center text-sm text-muted-foreground mt-6 ">
             Don’t have an account?{" "}
             <Link href="#" className="text-primary hover:underline">
               Contact Admin

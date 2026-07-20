@@ -58,7 +58,6 @@ export async function POST(req: NextRequest) {
   if (reqType === "sign-in") {
     const { username, password } = await req.json();
     const user = getUserByCredentials(username, password);
-    console.log("USER:", user);
     if (!user) {
       return NextResponse.json(
         { message: "Invalid credentials" },
@@ -117,10 +116,12 @@ export async function POST(req: NextRequest) {
     // }
 
     const setCookie = cactiRes.headers.get("set-cookie");
-
-    const cactiCookie = setCookie?.match(/Cacti=([^;]+)/)?.[1];
-
+    const cactiMatches = [...(setCookie?.matchAll(/Cacti=([^;]+)/g) ?? [])];
+    const cactiCookie = cactiMatches.at(-1)?.[1];
     const rememberCookie = setCookie?.match(/cacti_remembers=([^;]+)/)?.[1];
+    console.log("SET COOKIE", setCookie);
+    console.log("CACTI COOKIE", cactiCookie);
+    console.log("REMEMBER COOKIE", rememberCookie);
     const kill = tripleEncode("paramz");
 
     const logEntry = {
@@ -133,12 +134,21 @@ export async function POST(req: NextRequest) {
         timeZone: "Asia/Manila",
       }),
     };
-    const dir = path.join(process.cwd(), "public/data/logs/logins");
 
+    const dir = path.join(process.cwd(), "public/data/logs/logins");
     fs.mkdirSync(dir, { recursive: true });
-    const fileName = `${Date.now()}.json`;
-    const logsPath = path.join(dir, fileName);
-    fs.writeFileSync(logsPath, JSON.stringify(logEntry, null, 2));
+
+    const logsPath = path.join(dir, "logins.json");
+
+    let logs = [];
+
+    if (fs.existsSync(logsPath)) {
+      logs = JSON.parse(fs.readFileSync(logsPath, "utf8"));
+    }
+
+    logs.push(logEntry);
+
+    fs.writeFileSync(logsPath, JSON.stringify(logs, null, 2));
 
     const response = NextResponse.json({ message: "Sign in successful" });
 
@@ -164,7 +174,7 @@ export async function POST(req: NextRequest) {
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
-        maxAge: 60 * 60 * 24 * 30,
+        maxAge: 60 * 60,
       });
     }
 
@@ -181,6 +191,8 @@ export async function POST(req: NextRequest) {
       expires: new Date(0),
     });
     cookieStore.delete(kill);
+    cookieStore.delete("Cacti");
+    cookieStore.delete("cacti_remembers");
     return NextResponse.json({ message: "Logged out successfully" });
   }
 }

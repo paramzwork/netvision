@@ -34,3 +34,24 @@ export interface Log {
   role: string;
   timestamp: string;
 }
+export interface CactiGraph {
+  image: string;
+  image_width: string;
+  image_height: string;
+
+  [key: string]: string | number;
+}
+export interface CactiDevice {
+  description: string;
+  hostname: string;
+  id: string;
+  graphs: string;
+  dataSources: string;
+  status: string;
+  inState: string;
+  uptime: string;
+  pollTime: string;
+  currentMs: string;
+  averageMs: string;
+  availability: string;
+}
