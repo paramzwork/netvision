@@ -1,10 +1,12 @@
 import { StatCard } from "@/components/statcard"
+import { DeviceTable } from "@/components/table/devicetable"
 import { TrafficChart } from "@/components/trafficchart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
+
       <h1 className="text-2xl font-bold">Network Overview</h1>
 
       {/* Stats */}
@@ -29,12 +31,14 @@ export default function DashboardPage() {
       {/* Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Traffic (24h)</CardTitle>
+          <CardTitle>CPN-1-RC</CardTitle>
         </CardHeader>
         <CardContent>
           <TrafficChart />
         </CardContent>
       </Card>
+      
+      <DeviceTable />
     </div>
   )
 }
