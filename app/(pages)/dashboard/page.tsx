@@ -18,8 +18,8 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Active Devices"
-          value="128"
-          change="+4 new devices"
+          value="2"
+          change="+0 new devices"
         />
         <StatCard
           title="Avg Latency"
