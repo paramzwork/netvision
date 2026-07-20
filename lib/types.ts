@@ -55,3 +55,36 @@ export interface CactiDevice {
   averageMs: string;
   availability: string;
 }
+// SNMP
+export interface SnmpData {
+  hostname: string;
+  description: string;
+  uptime: string;
+  contact: string;
+  location: string;
+}
+
+export interface SnmpConfig {
+  host: string;
+  community: string;
+  port?: number;
+  version?: number;
+}
+
+export interface SnmpVarbind {
+  oid: string;
+  type: number;
+  value: string | number | bigint | Buffer;
+}
+
+export interface InterfaceInfo {
+  index: number;
+  name: string;
+  speed: number;
+}
+
+export interface InterfaceTraffic {
+  index: number;
+  inOctets: bigint;
+  outOctets: bigint;
+}

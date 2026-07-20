@@ -4,10 +4,11 @@ import { StatCard } from "@/components/statcard";
 import { TrafficChart } from "@/components/trafficchart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useData } from "@/context/DataContext";
-import { CactiDevice, CactiGraph } from "@/lib/types";
+import { CactiDevice, CactiGraph, SnmpData } from "@/lib/types";
 import { oneEncode, tripleEncode } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
-import { DeviceTable } from "@/components/table/devicetable"
+import { DeviceTable } from "@/components/table/devicetable";
+import Image from "next/image";
 
 export default function DashboardPage() {
   const { cactiDevice } = useData();
@@ -54,10 +55,39 @@ export default function DashboardPage() {
       console.log(data);
     } catch {}
   };
-  console.log(selectedDevice)
+  const [data, setData] = useState<SnmpData>({
+    hostname: "",
+    description: "",
+    uptime: "",
+    contact: "",
+    location: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const testSNMP = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await fetch("/api/snmp");
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json.error ?? "SNMP request failed");
+      }
+
+      setData(json.data);
+      console.log(json.data);
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <div className="space-y-6">
-
       <h1 className="text-2xl font-bold">Network Overview</h1>
 
       {/* Stats */}
@@ -80,8 +110,47 @@ export default function DashboardPage() {
           <TrafficChart />
         </CardContent>
       </Card>
+      <button
+        onClick={testSNMP}
+        disabled={loading}
+        className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+      >
+        {loading ? "Testing..." : "Test SNMP"}
+      </button>
+
+      {error && (
+        <div className="rounded-md bg-red-100 p-3 text-red-600">{error}</div>
+      )}
+      {data && (
+        <div className="rounded-md border p-4 space-y-2">
+          <h2 className="text-lg font-semibold">Router Information</h2>
+
+          <p>
+            <strong>Hostname:</strong> {data.hostname}
+          </p>
+
+          <p>
+            <strong>Description:</strong> {data.description}
+          </p>
+
+          <p>
+            <strong>Uptime:</strong> {data.uptime}
+          </p>
+
+          <p>
+            <strong>Contact:</strong> {data.contact}
+          </p>
+
+          <p>
+            <strong>Location:</strong> {data.location}
+          </p>
+        </div>
+      )}
       <div className="w-full">
-        <button className="cursor-pointer" onClick={fetchDevice}>
+        <button
+          className="rounded-lg bg-gray-300 px-3 py-2 cursor-pointer"
+          onClick={fetchDevice}
+        >
           View
         </button>
         <table className="w-full table border">
@@ -124,7 +193,16 @@ export default function DashboardPage() {
         </table>
       </div>
       <div>
-        <img src={`data:image/svg+xml;base64,${graph?.image}`} alt="Graph" />
+        <div className="relative h-12 w-30">
+          <Image
+            src={`data:image/svg+xml;base64,${graph?.image}`}
+            alt="Graph"
+            fill
+            priority
+            sizes="500px"
+            className="object-contain"
+          />
+        </div>
 
         <ul>
           {legends.map((item, index) => (
@@ -132,7 +210,7 @@ export default function DashboardPage() {
           ))}
         </ul>
       </div>
-      
+
       <DeviceTable />
     </div>
   );

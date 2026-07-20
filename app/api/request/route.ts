@@ -13,7 +13,7 @@ function tripleEncode(input: string): string {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const reqType = searchParams.get("type");
-  const kill = searchParams.get("kill");
+  // const kill = searchParams.get("kill");
 
   if (reqType === "cacti-dev") {
     try {

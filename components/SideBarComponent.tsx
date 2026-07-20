@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -9,9 +9,7 @@ import {
   ChevronRight,
   LogOut,
   Server,
-  Search,
   BarChart,
-  Logs,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -20,7 +18,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useData } from "@/context/DataContext";
 import { User } from "@/lib/types";
 import Image from "next/image";
 
@@ -48,9 +45,7 @@ export const menuItems = [
 interface SidebarProps {
   currentUser: Partial<User> | null;
 }
-export default function SidebarComponent({
-  currentUser,
-}: SidebarProps) {
+export default function SidebarComponent({ currentUser }: SidebarProps) {
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
