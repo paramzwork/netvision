@@ -7,6 +7,7 @@ import { useData } from "@/context/DataContext";
 import { CactiDevice, CactiGraph } from "@/lib/types";
 import { oneEncode, tripleEncode } from "@/lib/utils";
 import { useEffect, useMemo, useState } from "react";
+import { DeviceTable } from "@/components/table/devicetable"
 
 export default function DashboardPage() {
   const { cactiDevice } = useData();
@@ -56,6 +57,7 @@ export default function DashboardPage() {
   console.log(selectedDevice)
   return (
     <div className="space-y-6">
+
       <h1 className="text-2xl font-bold">Network Overview</h1>
 
       {/* Stats */}
@@ -72,7 +74,7 @@ export default function DashboardPage() {
       {/* Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Traffic (24h)</CardTitle>
+          <CardTitle>CPN-1-RC</CardTitle>
         </CardHeader>
         <CardContent>
           <TrafficChart />
@@ -130,6 +132,8 @@ export default function DashboardPage() {
           ))}
         </ul>
       </div>
+      
+      <DeviceTable />
     </div>
   );
 }
