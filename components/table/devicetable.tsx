@@ -19,78 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-type InterfaceMetric = {
-  name: string;
-  inbound: {
-    current: number;
-    average: number;
-    max: number;
-  };
-  outbound: {
-    current: number;
-    average: number;
-    max: number;
-  };
-};
-
-const baseInterfaces: InterfaceMetric[] = [
-  {
-    name: "100GE0/1/55",
-    inbound: { current: 10.87, average: 10.1, max: 19.04 },
-    outbound: { current: 4.05, average: 3.62, max: 6.37 },
-  },
-  {
-    name: "100GE0/1/56",
-    inbound: { current: 8.12, average: 7.44, max: 15.22 },
-    outbound: { current: 3.18, average: 2.91, max: 5.44 },
-  },
-  {
-    name: "10GE0/0/1",
-    inbound: { current: 2.14, average: 1.92, max: 3.88 },
-    outbound: { current: 1.75, average: 1.6, max: 2.9 },
-  },
-  {
-    name: "10GE0/0/2",
-    inbound: { current: 3.44, average: 3.01, max: 6.21 },
-    outbound: { current: 2.22, average: 1.98, max: 3.77 },
-  },
-  {
-    name: "GE0/0/0",
-    inbound: { current: 0, average: 0, max: 0 },
-    outbound: { current: 0, average: 0, max: 0 },
-  },
-];
-
-// Deterministic dummy interfaces so we can preview pagination across many
-// pages (ellipsis, jumping to page N, etc.) without relying on Math.random(),
-// which would produce different values on the server vs. the client and
-// trigger a hydration mismatch.
-function generateDummyInterfaces(count: number): InterfaceMetric[] {
-  return Array.from({ length: count }, (_, i) => {
-    const n = i + 1;
-    const maxIn = Number((2 + ((n * 37) % 18)).toFixed(2));
-    const maxOut = Number((1.5 + ((n * 23) % 12)).toFixed(2));
-    return {
-      name: `GE0/1/${n}`,
-      inbound: {
-        current: Number((maxIn * 0.55).toFixed(2)),
-        average: Number((maxIn * 0.48).toFixed(2)),
-        max: maxIn,
-      },
-      outbound: {
-        current: Number((maxOut * 0.5).toFixed(2)),
-        average: Number((maxOut * 0.42).toFixed(2)),
-        max: maxOut,
-      },
-    };
-  });
-}
-
-const interfaces: InterfaceMetric[] = [
-  ...baseInterfaces,
-  ...generateDummyInterfaces(40),
-];
+import { interfaces, type InterfaceMetric } from "@/lib/interfaces";
 
 type Direction = "all" | "inbound" | "outbound";
 type SortOption = "none" | "highest" | "lowest" | "name";
@@ -180,7 +109,10 @@ export function DeviceTable() {
             value={direction}
             onValueChange={(v) => setDirection(v as Direction)}
           >
-            <SelectTrigger className="h-9! w-[200px]! text-sm" aria-label="Filter by traffic direction">
+            <SelectTrigger
+              className="h-9! w-[200px]! text-sm"
+              aria-label="Filter by traffic direction"
+            >
               <SelectValue>{() => DIRECTION_LABELS[direction]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -193,8 +125,14 @@ export function DeviceTable() {
             </SelectContent>
           </Select>
 
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-            <SelectTrigger className="h-9! w-[200px]! text-sm" aria-label="Sort interfaces">
+          <Select
+            value={sortBy}
+            onValueChange={(v) => setSortBy(v as SortOption)}
+          >
+            <SelectTrigger
+              className="h-9! w-[200px]! text-sm"
+              aria-label="Sort interfaces"
+            >
               <SelectValue>{() => SORT_LABELS[sortBy]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -223,7 +161,10 @@ export function DeviceTable() {
               setCurrentPage(1);
             }}
           >
-            <SelectTrigger className="h-9! w-[130px]! text-sm" aria-label="Items per page">
+            <SelectTrigger
+              className="h-9! w-[130px]! text-sm"
+              aria-label="Items per page"
+            >
               <SelectValue>{() => `${itemsPerPage} per page`}</SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -242,11 +183,18 @@ export function DeviceTable() {
 
       {/* Table body */}
       {filteredData.length === 0 ? (
-        <EmptyState onClear={() => setSearch("")} hasSearch={search.length > 0} />
+        <EmptyState
+          onClear={() => setSearch("")}
+          hasSearch={search.length > 0}
+        />
       ) : (
         <div className="divide-y divide-slate-100/40">
           {paginatedData.map((iface) => (
-            <InterfaceRow key={iface.name} iface={iface} direction={direction} />
+            <InterfaceRow
+              key={iface.name}
+              iface={iface}
+              direction={direction}
+            />
           ))}
         </div>
       )}
@@ -324,11 +272,7 @@ function InterfaceRow({
         )}
 
         {(direction === "all" || direction === "outbound") && (
-          <MetricBlock
-            title="Outbound"
-            color="#3b82f6"
-            data={iface.outbound}
-          />
+          <MetricBlock title="Outbound" color="#3b82f6" data={iface.outbound} />
         )}
       </div>
     </div>
@@ -345,7 +289,9 @@ function MetricBlock({
   data: { current: number; average: number; max: number };
 }) {
   const utilization =
-    data.max > 0 ? Math.min(100, Math.round((data.current / data.max) * 100)) : 0;
+    data.max > 0
+      ? Math.min(100, Math.round((data.current / data.max) * 100))
+      : 0;
 
   const barColor =
     utilization > 85 ? "#f43f5e" : utilization > 60 ? "#f59e0b" : color;
@@ -362,7 +308,9 @@ function MetricBlock({
             {title}
           </span>
         </div>
-        <span className="text-[11px] text-slate-400">{utilization}% of max</span>
+        <span className="text-[11px] text-slate-400">
+          {utilization}% of max
+        </span>
       </div>
 
       <div className="grid grid-cols-3 gap-4 text-sm mb-3">
