@@ -1,3 +1,20 @@
+import { LucideIcon } from "lucide-react";
+
+export type NavLink = {
+  name: string;
+  icon: LucideIcon;
+  href: string;
+  roles?: string[];
+  subMenu?: never;
+};
+
+export type NavSubMenu = {
+  name: string;
+  icon: LucideIcon;
+  href?: never;
+  subMenu: NavLink[];
+  roles?: string[];
+};
 export interface DailyConsumption {
   clientName: string;
   consumptionDay: string;
@@ -16,13 +33,22 @@ export interface ChartData {
   up: number;
   down: number;
 }
-
-export interface User {
-  email: string;
+export interface RoleTypes {
   id: string;
-  name: string;
-  password: string;
   role: string;
+  created_at: string;
+}
+export interface User {
+  created_at?: string;
+  email: string;
+  firstname: string;
+  id: string;
+  lastname: string;
+  middlename?: string;
+  password?: string;
+  roles: RoleTypes;
+  suffix?: string;
+  name: string;
   username: string;
 }
 
@@ -77,14 +103,25 @@ export interface SnmpVarbind {
   value: string | number | bigint | Buffer;
 }
 
-export interface InterfaceInfo {
-  index: number;
-  name: string;
-  speed: number;
-}
-
 export interface InterfaceTraffic {
   index: number;
-  inOctets: bigint;
-  outOctets: bigint;
+  inOctets: number;
+  outOctets: number;
+}
+
+export interface InterfaceDiscovery {
+  index: number;
+  name: string;
+}
+
+export interface NetworkInterface {
+  index: number;
+  name: string;
+  adminStatus: number;
+  operStatus: number;
+  speedMbps: number;
+  inOctets: number;
+  outOctets: number;
+  inErrors: number;
+  outErrors: number;
 }

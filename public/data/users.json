@@ -4,7 +4,7 @@
     "username": "paramz",
     "name": "Ramel Panis",
     "email": "ramel.panis@ricklee.com.ph",
-    "role": "superadmin",
+    "roles": { "id": 1, "role": "superadmin" },
     "password": "super@dmin101"
   },
   {
@@ -12,7 +12,7 @@
     "username": "nikolnet",
     "name": "Nichole Anne Joser",
     "email": "nichole.joser@ricklee.com.ph",
-    "role": "admin",
+    "roles": { "id": 1, "role": "admin" },
     "password": "nikol"
   }
 ]
