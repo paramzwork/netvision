@@ -26,7 +26,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-
+    console.log(body);
     // Validate required fields
     if (!body.firstname || !body.email || !body.password || !body.roleId) {
       return NextResponse.json(
@@ -61,7 +61,11 @@ export async function POST(req: Request) {
         lastname: body.lastname,
         email: body.email,
         password: hashedPassword,
-        role_id: body.roleId,
+        roles: {
+          connect: {
+            id: body.roleId,
+          },
+        },
       },
     });
     return NextResponse.json(

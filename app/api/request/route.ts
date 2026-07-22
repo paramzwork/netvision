@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     return response;
   } else if (reqType === "sign-out") {
     const cookieStore = await cookies();
-    const kill = tripleEncode("paramz");
+    const kill = tripleEncode("kill");
     // Delete cookie
     cookieStore.set(kill, "", {
       httpOnly: true,
@@ -158,6 +158,7 @@ export async function POST(req: NextRequest) {
       expires: new Date(0),
     });
     cookieStore.delete(kill);
+    cookieStore.delete("token");
     cookieStore.delete("Cacti");
     cookieStore.delete("cacti_remembers");
     return NextResponse.json({ message: "Logged out successfully" });

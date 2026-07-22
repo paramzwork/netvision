@@ -30,29 +30,30 @@ export const menuItems: MenuItem[] = [
     name: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard",
-    roles: ["admin", "superadmin"],
+    roles: ["user", "admin", "super admin"],
   },
   {
     name: "Devices",
     icon: Monitor,
     href: "/devices",
-    roles: ["admin", "superadmin"],
+    roles: ["admin", "super admin"],
   },
   {
     name: "Users",
     icon: UserIcon,
     href: "/management/users",
-    roles: ["admin", "superadmin"],
+    roles: ["admin", "super admin"],
   },
   {
     name: "System", // Renamed to avoid duplicate name conflict
     icon: Server,
+    roles: ["admin", "super admin"],
     subMenu: [
       {
         name: "Test page",
         icon: BarChart,
         href: "/dsadf",
-        roles: ["superadmin"],
+        roles: ["admin", "super admin"],
       },
     ],
   },
@@ -85,7 +86,8 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
   };
   const filteredMenu = menuItems.filter(
     (item) =>
-      !item.roles || item.roles.includes(currentUser?.roles?.role ?? ""),
+      !item.roles ||
+      item.roles.includes(currentUser?.roles?.role.toLowerCase() ?? ""),
   );
   const defaultItem = menuItems.find((item) =>
     item.subMenu?.some((sub) => pathname.startsWith(sub.href)),

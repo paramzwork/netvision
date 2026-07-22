@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/lib/generated/prisma/client";
+import { tripleEncode } from "@/lib/utils";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     if (!username || !password) {
       return NextResponse.json(
         { message: "Username and password are required." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -36,19 +37,16 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json(
         { message: "Invalid email or password." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    const isValidPassword = await bcrypt.compare(
-      password,
-      user.password ?? ""
-    );
+    const isValidPassword = await bcrypt.compare(password, user.password ?? "");
 
     if (!isValidPassword) {
       return NextResponse.json(
         { message: "Invalid email or password." },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -61,7 +59,7 @@ export async function POST(req: Request) {
       JWT_SECRET,
       {
         expiresIn: "1h",
-      }
+      },
     );
 
     const response = NextResponse.json({
@@ -74,8 +72,8 @@ export async function POST(req: Request) {
         role: user.roles.role,
       },
     });
-
-    response.cookies.set("token", token, {
+    const kill = tripleEncode("kill");
+    response.cookies.set(kill, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -89,7 +87,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { message: "Internal Server Error." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

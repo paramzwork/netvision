@@ -5,11 +5,17 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import AddUserForm from "./AddUserForm";
+import { RoleTypes } from "@/lib/types";
 interface Props {
   openUserForm: boolean;
+  roleData: RoleTypes[];
   setOpenUserForm: React.Dispatch<React.SetStateAction<boolean>>;
 }
-export function AddUserFormModal({ openUserForm, setOpenUserForm }: Props) {
+export function AddUserFormModal({
+  openUserForm,
+  roleData,
+  setOpenUserForm,
+}: Props) {
   return (
     <Drawer
       open={openUserForm}
@@ -21,7 +27,7 @@ export function AddUserFormModal({ openUserForm, setOpenUserForm }: Props) {
           <DrawerTitle>Create New User</DrawerTitle>
         </DrawerHeader>
         <div className="flex-1 p-4">
-          <AddUserForm />
+          <AddUserForm roleData={roleData} setOpenUserForm={setOpenUserForm} />
         </div>
         {/* <DrawerFooter>
           <DrawerClose render={<Button>Close</Button>} />

@@ -15,7 +15,7 @@ const prisma = new PrismaClient({
  */
 export interface AuthTokenPayload extends JwtPayload {
   id: string;
-  username: string;
+  email: string;
   role: string;
 }
 
@@ -54,7 +54,7 @@ export function verifyToken(token: string): AuthTokenPayload | null {
 
 
 export async function getCurrentUser() {
-  const token = (await cookies()).get("WTBkR2VWbFhNVFk9")?.value;
+  const token = (await cookies()).get("WVRKc2MySkJQVDA9")?.value;
 
   if (!token) {
     return null;

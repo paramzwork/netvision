@@ -117,6 +117,7 @@ export default function UsersManagementPage() {
         />
         {/* User Form Modal */}
         <AddUserFormModal
+          roleData={roleData}
           openUserForm={openUserForm}
           setOpenUserForm={setOpenUserForm}
         />
