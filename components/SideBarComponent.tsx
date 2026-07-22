@@ -10,6 +10,7 @@ import {
   LogOut,
   Server,
   BarChart,
+  Monitor,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -30,6 +31,12 @@ export const menuItems = [
   },
   {
     name: "Devices",
+    icon: Monitor, // Main icon for the category
+    href: "/devices",
+    roles: ["admin", "superadmin"],
+  },
+  {
+    name: "DevicesTEST",
     icon: Server, // Main icon for the category
     href: "/terminal-nodes", // Parent link can go to the overview
     roles: ["superadmin"],
