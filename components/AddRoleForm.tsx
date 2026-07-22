@@ -1,12 +1,24 @@
 "use client";
 
+import { RoleTypes } from "@/lib/types";
+import { tripleDecode, tripleEncode } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "sonner";
-
-export default function AddRoleForm() {
+interface Props {
+  type: string;
+  data: RoleTypes | null;
+  setData: React.Dispatch<React.SetStateAction<RoleTypes[]>>;
+  setOpenRoleForm: React.Dispatch<React.SetStateAction<boolean>>;
+}
+export default function AddRoleForm({
+  type,
+  data,
+  setData,
+  setOpenRoleForm,
+}: Props) {
   const [loading, setLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState({
-    role: "",
+    role: data?.role ?? "",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -32,13 +44,16 @@ export default function AddRoleForm() {
 
     try {
       setLoading(true);
-      const res = await fetch("/api/users/role", {
-        method: "POST",
+      const id = tripleEncode(String(data?.id));
+      const url =
+        type === "create" ? "/api/users/role" : `/api/users/role/${id}`;
+      const res = await fetch(url, {
+        method: type === "create" ? "POST" : "PUT",
         body: JSON.stringify(formData),
       });
-      const data = await res.json();
+      const resData = await res.json();
       if (!res.ok) {
-        toast.error(data.message);
+        toast.error(resData.message);
         setLoading(false);
         return;
       }
@@ -46,7 +61,23 @@ export default function AddRoleForm() {
         role: "",
       });
       setLoading(false);
-      toast.success(data.message);
+      if (type === "edit") {
+        setOpenRoleForm(false);
+        const decodedID = tripleDecode(resData.data);
+        setData((prev) =>
+          prev.map((role) =>
+            String(role.id) === decodedID
+              ? {
+                  ...role,
+                  role: resData.role,
+                  createdAt: resData.createdAt,
+                  updatedAt: resData.updatedAt,
+                }
+              : role,
+          ),
+        );
+      }
+      toast.success(resData.message);
     } catch {
       toast.error("Internal Server Error.", {
         description: "Server error please contact admin.",
@@ -57,7 +88,9 @@ export default function AddRoleForm() {
 
   return (
     <div className="max-w-3xl mx-auto bg-white dark:bg-zinc-900 border rounded-lg shadow-sm p-8">
-      <h2 className="text-xl font-semibold mb-6">Add New Role</h2>
+      <h2 className="text-xl font-semibold mb-6">
+        {type === "create" ? "Add" : "Update"} New Role
+      </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name Fields */}
@@ -83,7 +116,9 @@ export default function AddRoleForm() {
             disabled={loading}
             className="bg-blue-600 text-white px-5 py-2 rounded-md text-sm hover:bg-blue-700 transition cursor-pointer"
           >
-            {loading ? "Processing..." : "Create Role"}
+            {loading
+              ? "Processing..."
+              : `${type === "create" ? "Create" : "Update"} Role`}
           </button>
         </div>
       </form>

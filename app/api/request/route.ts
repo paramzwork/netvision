@@ -1,9 +1,7 @@
-import { signToken } from "../../../lib/auth";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { getUserByCredentials } from "@/lib/users";
 export const runtime = "nodejs";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -56,14 +54,7 @@ export async function POST(req: NextRequest) {
   const reqType = searchParams.get("type");
 
   if (reqType === "sign-in") {
-    const { username, password } = await req.json();
-    const user = getUserByCredentials(username, password);
-    if (!user) {
-      return NextResponse.json(
-        { message: "Invalid credentials" },
-        { status: 401 },
-      );
-    }
+  
     const targetUrl = "http://10.0.3.161/cacti/index.php";
 
     // First GET request
@@ -83,11 +74,7 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
-    const token = signToken({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-    });
+   
     const form = new URLSearchParams();
 
     form.append("__csrf_magic", csrf);
@@ -122,18 +109,6 @@ export async function POST(req: NextRequest) {
     console.log("SET COOKIE", setCookie);
     console.log("CACTI COOKIE", cactiCookie);
     console.log("REMEMBER COOKIE", rememberCookie);
-    const kill = tripleEncode("paramz");
-
-    const logEntry = {
-      userId: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      timestamp: new Date().toLocaleString("en-PH", {
-        timeZone: "Asia/Manila",
-      }),
-    };
 
     const dir = path.join(process.cwd(), "public/data/logs/logins");
     fs.mkdirSync(dir, { recursive: true });
@@ -146,18 +121,10 @@ export async function POST(req: NextRequest) {
       logs = JSON.parse(fs.readFileSync(logsPath, "utf8"));
     }
 
-    logs.push(logEntry);
 
     fs.writeFileSync(logsPath, JSON.stringify(logs, null, 2));
 
     const response = NextResponse.json({ message: "Sign in successful" });
-
-    response.cookies.set(kill, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
 
     if (cactiCookie) {
       response.cookies.set("Cacti", cactiCookie, {

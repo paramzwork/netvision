@@ -23,7 +23,7 @@ export default function SignInComponent() {
     setLoading(true);
     const toastID = toast.loading("Signing in..");
     try {
-      const res = await fetch("/api/request?type=sign-in", {
+      const res = await fetch("/api/auth/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

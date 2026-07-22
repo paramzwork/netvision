@@ -7,10 +7,9 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { User } from "@/lib/types";
-import AddUserForm from "./AddUserForm";
+import { UserTypes } from "@/lib/types";
 interface Props {
-  selectedUser: User;
+  selectedUser: UserTypes;
   openDrawer: boolean;
   setOpenDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 }

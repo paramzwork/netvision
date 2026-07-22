@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client/extension";
 import bcrypt from "bcrypt";
+import { PrismaClient } from "@/lib/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL!,
+});
 
+const prisma = new PrismaClient({
+  adapter,
+});
 export async function GET() {
-  const users = await prisma.user.findMany({
+  const users = await prisma.users.findMany({
     include: {
-      role: true,
+      roles: true,
     },
     orderBy: {
       id: "desc",
@@ -30,7 +36,7 @@ export async function POST(req: Request) {
     }
 
     // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: {
         email: body.email,
       },
@@ -47,17 +53,17 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(body.password, 10);
 
     // Create user
-    await prisma.user.create({
+    await prisma.users.create({
       data: {
+        username: body.username,
         firstname: body.firstname,
         middlename: body.middlename,
         lastname: body.lastname,
         email: body.email,
         password: hashedPassword,
-        roleId: body.roleId,
+        role_id: body.roleId,
       },
     });
-
     return NextResponse.json(
       {
         message: "User created successfully.",

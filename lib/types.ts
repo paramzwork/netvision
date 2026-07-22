@@ -34,24 +34,23 @@ export interface ChartData {
   down: number;
 }
 export interface RoleTypes {
-  id: string;
+  id: number;
   role: string;
-  created_at: string;
+  createdAt: Date;
+  updatedAt: Date | null;
 }
-export interface User {
-  created_at?: string;
-  email: string;
-  firstname: string;
-  id: string;
-  lastname: string;
-  middlename?: string;
-  password?: string;
-  roles: RoleTypes;
-  suffix?: string;
-  name: string;
+export interface UserTypes {
+  id: number;
   username: string;
+  email: string | null;
+  firstname: string | null;
+  middlename?: string | null;
+  lastname: string | null;
+  suffix?: string | null;
+  createdAt: Date;
+  updatedAt: Date | null;
+  roles: RoleTypes;
 }
-
 export interface Log {
   userId: string;
   name: string;

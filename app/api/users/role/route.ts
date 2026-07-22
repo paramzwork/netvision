@@ -1,5 +1,5 @@
-import { PrismaClient } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
+import { PrismaClient } from "@/lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({
@@ -11,9 +11,6 @@ const prisma = new PrismaClient({
 });
 export async function GET() {
   const roles = await prisma.roles.findMany({
-    include: {
-      role: true,
-    },
     orderBy: {
       id: "desc",
     },

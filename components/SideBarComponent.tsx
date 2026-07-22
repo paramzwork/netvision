@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { NavLink, NavSubMenu, User } from "@/lib/types";
+import { NavLink, NavSubMenu, UserTypes } from "@/lib/types";
 import Image from "next/image";
 
 export type MenuItem = NavLink | NavSubMenu;
@@ -58,7 +58,7 @@ export const menuItems: MenuItem[] = [
   },
 ];
 interface SidebarProps {
-  currentUser: Partial<User> | null;
+  currentUser: Partial<UserTypes> | null;
 }
 export default function SidebarComponent({ currentUser }: SidebarProps) {
   const [collapsed, setCollapsed] = useState<boolean>(false);
@@ -84,7 +84,8 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
     }
   };
   const filteredMenu = menuItems.filter(
-    (item) => !item.roles || item.roles.includes(currentUser?.roles?.role ?? ""),
+    (item) =>
+      !item.roles || item.roles.includes(currentUser?.roles?.role ?? ""),
   );
   const defaultItem = menuItems.find((item) =>
     item.subMenu?.some((sub) => pathname.startsWith(sub.href)),
@@ -317,12 +318,12 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
         <div className="px-4 py-4 border-t border-gray-200">
           <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl">
             <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow">
-              {currentUser?.name?.charAt(0) ?? "U"}
+              {currentUser?.firstname?.charAt(0) ?? "U"}
             </div>
 
             <div className="flex-1 min-w-0">
               <p className="text-gray-900 text-sm font-medium truncate">
-                {currentUser?.name}
+                {currentUser?.firstname}
               </p>
               <p className="text-gray-500 text-xs capitalize">
                 {currentUser?.roles?.role}

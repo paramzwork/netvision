@@ -1,11 +1,10 @@
 import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
 import { DataProvider } from "@/context/DataContext";
 import { redirect } from "next/navigation";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import HeaderComponent from "@/components/HeaderComponent";
 import SidebarComponent from "@/components/SideBarComponent";
-import { getUserById } from "@/lib/users";
+import { getCurrentUser } from "@/lib/auth";
 
 export default async function DashboardLayout({
   children,
@@ -18,13 +17,8 @@ export default async function DashboardLayout({
     redirect("/");
   }
   let currentUser = null;
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      id: string;
-    };
-
-    currentUser = getUserById(decoded.id);
+     currentUser = await getCurrentUser();
 
     if (!currentUser) {
       redirect("/");

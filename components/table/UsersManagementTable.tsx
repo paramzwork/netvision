@@ -12,11 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
-import { User } from "@/lib/types";
+import { UserTypes } from "@/lib/types";
 
 interface Props {
-  users: User[];
-  setSelectedUser: React.Dispatch<React.SetStateAction<User>>;
+  users: UserTypes[];
+  setSelectedUser: React.Dispatch<React.SetStateAction<UserTypes>>;
   setOpenDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
@@ -25,7 +25,7 @@ export default function UsersManagementTable({
   setSelectedUser,
   setOpenDrawer,
 }: Props) {
-  const handleSelectedUser = async (value: User) => {
+  const handleSelectedUser = async (value: UserTypes) => {
     setSelectedUser(value);
     setOpenDrawer(true);
   };
@@ -71,8 +71,8 @@ export default function UsersManagementTable({
                 </TableCell>
 
                 <TableCell>
-                  {user.created_at
-                    ? new Date(user.created_at).toLocaleDateString()
+                  {user.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString()
                     : "—"}
                 </TableCell>
 
