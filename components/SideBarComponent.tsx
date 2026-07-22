@@ -11,6 +11,7 @@ import {
   Server,
   BarChart,
   Monitor,
+  UserIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -19,38 +20,46 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { User } from "@/lib/types";
+import { NavLink, NavSubMenu, UserTypes } from "@/lib/types";
 import Image from "next/image";
 
-export const menuItems = [
+export type MenuItem = NavLink | NavSubMenu;
+
+export const menuItems: MenuItem[] = [
   {
     name: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard",
-    roles: ["admin", "superadmin"],
+    roles: ["user", "admin", "super admin"],
   },
   {
     name: "Devices",
-    icon: Monitor, // Main icon for the category
+    icon: Monitor,
     href: "/devices",
-    roles: ["admin", "superadmin"],
+    roles: ["admin", "super admin"],
   },
   {
-    name: "DevicesTEST",
-    icon: Server, // Main icon for the category
-    href: "/terminal-nodes", // Parent link can go to the overview
-    roles: ["superadmin"],
+    name: "Users",
+    icon: UserIcon,
+    href: "/management/users",
+    roles: ["admin", "super admin"],
+  },
+  {
+    name: "System", // Renamed to avoid duplicate name conflict
+    icon: Server,
+    roles: ["admin", "super admin"],
     subMenu: [
       {
         name: "Test page",
-        icon: BarChart, // Or a more specific icon
-        href: "#", // Page to view all node data
+        icon: BarChart,
+        href: "/dsadf",
+        roles: ["admin", "super admin"],
       },
     ],
   },
 ];
 interface SidebarProps {
-  currentUser: Partial<User> | null;
+  currentUser: Partial<UserTypes> | null;
 }
 export default function SidebarComponent({ currentUser }: SidebarProps) {
   const [collapsed, setCollapsed] = useState<boolean>(false);
@@ -76,7 +85,9 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
     }
   };
   const filteredMenu = menuItems.filter(
-    (item) => !item.roles || item.roles.includes(currentUser?.role ?? ""),
+    (item) =>
+      !item.roles ||
+      item.roles.includes(currentUser?.roles?.role.toLowerCase() ?? ""),
   );
   const defaultItem = menuItems.find((item) =>
     item.subMenu?.some((sub) => pathname.startsWith(sub.href)),
@@ -116,7 +127,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
           <div>
             <h1 className=" font-semibold text-lg tracking-wide">NetVision</h1>
             <p className="text-gray-300 text-xs tracking-wide capitalize">
-              {currentUser?.role} Dashboard
+              {currentUser?.roles?.role} Dashboard
             </p>
           </div>
         )}
@@ -157,39 +168,33 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
           className="space-y-1"
         >
           {filteredMenu.map((item) => {
-            const hasSubMenu = item.subMenu?.length;
-            const isActive =
-              pathname === item.href ||
-              item.subMenu?.some((sub) => pathname.startsWith(sub.href));
+            /* ================= NO SUBMENU (Standard Link) ================= */
+            // TypeScript Type Guard: If 'href' exists, it MUST be a NavLink type
+            if (item.href) {
+              const isActive = pathname === item.href;
 
-            /* ================= NO SUBMENU ================= */
-            if (!hasSubMenu) {
               return (
                 <Link
                   key={item.name}
-                  href={item.href}
+                  href={item.href} // TypeScript now knows 100% this is a string!
                   className={`
-                group flex items-center gap-3
-                ${collapsed ? "justify-center px-0" : "px-2"}
-                py-3 rounded-xl relative
-                transition-all duration-200
-                ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-600 font-medium"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }
-              `}
+            group flex items-center gap-3
+            ${collapsed ? "justify-center px-0" : "px-2"}
+            py-3 rounded-xl relative
+            transition-all duration-200
+            ${
+              isActive
+                ? "bg-indigo-50 text-indigo-600 font-medium"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            }
+          `}
                 >
                   <div
                     className={`
-                  flex items-center justify-center rounded-lg shrink-0
-                  ${collapsed ? "w-10 h-10" : "w-9 h-9"}
-                  ${
-                    isActive
-                      ? "bg-indigo-100"
-                      : "bg-gray-100 group-hover:bg-gray-200"
-                  }
-                `}
+              flex items-center justify-center rounded-lg shrink-0
+              ${collapsed ? "w-10 h-10" : "w-9 h-9"}
+              ${isActive ? "bg-indigo-100" : "bg-gray-100 group-hover:bg-gray-200"}
+            `}
                   >
                     <item.icon
                       className={`${collapsed ? "w-5 h-5" : "w-4 h-4"}`}
@@ -210,7 +215,12 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
               );
             }
 
-            /* ================= WITH SUBMENU ================= */
+            /* ================= WITH SUBMENU (Accordion) ================= */
+            // Since item.href is undefined, TypeScript knows this MUST be a NavSubMenu type
+            const isActive = item.subMenu?.some((sub) =>
+              pathname.startsWith(sub.href),
+            );
+
             return (
               <AccordionItem
                 key={item.name}
@@ -219,27 +229,23 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
               >
                 <AccordionTrigger
                   className={`
-                group flex items-center gap-3
-                ${collapsed ? "justify-center px-0" : "px-2"}
-                py-3 rounded-xl hover:no-underline
-                transition-all duration-200
-                ${
-                  isActive
-                    ? "bg-indigo-50 text-indigo-600 font-medium"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }
-              `}
+            group flex items-center gap-3
+            ${collapsed ? "justify-center px-0" : "px-2"}
+            py-3 rounded-xl hover:no-underline
+            transition-all duration-200
+            ${
+              isActive
+                ? "bg-indigo-50 text-indigo-600 font-medium"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            }
+          `}
                 >
                   <div
                     className={`
-                  flex items-center justify-center rounded-lg shrink-0
-                  ${collapsed ? "w-10 h-10" : "w-9 h-9"}
-                  ${
-                    isActive
-                      ? "bg-indigo-100"
-                      : "bg-gray-100 group-hover:bg-gray-200"
-                  }
-                `}
+              flex items-center justify-center rounded-lg shrink-0
+              ${collapsed ? "w-10 h-10" : "w-9 h-9"}
+              ${isActive ? "bg-indigo-100" : "bg-gray-100 group-hover:bg-gray-200"}
+            `}
                   >
                     <item.icon
                       className={`${collapsed ? "w-5 h-5" : "w-4 h-4"}`}
@@ -269,14 +275,14 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                           key={sub.name}
                           href={sub.href}
                           className={`
-                        flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
-                        transition-all duration-200
-                        ${
-                          isSubActive
-                            ? "bg-indigo-50 text-indigo-600 border-l-2 border-indigo-500"
-                            : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 border-l-2 border-transparent"
-                        }
-                      `}
+                    flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                    transition-all duration-200
+                    ${
+                      isSubActive
+                        ? "bg-indigo-50 text-indigo-600 border-l-2 border-indigo-500"
+                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 border-l-2 border-transparent"
+                    }
+                  `}
                         >
                           <sub.icon className="w-4 h-4 shrink-0 opacity-70" />
                           <span className="font-lexend text-sm">
@@ -314,15 +320,15 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
         <div className="px-4 py-4 border-t border-gray-200">
           <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl">
             <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow">
-              {currentUser?.name?.charAt(0) ?? "U"}
+              {currentUser?.firstname?.charAt(0) ?? "U"}
             </div>
 
             <div className="flex-1 min-w-0">
               <p className="text-gray-900 text-sm font-medium truncate">
-                {currentUser?.name}
+                {currentUser?.firstname}
               </p>
               <p className="text-gray-500 text-xs capitalize">
-                {currentUser?.role}
+                {currentUser?.roles?.role}
               </p>
             </div>
           </div>

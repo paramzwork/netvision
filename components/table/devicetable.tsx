@@ -40,7 +40,7 @@ const SORT_LABELS: Record<SortOption, string> = {
 };
 
 export function DeviceTable() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState<string>("");
   const [direction, setDirection] = useState<Direction>("all");
   const [sortBy, setSortBy] = useState<SortOption>("none");
   const [itemsPerPage, setItemsPerPage] = useState(5);
