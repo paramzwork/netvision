@@ -98,20 +98,24 @@ const TOP_INTERFACES = [...baseInterfaces]
   )
   .slice(0, 10);
 
+// Matches the accent colors already used across the dashboard
+// (sky = Core Router / HTTP-HTTPS, indigo/violet = Edge Switch / DNS,
+// emerald = SSH, amber = SNMP, red = alerts, plus a few more in the
+// same family for interfaces beyond the first five).
 const CHART_COLORS = [
-  "#fca5a5",
-  "#93c5fd",
-  "#6ee7b7",
-  "#fcd34d",
-  "#c4b5fd",
-  "#f9a8d4",
-  "#67e8f9",
-  "#d9f99d",
-  "#fdba74",
-  "#a5b4fc",
+  "#38bdf8", // sky
+  "#818cf8", // indigo
+  "#34d399", // emerald
+  "#fbbf24", // amber
+  "#f87171", // red
+  "#a78bfa", // violet
+  "#22d3ee", // cyan
+  "#fb923c", // orange
+  "#4ade80", // green
+  "#94a3b8", // slate
 ];
 
-type DataPoint = { timestamp: number } & Record<string, number>;
+type DataPoint = { timestamp: number } & Record<string, number | string>;
 
 function generateSeries(
   anchor: number,
@@ -311,15 +315,10 @@ function ChartContent({
           return (
             <div
               key={iface.name}
-              className="relative rounded-xl overflow-hidden border border-slate-100"
-              style={{ background: `${color}08`, height: cellHeight }}
+              className="relative rounded-xl overflow-hidden border border-slate-200"
+              style={{ background: "#ffffff", height: cellHeight }}
             >
-              <div
-                className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2"
-                style={{
-                  background: `linear-gradient(to bottom, ${color}22, transparent)`,
-                }}
-              >
+              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2">
                 <span
                   className="text-xs font-semibold px-2 py-0.5 rounded-full"
                   style={{ color: "#fff", background: `${color}cc` }}
@@ -351,7 +350,7 @@ function ChartContent({
                   <XAxis dataKey="label" hide />
                   <YAxis hide />
                   <Tooltip
-                    formatter={(value: number) => [`${value} G`, iface.name]}
+                    formatter={(value) => [`${Number(value)} G`, iface.name]}
                     contentStyle={{
                       fontSize: 11,
                       padding: "4px 8px",
@@ -548,7 +547,7 @@ export function TrafficChart() {
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
       <Select value={preset} onValueChange={(v) => setPreset(v as PresetKey)}>
         <SelectTrigger
-          className="h-9! w-[200px]! text-sm"
+          className="h-9! w-50! text-sm"
           aria-label="Select a preset time range"
         >
           <SelectValue>{() => PRESET_LABELS[preset]}</SelectValue>
@@ -570,7 +569,7 @@ export function TrafficChart() {
         onValueChange={(v) => setGraphLimit(Number(v))}
       >
         <SelectTrigger
-          className="h-9! w-[200px]! text-sm"
+          className="h-9! w-50! text-sm"
           aria-label="Limit number of interfaces shown"
         >
           <SelectValue>{() => `Graph Limit: ${graphLimit}`}</SelectValue>
@@ -758,7 +757,7 @@ export function TrafficChart() {
               onValueChange={(v) => setPreset(v as PresetKey)}
             >
               <SelectTrigger
-                className="h-9! w-[200px]! text-sm"
+                className="h-9! w-50! text-sm"
                 aria-label="Select a preset time range"
               >
                 <SelectValue>{() => PRESET_LABELS[preset]}</SelectValue>
@@ -784,7 +783,7 @@ export function TrafficChart() {
               onValueChange={(v) => setGraphLimit(Number(v))}
             >
               <SelectTrigger
-                className="h-9! w-[200px]! text-sm"
+                className="h-9! w-50! text-sm"
                 aria-label="Limit number of interfaces shown"
               >
                 <SelectValue>{() => `Graph Limit: ${graphLimit}`}</SelectValue>
