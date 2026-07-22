@@ -22,13 +22,15 @@ export default function SignInComponent() {
     e.preventDefault();
     setLoading(true);
     const toastID = toast.loading("Signing in..");
+    const newUsername = username.trim();
+    const newPassword = password.trim();
     try {
       const res = await fetch("/api/auth/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: newUsername, password: newPassword }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -156,7 +158,7 @@ export default function SignInComponent() {
           <p className="text-center text-sm text-muted-foreground mt-6 ">
             Don’t have an account?{" "}
             <Link href="#" className="text-primary hover:underline">
-              BLEEEE😜
+              Contact Admin
             </Link>
           </p>
         </CardContent>
