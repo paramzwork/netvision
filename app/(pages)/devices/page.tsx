@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DeviceTable } from "@/components/table/devicetable";
 import Image from "next/image";
 
-export default function DashboardPage() {
+export default function DevicesPage() {
   const { cactiDevice } = useData();
   const [graph, setGraph] = useState<CactiGraph | null>(null);
   const [selectedDevice, setSelectedDevice] = useState<CactiDevice>({
