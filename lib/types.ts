@@ -44,7 +44,7 @@ export interface UserTypes {
   username: string;
   email: string | null;
   firstname: string | null;
-  middlename?: string | null;
+  password: string | null;
   lastname: string | null;
   suffix?: string | null;
   createdAt: Date;
@@ -81,6 +81,20 @@ export interface CactiDevice {
   availability: string;
 }
 // SNMP
+
+export interface DeviceInfoTypes {
+  sysContact: string;
+  sysDescr: string;
+  sysLocation: string;
+  sysName: string;
+  sysObjectID: string;
+  ipAddress: string;
+}
+export interface SnmpResult {
+  oid: string;
+  value: string;
+  type: number;
+}
 export interface SnmpData {
   hostname: string;
   description: string;

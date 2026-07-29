@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import UsersManagementTable from "@/components/table/UsersManagementTable";
-import { DrawerNonModal } from "@/components/DrawerNonModal";
 import { RoleTypes, UserTypes } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -12,7 +11,8 @@ import { AddRoleFormModal } from "@/components/AddRoleFormModal";
 import { toast } from "sonner";
 
 export default function UsersManagementPage() {
-  const [openDrawer, setOpenDrawer] = useState<boolean>(false);
+  const [userData, setUserData] = useState<UserTypes[]>([]);
+  const [userFormType, setUserFormType] = useState<string>("");
   const [openUserForm, setOpenUserForm] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<UserTypes>({
     createdAt: new Date(),
@@ -21,12 +21,15 @@ export default function UsersManagementPage() {
     firstname: "",
     id: 0,
     lastname: "",
-    middlename: "",
+    password: "",
     roles: { id: 0, role: "", createdAt: new Date(), updatedAt: new Date() },
     suffix: "",
     username: "",
   });
-
+  const handleUserForm = async (type: string) => {
+    setUserFormType(type);
+    setOpenUserForm(true);
+  };
   const [roleData, setRoleData] = useState<RoleTypes[]>([]);
   const [openRoleForm, setOpenRoleForm] = useState<boolean>(false);
   const [roleFormType, setRoleFormType] = useState<string>("");
@@ -39,13 +42,20 @@ export default function UsersManagementPage() {
   };
   const fetchData = async () => {
     try {
-      const res = await fetch("/api/users/role", { method: "GET" });
-      const data = await res.json();
-      if (!res.ok) {
+      const [resUser, resRole] = await Promise.all([
+        fetch("/api/users", { method: "GET" }),
+        fetch("/api/users/role", { method: "GET" }),
+      ]);
+      const [resUData, resRData] = await Promise.all([
+        resUser.json(),
+        resRole.json(),
+      ]);
+      if (!resUser.ok || !resRole.ok) {
         toast.error("Failed to load data.");
         return;
       }
-      setRoleData(data);
+      setUserData(resUData);
+      setRoleData(resRData);
     } catch {
       toast.error("Internal Server Error.", {
         description: "Server error please contact admin.",
@@ -57,66 +67,29 @@ export default function UsersManagementPage() {
     hasMountedRef.current = true;
     fetchData();
   });
-  const mockUsers: UserTypes[] = [
-    {
-      id: 1,
-      username: "johndoe",
-      firstname: "John",
-      middlename: "",
-      lastname: "Doe",
-      email: "john@example.com",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      roles: {
-        id: 2,
-        role: "Admin",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      suffix: "Jr.",
-    },
-    {
-      id: 2,
-      username: "johndoe",
-      firstname: "Jane",
-      middlename: "",
-      lastname: "Smith",
-      email: "jane@example.com",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      roles: {
-        id: 2,
-        role: "Admin",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      suffix: "Jr.",
-    },
-  ];
+
   return (
     <div className="flex flex-col justify-center gap-10 font-lexend">
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">User Management</h1>
         <Button
           className="cursor-pointer font-lexend"
-          onClick={() => setOpenUserForm(true)}
+          onClick={() => handleUserForm("create")}
         >
           <Plus className="shrink-0 w-5 h-5" />
           Create User
         </Button>
         <UsersManagementTable
-          users={mockUsers}
+          users={userData}
+          setUserData={setUserData}
           setSelectedUser={setSelectedUser}
-          setOpenDrawer={setOpenDrawer}
-        />
-        {/* View User Information */}
-        <DrawerNonModal
-          selectedUser={selectedUser}
-          openDrawer={openDrawer}
-          setOpenDrawer={setOpenDrawer}
+          setOpenDrawer={setOpenUserForm}
+          setUserFormType={setUserFormType}
         />
         {/* User Form Modal */}
         <AddUserFormModal
+          userFormType={userFormType}
+          selectedUser={selectedUser}
           roleData={roleData}
           openUserForm={openUserForm}
           setOpenUserForm={setOpenUserForm}
@@ -133,6 +106,7 @@ export default function UsersManagementPage() {
         </Button>
         <RolesManagementTable
           roleData={roleData}
+          setRoleData={setRoleData}
           setSelectedRole={setSelectedRole}
           handleForm={handleRoleForm}
         />

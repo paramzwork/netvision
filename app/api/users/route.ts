@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { PrismaClient } from "@/lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -12,8 +12,23 @@ const prisma = new PrismaClient({
 });
 export async function GET() {
   const users = await prisma.users.findMany({
-    include: {
-      roles: true,
+    select: {
+      id: true,
+      username: true,
+      firstname: true,
+      lastname: true,
+      suffix: true,
+      email: true,
+      createdAt: true,
+      updatedAt: true,
+      roles: {
+        select: {
+          id: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
     },
     orderBy: {
       id: "desc",
@@ -23,7 +38,7 @@ export async function GET() {
   return NextResponse.json(users);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log(body);
@@ -57,7 +72,6 @@ export async function POST(req: Request) {
       data: {
         username: body.username,
         firstname: body.firstname,
-        middlename: body.middlename,
         lastname: body.lastname,
         email: body.email,
         password: hashedPassword,

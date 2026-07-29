@@ -1,22 +1,28 @@
 "use client";
 
-import { RoleTypes } from "@/lib/types";
+import { RoleTypes, UserTypes } from "@/lib/types";
 import { useState } from "react";
 import { toast } from "sonner";
 
 interface Props {
   roleData: RoleTypes[];
   setOpenUserForm: React.Dispatch<React.SetStateAction<boolean>>;
+  userFormType: string;
+  data: UserTypes;
 }
-export default function AddUserForm({ roleData, setOpenUserForm }: Props) {
+export default function AddUserForm({
+  roleData,
+  setOpenUserForm,
+  userFormType,
+  data,
+}: Props) {
   const [formData, setFormData] = useState({
-    username: "",
-    firstname: "",
-    middlename: "",
-    lastname: "",
-    email: "",
-    password: "",
-    roleId: 0,
+    username: data.username ?? "",
+    firstname: data.firstname ?? "",
+    lastname: data.lastname ?? "",
+    email: data.email ?? "",
+    password: data.password ?? "",
+    roleId: data.roles.id ?? 0,
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -64,7 +70,6 @@ export default function AddUserForm({ roleData, setOpenUserForm }: Props) {
       setFormData({
         username: "",
         firstname: "",
-        middlename: "",
         lastname: "",
         email: "",
         password: "",
@@ -81,7 +86,9 @@ export default function AddUserForm({ roleData, setOpenUserForm }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto bg-white dark:bg-zinc-900 border rounded-lg shadow-sm p-8">
-      <h2 className="text-xl font-semibold mb-6">Add New User</h2>
+      <h2 className="text-xl font-semibold mb-6">
+        {userFormType === "create" ? "Create" : "Update"} New User
+      </h2>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Name Fields */}
@@ -111,18 +118,6 @@ export default function AddUserForm({ roleData, setOpenUserForm }: Props) {
             {errors.firstname && (
               <p className="text-red-500 text-xs mt-1">{errors.firstname}</p>
             )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Middle Name
-            </label>
-            <input
-              name="middlename"
-              value={formData.middlename}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
 
           <div>
@@ -199,7 +194,7 @@ export default function AddUserForm({ roleData, setOpenUserForm }: Props) {
             type="submit"
             className="bg-blue-600 text-white px-5 py-2 rounded-md text-sm hover:bg-blue-700 transition"
           >
-            Create User
+            {userFormType === "create" ? "Create": "Update"} User
           </button>
         </div>
       </form>

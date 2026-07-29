@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   AreaChart,
   Area,
@@ -26,6 +26,7 @@ import {
   Shield,
   Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 
 /* ─────────────────────────────────────────── */
 /* MOCK DATA — 2 devices                       */
@@ -314,9 +315,28 @@ export default function DashboardPage() {
     (sum, d) => sum + d.interfaces.reduce((s, i) => s + i.outbound.current, 0),
     0,
   );
+  const hasMountedRef = useRef<boolean>(false);
+  const fetchData = async () => {
+    try {
+      const res = await fetch("/api/snmp/interfaces");
+      const resData = await res.json();
+      console.log(resData);
+    } catch {
+      toast.error("Internal Server Error.", {
+        description: "Server error please contact admin.",
+      });
+    }
+  };
+ 
 
+  useEffect(() => {
+    if (hasMountedRef.current) return;
+    hasMountedRef.current = true;
+    fetchData();
+  });
   return (
     <div className="w-full px-6 py-6 space-y-5">
+      
       {/* ── Row 1: Real-time + Device Summary ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Real-time stats card */}
