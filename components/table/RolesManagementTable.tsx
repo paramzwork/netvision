@@ -22,12 +22,14 @@ import EntriesPerPage from "../EntriesPerPage";
 
 interface Props {
   roleData: RoleTypes[];
+  setRoleData: React.Dispatch<React.SetStateAction<RoleTypes[]>>;
   setSelectedRole: React.Dispatch<React.SetStateAction<RoleTypes | null>>;
   handleForm: (type: string) => void;
 }
 
 export default function RolesManagementTable({
   roleData,
+  setRoleData,
   setSelectedRole,
   handleForm,
 }: Props) {
@@ -105,6 +107,7 @@ export default function RolesManagementTable({
         return;
       }
       setConfirmDialog(false);
+      setRoleData((prev) => prev.filter((role) => role.id !== selectedID));
       toast.success(resData.message, { id: toastID });
     } catch {
       setConfirmDialog(false);
@@ -193,12 +196,12 @@ export default function RolesManagementTable({
 
                 <TableCell>
                   {role.createdAt
-                    ? new Date(role.createdAt).toLocaleDateString()
+                    ? new Date(role.createdAt).toLocaleDateString("en-CA")
                     : "—"}
                 </TableCell>
                 <TableCell>
                   {role.updatedAt
-                    ? new Date(role.updatedAt).toLocaleDateString()
+                    ? new Date(role.updatedAt).toLocaleDateString("en-CA")
                     : "—"}
                 </TableCell>
 

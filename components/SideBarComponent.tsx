@@ -47,13 +47,13 @@ export const menuItems: MenuItem[] = [
   {
     name: "System", // Renamed to avoid duplicate name conflict
     icon: Server,
-    roles: ["admin", "super admin"],
+    roles: ["super admin"],
     subMenu: [
       {
-        name: "Test page",
+        name: "Devices",
         icon: BarChart,
-        href: "/dsadf",
-        roles: ["admin", "super admin"],
+        href: "/system/devices",
+        roles: ["super admin"],
       },
     ],
   },
