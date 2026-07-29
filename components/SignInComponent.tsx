@@ -22,13 +22,15 @@ export default function SignInComponent() {
     e.preventDefault();
     setLoading(true);
     const toastID = toast.loading("Signing in..");
+    const newUsername = username.trim();
+    const newPassword = password.trim();
     try {
-      const res = await fetch("/api/request?type=sign-in", {
+      const res = await fetch("/api/auth/signin", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: newUsername, password: newPassword }),
       });
       const data = await res.json();
       if (!res.ok) {

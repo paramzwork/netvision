@@ -12,18 +12,18 @@ export async function GET() {
     const config: SnmpConfig = {
       host: process.env.SNMP_HOST!,
       community: process.env.SNMP_COMMUNITY!,
-      port: 169,
+      port: 161,
     };
     console.log("CONFIG SENT:", config);
 
     const result = await snmpGetMany(config, [
       "1.3.6.1.2.1.1.5.0", // Hostname
-      //   "1.3.6.1.2.1.1.1.0", // Description
-      //   "1.3.6.1.2.1.1.3.0", // Uptime
-      //   "1.3.6.1.2.1.1.4.0", // Contact
-      //   "1.3.6.1.2.1.1.6.0", // Location
+      "1.3.6.1.2.1.1.1.0", // Description
+      "1.3.6.1.2.1.1.3.0", // Uptime
+      "1.3.6.1.2.1.1.4.0", // Contact
+      "1.3.6.1.2.1.1.6.0", // Location
     ]);
-    console.log("RESULT",result);
+    console.log("RESULT", result);
     return NextResponse.json({
       success: true,
       data: {
