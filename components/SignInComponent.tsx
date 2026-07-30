@@ -9,7 +9,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 export default function SignInComponent() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
