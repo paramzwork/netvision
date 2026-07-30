@@ -1,5 +1,4 @@
 "use client";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -12,7 +11,7 @@ import { DeviceInfoTypes } from "@/lib/types";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export default function SystemDevices() {
+export default function WeatherMap() {
   const [descoverIP, setDescoverIP] = useState<string>("");
   const [devices, setDevices] = useState<DeviceInfoTypes[]>([]);
   const fetchDescovery = async () => {
@@ -73,7 +72,9 @@ export default function SystemDevices() {
     }
   };
   return (
-    <div>
+     <div className="space-y-6">
+
+      <h1 className="text-2xl font-bold">Network Overview</h1>
       <input
         type="text"
         className="border"
@@ -135,8 +136,8 @@ export default function SystemDevices() {
             )}
           </TableBody>
         </Table>
-        <Button type="submit">Save</Button>
       </form>
+      <button type="submit">Save</button>
     </div>
   );
 }
