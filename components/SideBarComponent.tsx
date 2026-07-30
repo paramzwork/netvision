@@ -12,6 +12,7 @@ import {
   BarChart,
   Monitor,
   UserIcon,
+  Network,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -36,6 +37,12 @@ export const menuItems: MenuItem[] = [
     name: "Devices",
     icon: Monitor,
     href: "/devices",
+    roles: ["admin", "super admin"],
+  },
+  {
+    name: "Weathermap",
+    icon: Network,
+    href: "/weather/map",
     roles: ["admin", "super admin"],
   },
   {
