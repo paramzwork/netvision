@@ -8,12 +8,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useData } from "@/context/DataContext";
-import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 export default function WeatherMap() {
   const { devices } = useData();
-  const hasMountedRef = useRef<boolean>(false);
 
   const handleSubmitDevices = async (e: React.FormEvent) => {
     e.preventDefault();
