@@ -8,7 +8,7 @@ interface Props {
   roleData: RoleTypes[];
   setOpenUserForm: React.Dispatch<React.SetStateAction<boolean>>;
   userFormType: string;
-  data: UserTypes;
+  data: UserTypes | null;
 }
 export default function AddUserForm({
   roleData,
@@ -17,12 +17,12 @@ export default function AddUserForm({
   data,
 }: Props) {
   const [formData, setFormData] = useState({
-    username: data.username ?? "",
-    firstname: data.firstname ?? "",
-    lastname: data.lastname ?? "",
-    email: data.email ?? "",
-    password: data.password ?? "",
-    roleId: data.roles.id ?? 0,
+    username: data?.username ?? "",
+    firstname: data?.firstname ?? "",
+    lastname: data?.lastname ?? "",
+    email: data?.email ?? "",
+    password: data?.password ?? "",
+    roleId: data?.roles.id ?? 0,
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -194,7 +194,7 @@ export default function AddUserForm({
             type="submit"
             className="bg-blue-600 text-white px-5 py-2 rounded-md text-sm hover:bg-blue-700 transition"
           >
-            {userFormType === "create" ? "Create": "Update"} User
+            {userFormType === "create" ? "Create" : "Update"} User
           </button>
         </div>
       </form>

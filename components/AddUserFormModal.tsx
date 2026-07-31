@@ -11,7 +11,7 @@ interface Props {
   openUserForm: boolean;
   roleData: RoleTypes[];
   setOpenUserForm: React.Dispatch<React.SetStateAction<boolean>>;
-  selectedUser: UserTypes;
+  selectedUser: UserTypes | null;
 }
 export function AddUserFormModal({
   openUserForm,

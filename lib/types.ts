@@ -5,15 +5,15 @@ export type NavLink = {
   icon: LucideIcon;
   href: string;
   roles?: string[];
-  subMenu?: never;
 };
 
-export type NavSubMenu = {
+export type MenuItemTypes = {
   name: string;
   icon: LucideIcon;
-  href?: never;
-  subMenu: NavLink[];
+  href?: string;
+  subMenu?: NavLink[];
   roles?: string[];
+  dynamicDevices?: boolean;
 };
 export interface DailyConsumption {
   clientName: string;
@@ -59,27 +59,6 @@ export interface Log {
   role: string;
   timestamp: string;
 }
-export interface CactiGraph {
-  image: string;
-  image_width: string;
-  image_height: string;
-
-  [key: string]: string | number;
-}
-export interface CactiDevice {
-  description: string;
-  hostname: string;
-  id: string;
-  graphs: string;
-  dataSources: string;
-  status: string;
-  inState: string;
-  uptime: string;
-  pollTime: string;
-  currentMs: string;
-  averageMs: string;
-  availability: string;
-}
 // SNMP
 
 export interface DeviceInfoTypes {
@@ -88,7 +67,11 @@ export interface DeviceInfoTypes {
   sysLocation: string;
   sysName: string;
   sysObjectID: string;
+  uptime: string;
+  pollTime: string;
+  currentMs: string;
   ipAddress: string;
+  status: string;
 }
 export interface SnmpResult {
   oid: string;
@@ -130,6 +113,7 @@ export interface InterfaceDiscovery {
 export interface NetworkInterface {
   index: number;
   name: string;
+  description: string;
   adminStatus: number;
   operStatus: number;
   speedMbps: number;

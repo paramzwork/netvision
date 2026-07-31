@@ -29,7 +29,7 @@ export default async function DashboardLayout({
 
   return (
     <DataProvider>
-      <div className="flex h-screen overflow-hidden bg-gray-50 font-sans">
+      <div className="flex w-full h-screen overflow-hidden bg-gray-50 font-sans">
         <SidebarComponent currentUser={currentUser} />
         <div className="flex flex-col flex-1">
           <HeaderComponent />

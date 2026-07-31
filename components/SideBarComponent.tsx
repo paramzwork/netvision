@@ -21,12 +21,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { NavLink, NavSubMenu, UserTypes } from "@/lib/types";
+import { MenuItemTypes, UserTypes } from "@/lib/types";
 import Image from "next/image";
+import { useData } from "@/context/DataContext";
+import { tripleEncode } from "@/lib/utils";
 
-export type MenuItem = NavLink | NavSubMenu;
-
-export const menuItems: MenuItem[] = [
+export const menuItems: MenuItemTypes[] = [
   {
     name: "Dashboard",
     icon: LayoutDashboard,
@@ -36,8 +36,8 @@ export const menuItems: MenuItem[] = [
   {
     name: "Devices",
     icon: Monitor,
-    href: "/devices",
     roles: ["admin", "super admin"],
+    dynamicDevices: true,
   },
   {
     name: "Weathermap",
@@ -69,6 +69,7 @@ interface SidebarProps {
   currentUser: Partial<UserTypes> | null;
 }
 export default function SidebarComponent({ currentUser }: SidebarProps) {
+  const { devices } = useData();
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -96,9 +97,9 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
       !item.roles ||
       item.roles.includes(currentUser?.roles?.role.toLowerCase() ?? ""),
   );
-  const defaultItem = menuItems.find((item) =>
-    item.subMenu?.some((sub) => pathname.startsWith(sub.href)),
-  )?.name;
+  // const defaultItem = filteredMenu.find((item) =>
+  //   item.subMenu?.some((sub) => pathname.startsWith(sub.href)),
+  // )?.name;
   return (
     <aside
       className={`
@@ -169,11 +170,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
           {collapsed ? "•••" : ""}
         </p>
 
-        <Accordion
-          multiple
-          defaultValue={defaultItem ? [defaultItem] : []}
-          className="space-y-1"
-        >
+        <Accordion multiple className="space-y-1">
           {filteredMenu.map((item) => {
             /* ================= NO SUBMENU (Standard Link) ================= */
             // TypeScript Type Guard: If 'href' exists, it MUST be a NavLink type
@@ -274,30 +271,59 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
 
                 {!collapsed && (
                   <AccordionContent className="pl-10 pt-1 space-y-1">
-                    {item.subMenu?.map((sub) => {
-                      const isSubActive = pathname === sub.href;
+                    {item.dynamicDevices
+                      ? devices.map((device) => {
+                          const ipAdd = tripleEncode(device.ipAddress);
+                          const href = `/devices/${ipAdd}`;
+                          const isActive = pathname === href;
 
-                      return (
-                        <Link
-                          key={sub.name}
-                          href={sub.href}
-                          className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
-                    transition-all duration-200
-                    ${
-                      isSubActive
-                        ? "bg-indigo-50 text-indigo-600 border-l-2 border-indigo-500"
-                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 border-l-2 border-transparent"
-                    }
-                  `}
-                        >
-                          <sub.icon className="w-4 h-4 shrink-0 opacity-70" />
-                          <span className="font-lexend text-sm">
-                            {sub.name}
-                          </span>
-                        </Link>
-                      );
-                    })}
+                          return (
+                            <Link
+                              key={device.ipAddress}
+                              href={href}
+                              className={`
+                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                transition-all duration-200
+                ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-600 border-l-2 border-indigo-500"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 border-l-2 border-transparent"
+                }
+              `}
+                            >
+                              <BarChart className="w-4 h-4 shrink-0 opacity-70" />
+
+                              <span className="font-lexend text-sm">
+                                {device.sysName}
+                              </span>
+                            </Link>
+                          );
+                        })
+                      : item.subMenu?.map((sub) => {
+                          const isActive = pathname === sub.href;
+
+                          return (
+                            <Link
+                              key={sub.name}
+                              href={sub.href}
+                              className={`
+                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                transition-all duration-200
+                ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-600 border-l-2 border-indigo-500"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 border-l-2 border-transparent"
+                }
+              `}
+                            >
+                              <sub.icon className="w-4 h-4 shrink-0 opacity-70" />
+
+                              <span className="font-lexend text-sm">
+                                {sub.name}
+                              </span>
+                            </Link>
+                          );
+                        })}
                   </AccordionContent>
                 )}
               </AccordionItem>

@@ -2,6 +2,7 @@ import { PrismaClient } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { tripleDecode, tripleEncode } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/auth";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -14,6 +15,11 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   const decodedID = tripleDecode(id);
   const body = await req.json();
@@ -40,6 +46,11 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
   const { id } = await params;
   const decodedID = tripleDecode(id);
   await prisma.roles.delete({

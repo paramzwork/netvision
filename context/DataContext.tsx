@@ -1,68 +1,56 @@
 "use client";
-import { CactiDevice, ConsumptionGroupedByClient } from "@/lib/types";
+import { DeviceInfoTypes } from "@/lib/types";
 import React, {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
+  useRef,
   useState,
 } from "react";
+import { toast } from "sonner";
 
 interface DataContextType {
-  consumptionGroupData: ConsumptionGroupedByClient[];
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  cactiKill: string;
-  setCactiKill: React.Dispatch<React.SetStateAction<string>>;
-  setConsumptionGroupData: React.Dispatch<
-    React.SetStateAction<ConsumptionGroupedByClient[]>
-  >;
-  cactiDevice: CactiDevice[];
-  setCactiDevice: React.Dispatch<React.SetStateAction<CactiDevice[]>>;
+  devices: DeviceInfoTypes[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [consumptionGroupData, setConsumptionGroupData] = useState<
-    ConsumptionGroupedByClient[]
-  >([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [cactiKill, setCactiKill] = useState<string>("");
-  const [cactiDevice, setCactiDevice] = useState<CactiDevice[]>([]);
-  // const hasMountedRef = useRef<boolean>(false);
-  // const fetchDevice = useCallback(async () => {
-  //   try {
-  //     const res = await fetch("/api/cacti/host", { method: "POST" });
+  const [devices, setDevices] = useState<DeviceInfoTypes[]>([]);
 
-  //     if (!res.ok) {
-  //       throw new Error("Failed to fetch devices");
-  //     }
-
-  //     const data: CactiDevice[] = await res.json();
-  //     setCactiDevice(data);
-  //   } catch (error) {
-  //     console.error(error);
-
-  //     toast.error("Failed to fetch data.", {
-  //       description: "Cacti devices are not available.",
-  //     });
-  //   }
-  // }, []);
-  // useEffect(() => {
-  //   if (hasMountedRef.current) return;
-  //   fetchDevice();
-  //   hasMountedRef.current = true;
-  // }, [fetchDevice]);
+  const hasMountedRef = useRef<boolean>(false);
+  const fetchDevices = useCallback(async () => {
+    try {
+      const res = await fetch("/api/snmp/device", {
+        method: "GET",
+      });
+      const resData = await res.json();
+      if (!res.ok) {
+        toast.error(resData.message);
+        return;
+      }
+      setDevices(resData.data);
+    } catch {
+      toast.error("Internal Server Error.", {
+        description: "Server error please contact admin.",
+      });
+    }
+  }, []);
+  useEffect(() => {
+    if (hasMountedRef.current) return;
+    fetchDevices();
+    hasMountedRef.current = true;
+  }, [fetchDevices]);
   return (
     <DataContext.Provider
       value={{
-        consumptionGroupData,
         isLoading,
         setIsLoading,
-        cactiKill,
-        setCactiKill,
-        setConsumptionGroupData,
-        cactiDevice,
-        setCactiDevice,
+        devices,
       }}
     >
       {children}
