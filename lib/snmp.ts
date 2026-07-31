@@ -86,7 +86,7 @@ export function toMap<T>(
 
 export function mergeInterfaces(
   interfaces: InterfaceDiscovery[],
-
+  description: Map<number, string>,
   admin: Map<number, number>,
   oper: Map<number, number>,
   speed: Map<number, number>,
@@ -101,6 +101,8 @@ export function mergeInterfaces(
     index: iface.index,
 
     name: iface.name,
+
+    description: description.get(iface.index) ?? "",
 
     adminStatus: admin.get(iface.index) ?? 0,
 

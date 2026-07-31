@@ -42,3 +42,13 @@ export function counter64ToBigInt(value: Buffer | number): bigint {
 
   return result;
 }
+
+export function formatUptime(ticks: number) {
+  const seconds = Math.floor(ticks / 100);
+
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  return `${days}d ${hours}h ${minutes}m`;
+}

@@ -9,38 +9,32 @@ import { AddUserFormModal } from "@/components/AddUserFormModal";
 import RolesManagementTable from "@/components/table/RolesManagementTable";
 import { AddRoleFormModal } from "@/components/AddRoleFormModal";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useRoleStore, useUserStore } from "@/store/user-store";
 
 export default function UsersManagementPage() {
-  const [userData, setUserData] = useState<UserTypes[]>([]);
+  const router = useRouter();
+  const [selectedUser, setSelectedUser] = useState<UserTypes | null>(null);
   const [userFormType, setUserFormType] = useState<string>("");
   const [openUserForm, setOpenUserForm] = useState<boolean>(false);
-  const [selectedUser, setSelectedUser] = useState<UserTypes>({
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    email: "",
-    firstname: "",
-    id: 0,
-    lastname: "",
-    password: "",
-    roles: { id: 0, role: "", createdAt: new Date(), updatedAt: new Date() },
-    suffix: "",
-    username: "",
-  });
   const handleUserForm = async (type: string) => {
     setUserFormType(type);
     setOpenUserForm(true);
   };
-  const [roleData, setRoleData] = useState<RoleTypes[]>([]);
   const [openRoleForm, setOpenRoleForm] = useState<boolean>(false);
   const [roleFormType, setRoleFormType] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<RoleTypes | null>(null);
   const hasMountedRef = useRef<boolean>(false);
-
+  const { users, setUsers } = useUserStore();
+  const { roles, setRoles } = useRoleStore();
   const handleRoleForm = async (type: string) => {
     setRoleFormType(type);
     setOpenRoleForm(true);
   };
   const fetchData = async () => {
+    if (Object.keys(users).length > 0) {
+      return;
+    }
     try {
       const [resUser, resRole] = await Promise.all([
         fetch("/api/users", { method: "GET" }),
@@ -51,11 +45,19 @@ export default function UsersManagementPage() {
         resRole.json(),
       ]);
       if (!resUser.ok || !resRole.ok) {
+        if (resUser.status === 401) {
+          router.replace("/");
+          return;
+        }
+        toast.error(resUData.message);
+        return;
+      }
+      if (!resUser.ok || !resRole.ok) {
         toast.error("Failed to load data.");
         return;
       }
-      setUserData(resUData);
-      setRoleData(resRData);
+      setUsers(resUData);
+      setRoles(resRData);
     } catch {
       toast.error("Internal Server Error.", {
         description: "Server error please contact admin.",
@@ -80,8 +82,8 @@ export default function UsersManagementPage() {
           Create User
         </Button>
         <UsersManagementTable
-          users={userData}
-          setUserData={setUserData}
+          users={users}
+          setUserData={setUsers}
           setSelectedUser={setSelectedUser}
           setOpenDrawer={setOpenUserForm}
           setUserFormType={setUserFormType}
@@ -90,7 +92,7 @@ export default function UsersManagementPage() {
         <AddUserFormModal
           userFormType={userFormType}
           selectedUser={selectedUser}
-          roleData={roleData}
+          roleData={roles}
           openUserForm={openUserForm}
           setOpenUserForm={setOpenUserForm}
         />
@@ -105,8 +107,8 @@ export default function UsersManagementPage() {
           Create Role
         </Button>
         <RolesManagementTable
-          roleData={roleData}
-          setRoleData={setRoleData}
+          roleData={roles}
+          setRoleData={setRoles}
           setSelectedRole={setSelectedRole}
           handleForm={handleRoleForm}
         />
@@ -116,7 +118,7 @@ export default function UsersManagementPage() {
           selectedRole={selectedRole}
           openRoleForm={openRoleForm}
           setOpenRoleForm={setOpenRoleForm}
-          setRoleData={setRoleData}
+          setRoleData={setRoles}
         />
       </div>
     </div>

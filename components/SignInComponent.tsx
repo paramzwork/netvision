@@ -52,20 +52,9 @@ export default function SignInComponent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/40">
-      <Card className="w-full max-w-md shadow-lg border border-slate-100">
-        {/* <div className="w-full flex items-center justify-start px-5 py-2 bg-[#1B263B]">
-          <div className="relative h-12 w-30">
-            <Image
-              src="/images/ricklee-logo.png"
-              alt="NetVision Logo"
-              fill
-              priority
-              sizes="500px"
-              className="object-contain"
-            />
-          </div>
-        </div> */}
+    <div className="min-h-screen flex items-center justify-center bg-[#2b2a2a]">
+      {/* <DotLottieReact src="/images/network.lottie" loop autoplay className="w-[1600px] h-[930px]"/> */}
+      <Card className="w-full max-w-md rounded-sm! transition-all duration-300 bg-[#5c5c5c] backdrop-blur-2xl">
         <CardHeader className="w-full space-y-2 text-center">
           <div className="flex flex-col justify-center items-center gap-2">
             <div className="relative h-35 w-40">
@@ -79,7 +68,7 @@ export default function SignInComponent() {
               />
             </div>
           </div>
-          <CardTitle className="text-2xl font-lexend! -mt-10">
+          <CardTitle className="text-2xl font-lexend! -mt-10 text-white">
             Sign In
           </CardTitle>
           {/* <CardDescription>
@@ -91,14 +80,16 @@ export default function SignInComponent() {
           <form onSubmit={handleLogin} className="space-y-4 p-5">
             {/* Username */}
             <div className="space-y-2">
-              <Label htmlFor="email">Username</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3.25 h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="email" className="text-white">
+                Username
+              </Label>
+              <div className="relative text-white">
+                <Mail className="absolute left-3 top-3.25 h-4 w-4 text-white" />
                 <Input
                   id="text"
                   type="text"
                   required
-                  className="pl-9 h-11!"
+                  className="pl-9 h-11! focus-within:border! focus-within:border-white! focus-within:shadow-white focus-within:shadow-sm! rounded-sm"
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
@@ -106,15 +97,17 @@ export default function SignInComponent() {
 
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3.25 h-4 w-4 text-muted-foreground" />
+              <Label htmlFor="password" className="text-white">
+                Password
+              </Label>
+              <div className="relative text-white">
+                <Lock className="absolute left-3 top-3.25 h-4 w-4 text-white" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="pl-9 pr-9 h-11!"
+                  className="pl-9 h-11! focus-within:border! focus-within:border-white! focus-within:shadow-white focus-within:shadow-sm! rounded-sm"
                 />
                 <button
                   type="button"
@@ -122,9 +115,9 @@ export default function SignInComponent() {
                   className="absolute right-3 top-3 text-muted-foreground cursor-pointer"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-4 w-4 text-white" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 text-white w-4" />
                   )}
                 </button>
               </div>
@@ -146,18 +139,18 @@ export default function SignInComponent() {
             <button
               disabled={loading}
               type="submit"
-              className={`w-full bg-slate-800 text-white py-3 rounded-lg 
-                       hover:bg-slate-900 transition-all duration-200 font-medium
-                       disabled:opacity-60 ${loading ? "cursor-not-allowed" : "cursor-pointer"}`}
+              className={`w-full bg-white text-[#5c5c5c] py-3 rounded-sm border
+                       transition-all duration-200 font-medium
+                       disabled:opacity-60 ${loading ? "cursor-not-allowed" : "cursor-pointer hover:bg-transparent hover:text-white hover:border-white"}`}
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           {/* Footer */}
-          <p className="text-center text-sm text-muted-foreground mt-6 ">
+          <p className="text-center text-sm mt-6 text-white">
             Don’t have an account?{" "}
-            <Link href="#" className="text-primary hover:underline">
+            <Link href="#" className="underline">
               Contact Admin
             </Link>
           </p>

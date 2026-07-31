@@ -5,6 +5,12 @@ import { counter64ToNumber } from "@/lib/utils";
 
 export async function GET() {
   try {
+    //     const body = await req.json();
+
+    // const config = {
+    //   host: body.host,
+    //   community: body.community,
+    // };
     const config = {
       host: process.env.SNMP_HOST!,
       community: process.env.SNMP_COMMUNITY!,
@@ -12,6 +18,7 @@ export async function GET() {
 
     const [
       names,
+      aliases,
       admin,
       oper,
       speed,
@@ -21,6 +28,7 @@ export async function GET() {
       outErrors,
     ] = await Promise.all([
       snmpWalk(config, OIDS.ifDescr),
+      snmpWalk(config, OIDS.ifAlias),
       snmpWalk(config, OIDS.ifAdminStatus),
       snmpWalk(config, OIDS.ifOperStatus),
       snmpWalk(config, OIDS.ifHighSpeed),
@@ -31,7 +39,7 @@ export async function GET() {
     ]);
 
     const interfaces = parseInterfaces(names);
-
+    const aliasMap = toMap(aliases, (v) => String(v));
     const adminMap = toMap(admin, (v) => Number(v));
     const operMap = toMap(oper, (v) => Number(v));
     const speedMap = toMap(speed, (v) => Number(v));
@@ -48,6 +56,7 @@ export async function GET() {
     const outErrorsMap = toMap(outErrors, (v) => Number(v));
     const result = mergeInterfaces(
       interfaces,
+      aliasMap,
       adminMap,
       operMap,
       speedMap,
