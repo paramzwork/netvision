@@ -4,10 +4,10 @@ import { Search, Bell, MessageSquare } from "lucide-react";
 
 export default function HeaderComponent() {
   return (
-    <header className="bg-slate-700 border-b border-gray-100 px-8 py-4 font-lexend">
-      <div className="flex items-center justify-between">
+    <header className="w-full! bg-slate-700 border-b border-gray-100 px-8 py-4 font-lexend">
+      <div className="w-full flex items-center justify-between">
         {/* LEFT SIDE */}
-        <div className="flex items-center gap-4">
+        <div className="w-full flex items-center gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -30,7 +30,7 @@ export default function HeaderComponent() {
             <span className="absolute top-1 right-1 w-2 h-2 bg-primary-500 rounded-full"></span>
           </button>
         </div>
-        <div className="text-sm text-white">
+        <div className="w-full text-sm text-end text-white">
           {new Date().toLocaleDateString("en-US", {
             weekday: "long",
             year: "numeric",

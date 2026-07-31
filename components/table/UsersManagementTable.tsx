@@ -23,7 +23,7 @@ import EntriesPerPage from "../EntriesPerPage";
 interface Props {
   users: UserTypes[];
   setUserData: React.Dispatch<React.SetStateAction<UserTypes[]>>;
-  setSelectedUser: React.Dispatch<React.SetStateAction<UserTypes>>;
+  setSelectedUser: React.Dispatch<React.SetStateAction<UserTypes | null>>;
   setUserFormType: React.Dispatch<React.SetStateAction<string>>;
   setOpenDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 }

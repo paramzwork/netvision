@@ -52,7 +52,6 @@ export function verifyToken(token: string): AuthTokenPayload | null {
   }
 }
 
-
 export async function getCurrentUser() {
   const token = (await cookies()).get("WVRKc2MySkJQVDA9")?.value;
 
@@ -61,13 +60,14 @@ export async function getCurrentUser() {
   }
 
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as {
-      id: number;
-    };
+    const payload = verifyToken(token);
 
+    if (!payload) {
+      return null;
+    }
     return await prisma.users.findUnique({
       where: {
-        id: payload.id,
+        id: Number(payload.id),
       },
       include: {
         roles: true,

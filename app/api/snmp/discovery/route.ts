@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import snmp from "net-snmp";
+import { OIDS } from "@/lib/oid";
+import { formatUptime } from "@/lib/utils";
 
 export async function GET() {
   const host = process.env.SNMP_HOST!;
@@ -26,8 +28,8 @@ export async function GET() {
               status: "Offline",
               message: error.message,
             },
-            { status: 500 }
-          )
+            { status: 500 },
+          ),
         );
         return;
       }
@@ -40,16 +42,16 @@ export async function GET() {
           serialNumber: varbinds?.[3]?.value?.toString() ?? null,
           macAddress: varbinds?.[4]?.value?.toString() ?? null,
           status: "Online",
-        })
+        }),
       );
     });
   });
 }
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const host = body.descoverIP;
-  console.log("HOST", host);
-  const community = process.env.SNMP_COMMUNITY;
+  const host = body.discoverIP;
+  const community = body.discoverCommunity;
+  console.log(`Host: ${host} : Community: ${community}`);
 
   if (!host || !community) {
     return NextResponse.json(
@@ -58,32 +60,40 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const session = snmp.createSession(host, community);
+  const session = snmp.createSession(host, community, {
+    timeout: 5000,
+    retries: 1,
+  });
 
   const oids = [
-    "1.3.6.1.2.1.1.1.0", // sysDescr
-    "1.3.6.1.2.1.1.2.0", // sysObjectID
-    "1.3.6.1.2.1.1.5.0", // sysName
-    "1.3.6.1.2.1.1.6.0", // sysLocation
-    "1.3.6.1.2.1.1.4.0", // sysContact
+    OIDS.sysDescr,
+    OIDS.sysObjectID,
+    OIDS.sysName,
+    OIDS.sysLocation,
+    OIDS.sysContact,
+    OIDS.sysUpTime,
   ];
-
+  const start = performance.now();
+  const pollTime = new Date().toISOString();
   return new Promise<Response>((resolve) => {
     session.get(oids, (error, varbinds) => {
       session.close();
-
+      const currentMs = Math.round(performance.now() - start);
       if (error) {
         resolve(NextResponse.json({ message: error.message }, { status: 500 }));
         return;
       }
-
+      console.log(varbinds?.[5]?.value);
       const data = {
         sysDescr: varbinds?.[0]?.value?.toString(),
         sysObjectID: varbinds?.[1]?.value?.toString(),
         sysName: varbinds?.[2]?.value?.toString(),
         sysLocation: varbinds?.[3]?.value?.toString(),
         sysContact: varbinds?.[4]?.value?.toString(),
+        uptime: formatUptime(Number(varbinds?.[5]?.value)),
         ipAddress: host,
+        pollTime,
+        currentMs,
       };
 
       resolve(NextResponse.json(data));

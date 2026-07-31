@@ -37,7 +37,7 @@ model devices {
   model        String?
   serialNumber String?   @unique
   macAddress   String?
-  status       String    @default("Online")
+  status       String    @default("1")
 
   sysName      String
   sysDescr     String    @db.Text
@@ -45,6 +45,49 @@ model devices {
   sysLocation  String?
   sysObjectID  String
 
+  interfaces   interfaces[]
+
   createdAt    DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
+}
+
+model interfaces {
+  id          Int      @id @default(autoincrement())
+
+  deviceId    Int
+  device      devices  @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  index       Int
+  name        String
+  description String?
+
+  adminStatus Int
+  operStatus  Int
+
+  speedMbps   Int?
+
+  statistics interface_statistics[]
+
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+}
+
+model interface_statistics {
+  id Int @id @default(autoincrement())
+
+  interfaceId Int
+
+  interface interfaces @relation(
+    fields: [interfaceId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  inOctets  BigInt
+  outOctets BigInt
+
+  inErrors  BigInt @default(0)
+  outErrors BigInt @default(0)
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
 }

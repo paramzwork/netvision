@@ -7,51 +7,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DeviceInfoTypes } from "@/lib/types";
-import { useState } from "react";
+import { useData } from "@/context/DataContext";
 import { toast } from "sonner";
 
 export default function WeatherMap() {
-  const [descoverIP, setDescoverIP] = useState<string>("");
-  const [devices, setDevices] = useState<DeviceInfoTypes[]>([]);
-  const fetchDescovery = async () => {
-    try {
-      const res = await fetch(`/api/snmp/descovery`, {
-        method: "POST",
-        body: JSON.stringify({ descoverIP }),
-      });
-      const resData = await res.json();
-      setDevices((prev) => [...prev, resData]);
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  };
-  const fetchDevice = async () => {
-    try {
-      const res = await fetch(`/api/snmp/explorer?oid=1.3.6.1.2.1.47`, {
-        method: "GET",
-      });
-      const resData = await res.json();
-      console.log(resData);
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  };
-  const fetchCPU = async () => {
-    try {
-      const res = await fetch(`/api/snmp/cpu`, { method: "GET" });
-      const resData = await res.json();
-      console.log(resData);
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  };
+  const { devices } = useData();
+
   const handleSubmitDevices = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -71,19 +32,10 @@ export default function WeatherMap() {
       });
     }
   };
-  return (
-     <div className="space-y-6">
 
-      <h1 className="text-2xl font-bold">Network Overview</h1>
-      <input
-        type="text"
-        className="border"
-        value={descoverIP}
-        onChange={(e) => setDescoverIP(e.target.value)}
-      />
-      <button onClick={() => fetchDescovery()}>Descover</button>
-      <button onClick={() => fetchDevice()}>Device</button>
-      <button onClick={() => fetchCPU()}>CPU</button>
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Weathermap</h1>
       <form
         onSubmit={handleSubmitDevices}
         className="rounded-lg border bg-white dark:bg-zinc-900"
@@ -93,10 +45,13 @@ export default function WeatherMap() {
             <TableRow>
               <TableHead>System Name</TableHead>
               <TableHead>IP Address</TableHead>
+              <TableHead>Uptime</TableHead>
+              <TableHead>Poll Time</TableHead>
+              <TableHead>Current (ms)</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Object ID</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -119,7 +74,13 @@ export default function WeatherMap() {
                   <TableCell className="font-medium">
                     {device.ipAddress}
                   </TableCell>
-
+                  <TableCell className="font-medium">{device.uptime}</TableCell>
+                  <TableCell className="font-medium">
+                    {device.pollTime}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {device.currentMs}
+                  </TableCell>
                   <TableCell className="max-w-md whitespace-pre-wrap wrap-break-word">
                     {device.sysDescr}
                   </TableCell>
@@ -127,9 +88,12 @@ export default function WeatherMap() {
                   <TableCell>{device.sysContact}</TableCell>
 
                   <TableCell>{device.sysLocation}</TableCell>
-
-                  <TableCell className="font-mono text-sm">
-                    {device.sysObjectID}
+                  <TableCell className="text-center">
+                    <div
+                      className={`rounded text-white p-2 font-lexend ${device.status === "1" ? "bg-green-400" : "bg-red-400"}`}
+                    >
+                      {device.status === "1" ? "Online" : "Offline"}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -137,7 +101,6 @@ export default function WeatherMap() {
           </TableBody>
         </Table>
       </form>
-      <button type="submit">Save</button>
     </div>
   );
 }
