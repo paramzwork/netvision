@@ -11,14 +11,14 @@ import { useData } from "@/context/DataContext";
 import { toast } from "sonner";
 
 export default function WeatherMap() {
-  const { devices } = useData();
+  const { activeDevices } = useData();
 
   const handleSubmitDevices = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const res = await fetch("/api/snmp/device", {
         method: "POST",
-        body: JSON.stringify(devices),
+        body: JSON.stringify(activeDevices),
       });
       const resData = await res.json();
       if (!res.ok) {
@@ -56,7 +56,7 @@ export default function WeatherMap() {
           </TableHeader>
 
           <TableBody>
-            {devices.length === 0 ? (
+            {activeDevices.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -66,7 +66,7 @@ export default function WeatherMap() {
                 </TableCell>
               </TableRow>
             ) : (
-              devices.map((device, index) => (
+              activeDevices.map((device, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">
                     {device.sysName}

@@ -32,6 +32,7 @@ model roles {
 model devices {
   id           Int       @id @default(autoincrement())
   ipAddress    String    @unique
+  community    String?
   hostname     String?
   vendor       String?
   model        String?
@@ -70,6 +71,8 @@ model interfaces {
 
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  
+  @@unique([deviceId, index])
 }
 
 model interface_statistics {
@@ -77,11 +80,7 @@ model interface_statistics {
 
   interfaceId Int
 
-  interface interfaces @relation(
-    fields: [interfaceId],
-    references: [id],
-    onDelete: Cascade
-  )
+  interface interfaces @relation(fields: [interfaceId], references: [id], onDelete: Cascade)
 
   inOctets  BigInt
   outOctets BigInt

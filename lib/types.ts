@@ -71,6 +71,7 @@ export interface DeviceInfoTypes {
   pollTime: string;
   currentMs: string;
   ipAddress: string;
+  community: string;
   status: string;
 }
 export interface SnmpResult {
@@ -105,6 +106,15 @@ export interface InterfaceTraffic {
   outOctets: number;
 }
 
+export interface InterfaceTypes {
+  index: number;
+  deviceId: number;
+  name: string;
+  description: string;
+  adminStatus: number;
+  operStatus: number;
+  speedMbps: number;
+}
 export interface InterfaceDiscovery {
   index: number;
   name: string;

@@ -49,35 +49,96 @@ const prisma = new PrismaClient({
 //     );
 //   });
 // }
-export async function GET() {
+export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser();
 
   if (!currentUser) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-  try {
-    const devices = await prisma.devices.findMany({
-      select: {
-        sysName: true,
-        ipAddress: true,
-        status: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
 
-    return NextResponse.json({
-      data: devices,
-      message: "Loaded devices successfully!",
-    });
+  try {
+    const id = req.nextUrl.searchParams.get("id");
+
+    // No id -> return all devices
+    if (!id) {
+      const devices = await prisma.devices.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return NextResponse.json({
+        data: devices,
+        message: "Loaded devices successfully.",
+      });
+    }
+
+    const ipAddress = tripleDecode(id);
+    console.log("Request", ipAddress);
+    if (ipAddress === "all") {
+      const devices = await prisma.devices.findMany({
+        select: {
+          ipAddress: true,
+          hostname: true,
+          community: true,
+          vendor: true,
+          model: true,
+          serialNumber: true,
+          macAddress: true,
+          status: true,
+          sysName: true,
+          sysDescr: true,
+          sysContact: true,
+          sysLocation: true,
+          sysObjectID: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      return NextResponse.json({
+        data: devices,
+        message: "Loaded devices successfully!",
+      });
+    } else if (ipAddress) {
+      const device = await prisma.devices.findUnique({
+        where: {
+          ipAddress,
+        },
+        select: {
+          ipAddress: true,
+          sysName: true,
+          status: true,
+        },
+      });
+      if (!device) {
+        return NextResponse.json(
+          { message: "Device not found." },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({
+        data: device,
+        message: "Loaded device successfully.",
+      });
+    } else {
+      const devices = await prisma.devices.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      return NextResponse.json({
+        data: devices,
+        message: "Loaded devices successfully.",
+      });
+    }
   } catch (error) {
     console.error(error);
 
     return NextResponse.json(
       {
-        success: false,
-        error: "Failed to fetch devices.",
+        message: "Internal Server Error.",
       },
       {
         status: 500,
@@ -93,37 +154,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const searchParams = req.nextUrl.searchParams;
-  const id = searchParams.get("id");
-  if (!id) {
-    return NextResponse.json(
-      { message: "Missing IP Address" },
-      { status: 400 },
-    );
-  }
-  const ipAddress = tripleDecode(id);
-  if (ipAddress) {
-    const device = await prisma.devices.findUnique({
-      where: {
-        ipAddress,
-      },
-      select: {
-        ipAddress: true,
-        sysName: true,
-        status: true,
-      },
-    });
-
-    if (!device) {
-      return NextResponse.json(
-        { message: "Device not found." },
-        { status: 404 },
-      );
-    }
-
-    console.log(device);
-    return NextResponse.json(device);
-  }
   try {
     const devices = await req.json();
     await prisma.devices.createMany({
@@ -134,6 +164,7 @@ export async function POST(req: NextRequest) {
         sysName: device.sysName,
         sysObjectID: device.sysObjectID,
         ipAddress: device.ipAddress,
+        community: device.community,
         status: "1",
       })),
       skipDuplicates: true, // if ipAddress is unique

@@ -1,5 +1,6 @@
 "use client";
 import { DeviceInfoTypes } from "@/lib/types";
+import { tripleEncode } from "@/lib/utils";
 import React, {
   createContext,
   useCallback,
@@ -13,21 +14,21 @@ import { toast } from "sonner";
 interface DataContextType {
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  devices: DeviceInfoTypes[];
+  activeDevices: DeviceInfoTypes[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [devices, setDevices] = useState<DeviceInfoTypes[]>([]);
+  const [activeDevices, setDevices] = useState<DeviceInfoTypes[]>([]);
 
   const hasMountedRef = useRef<boolean>(false);
   const fetchDevices = useCallback(async () => {
     try {
-      const res = await fetch("/api/snmp/device", {
-        method: "GET",
-      });
+      const val = tripleEncode("all");
+      const res = await fetch(`/api/snmp/device?id=${val}`, { method: "GET" });
+
       const resData = await res.json();
       if (!res.ok) {
         toast.error(resData.message);
@@ -50,7 +51,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       value={{
         isLoading,
         setIsLoading,
-        devices,
+        activeDevices,
       }}
     >
       {children}
