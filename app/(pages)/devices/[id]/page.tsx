@@ -11,7 +11,13 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useDeviceStore } from "@/store/device-store";
+import { StatCard } from "@/components/statcard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrafficChart } from "@/components/trafficchart";
+import { DeviceTable } from "@/components/table/devicetable";
+import { useData } from "@/context/DataContext";
 export default function ViewDevice() {
+  const { activeDevices } = useData();
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
   const router = useRouter();
@@ -24,7 +30,7 @@ export default function ViewDevice() {
       return;
     }
     try {
-      const res = await fetch(`/api/snmp/device?id=${raw}`, { method: "POST" });
+      const res = await fetch(`/api/snmp/device?id=${raw}`, { method: "GET" });
       const resData = await res.json();
       if (!res.ok) {
         if (res.status === 401) {
@@ -98,6 +104,39 @@ export default function ViewDevice() {
           )}
         </TableBody>
       </Table>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Network Overview</h1>
+
+        {/* Stats */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatCard
+            title="Total Traffic"
+            value="1.2 TB"
+            change="+12% from yesterday"
+          />
+          <StatCard
+            title="Active Devices"
+            value={activeDevices.length.toString()}
+            change="+0 new devices"
+          />
+          <StatCard
+            title="Avg Latency"
+            value="23ms"
+            change="-2ms improvement"
+          />
+        </div>
+
+        {/* Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>CPN-1-RC</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TrafficChart />
+          </CardContent>
+        </Card>
+        <DeviceTable />
+      </div>
     </div>
   );
 }
