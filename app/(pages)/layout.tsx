@@ -18,7 +18,7 @@ export default async function DashboardLayout({
   }
   let currentUser = null;
   try {
-     currentUser = await getCurrentUser();
+    currentUser = await getCurrentUser();
 
     if (!currentUser) {
       redirect("/");
@@ -31,11 +31,11 @@ export default async function DashboardLayout({
     <DataProvider>
       <div className="flex w-full h-screen overflow-hidden bg-gray-50 font-sans">
         <SidebarComponent currentUser={currentUser} />
-        <div className="flex flex-col flex-1">
+        <div className="w-full flex flex-col">
           <HeaderComponent />
-          <main className="p-6 overflow-y-auto">
-            <TooltipProvider>{children}</TooltipProvider>
-          </main>
+          <div className="w-full p-6 overflow-y-auto">
+            <TooltipProvider delay={500}>{children}</TooltipProvider>
+          </div>
         </div>
       </div>
     </DataProvider>

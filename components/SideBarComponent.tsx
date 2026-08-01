@@ -69,7 +69,7 @@ interface SidebarProps {
   currentUser: Partial<UserTypes> | null;
 }
 export default function SidebarComponent({ currentUser }: SidebarProps) {
-  const { devices } = useData();
+  const { activeDevices } = useData();
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -102,8 +102,9 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
   // )?.name;
   return (
     <aside
-      className={`
+      className={` 
     ${collapsed ? "w-20" : "w-72"}
+    shrink-0
     bg-white
     min-h-screen flex flex-col
     transition-all duration-300 ease-in-out
@@ -114,7 +115,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
     >
       {/* ================= LOGO ================= */}
       <div
-        className={`flex items-center gap-3 px-6 border-b border-gray-200 bg-slate-700 text-white ${!collapsed ? "py-3.25" : "py-3.5"}`}
+        className={`flex items-center gap-3 px-6 border-b border-gray-200 bg-[#2b2a2a] text-white ${!collapsed ? "py-3.25" : "py-3.5"}`}
       >
         <div className="w-10 h-10 bg-linear-to-br from-[#f4f5f5] to-gray-300 rounded-xl flex items-center justify-center shadow-md">
           <div className="flex flex-col justify-center items-center gap-2">
@@ -221,9 +222,13 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
 
             /* ================= WITH SUBMENU (Accordion) ================= */
             // Since item.href is undefined, TypeScript knows this MUST be a NavSubMenu type
-            const isActive = item.subMenu?.some((sub) =>
-              pathname.startsWith(sub.href),
-            );
+            const isActive =
+              item.subMenu?.some((sub) => pathname.startsWith(sub.href)) ||
+              (item.dynamicDevices &&
+                activeDevices.some((device) => {
+                  const ipAdd = tripleEncode(device.ipAddress);
+                  return pathname.startsWith(`/devices/${ipAdd}`);
+                }));
 
             return (
               <AccordionItem
@@ -272,7 +277,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                 {!collapsed && (
                   <AccordionContent className="pl-10 pt-1 space-y-1">
                     {item.dynamicDevices
-                      ? devices.map((device) => {
+                      ? activeDevices.map((device) => {
                           const ipAdd = tripleEncode(device.ipAddress);
                           const href = `/devices/${ipAdd}`;
                           const isActive = pathname === href;

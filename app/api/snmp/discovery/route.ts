@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
         sysContact: varbinds?.[4]?.value?.toString(),
         uptime: formatUptime(Number(varbinds?.[5]?.value)),
         ipAddress: host,
+        community: community,
         pollTime,
         currentMs,
       };

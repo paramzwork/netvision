@@ -327,7 +327,6 @@ export default function DashboardPage() {
       });
     }
   };
- 
 
   useEffect(() => {
     if (hasMountedRef.current) return;
@@ -335,8 +334,9 @@ export default function DashboardPage() {
     fetchData();
   });
   return (
-    <div className="w-full px-6 py-6 space-y-5">
-      
+    <div className="w-full space-y-5 font-lexend">
+      <h1 className="text-2xl font-bold font-lexend">Dashboard</h1>
+
       {/* ── Row 1: Real-time + Device Summary ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Real-time stats card */}

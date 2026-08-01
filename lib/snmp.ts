@@ -119,3 +119,25 @@ export function mergeInterfaces(
     outErrors: outErrors.get(iface.index) ?? 0,
   }));
 }
+export function fetchInterfaces(
+  interfaces: InterfaceDiscovery[],
+  description: Map<number, string>,
+  admin: Map<number, number>,
+  oper: Map<number, number>,
+  speed: Map<number, number>,
+): InterfaceDiscovery[] {
+  return interfaces.map((iface) => ({
+    index: iface.index,
+
+    name: iface.name,
+
+    description: description.get(iface.index) ?? "",
+
+    adminStatus: admin.get(iface.index) ?? 0,
+
+    operStatus: oper.get(iface.index) ?? 0,
+
+    speedMbps: speed.get(iface.index) ?? 0,
+
+  }));
+}
