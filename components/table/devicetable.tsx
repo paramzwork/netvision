@@ -19,7 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { interfaces, type InterfaceMetric } from "@/lib/interfaces";
+import { InterfaceResponse } from "@/lib/types";
+import { formatBandwidth, getInterfaceStats } from "@/lib/utils";
 
 type Direction = "all" | "inbound" | "outbound";
 type SortOption = "none" | "highest" | "lowest" | "name";
@@ -38,8 +39,10 @@ const SORT_LABELS: Record<SortOption, string> = {
   lowest: "Lowest Traffic",
   name: "Name (A\u2013Z)",
 };
-
-export function DeviceTable() {
+interface Props {
+  interfaces: InterfaceResponse[];
+}
+export function DeviceTable({ interfaces }: Props) {
   const [search, setSearch] = useState<string>("");
   const [direction, setDirection] = useState<Direction>("all");
   const [sortBy, setSortBy] = useState<SortOption>("none");
@@ -60,7 +63,7 @@ export function DeviceTable() {
     }
 
     return data;
-  }, [search, sortBy]);
+  }, [interfaces, search, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
 
@@ -102,7 +105,7 @@ export function DeviceTable() {
             placeholder="Search interface..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-9 w-[200px] px-3 text-sm rounded-md border border-slate-200 bg-white/70 backdrop-blur-md placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            className="h-9 w-50 px-3 text-sm rounded-md border border-slate-200 bg-white/70 backdrop-blur-md placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
           />
 
           <Select
@@ -110,7 +113,7 @@ export function DeviceTable() {
             onValueChange={(v) => setDirection(v as Direction)}
           >
             <SelectTrigger
-              className="h-9! w-[200px]! text-sm"
+              className="h-9! w-50! text-sm"
               aria-label="Filter by traffic direction"
             >
               <SelectValue>{() => DIRECTION_LABELS[direction]}</SelectValue>
@@ -130,7 +133,7 @@ export function DeviceTable() {
             onValueChange={(v) => setSortBy(v as SortOption)}
           >
             <SelectTrigger
-              className="h-9! w-[200px]! text-sm"
+              className="h-9! w-50! text-sm"
               aria-label="Sort interfaces"
             >
               <SelectValue>{() => SORT_LABELS[sortBy]}</SelectValue>
@@ -162,7 +165,7 @@ export function DeviceTable() {
             }}
           >
             <SelectTrigger
-              className="h-9! w-[130px]! text-sm"
+              className="h-9! w-32.5! text-sm"
               aria-label="Items per page"
             >
               <SelectValue>{() => `${itemsPerPage} per page`}</SelectValue>
@@ -217,17 +220,20 @@ export function DeviceTable() {
     </div>
   );
 }
+const trafficTotal = (iface: InterfaceResponse) => {
+  const { inbound, outbound } = getInterfaceStats(iface);
+  return inbound.current + outbound.current;
+};
 
-function trafficTotal(iface: InterfaceMetric) {
-  return iface.inbound.current + iface.outbound.current;
-}
+function isInterfaceDown(iface: InterfaceResponse) {
+  if (iface.statistics.length === 0) return true;
 
-function isInterfaceDown(iface: InterfaceMetric) {
-  return (
-    iface.inbound.current === 0 &&
-    iface.outbound.current === 0 &&
-    iface.inbound.max === 0 &&
-    iface.outbound.max === 0
+  return iface.statistics.every(
+    (s) =>
+      Number(s.inOctets) === 0 &&
+      Number(s.outOctets) === 0 &&
+      Number(s.inErrors) === 0 &&
+      Number(s.outErrors) === 0,
   );
 }
 
@@ -235,11 +241,12 @@ function InterfaceRow({
   iface,
   direction,
 }: {
-  iface: InterfaceMetric;
+  iface: InterfaceResponse;
   direction: Direction;
 }) {
   const down = isInterfaceDown(iface);
 
+  const { inbound, outbound } = getInterfaceStats(iface);
   return (
     <div className="px-6 py-5 hover:bg-white/40 transition-colors duration-150">
       <div className="flex items-center justify-between mb-4">
@@ -268,11 +275,11 @@ function InterfaceRow({
         } ${down ? "opacity-50" : ""}`}
       >
         {(direction === "all" || direction === "inbound") && (
-          <MetricBlock title="Inbound" color="#10b981" data={iface.inbound} />
+          <MetricBlock title="Inbound" color="#10b981" data={inbound} />
         )}
 
         {(direction === "all" || direction === "outbound") && (
-          <MetricBlock title="Outbound" color="#3b82f6" data={iface.outbound} />
+          <MetricBlock title="Outbound" color="#3b82f6" data={outbound} />
         )}
       </div>
     </div>
@@ -286,13 +293,14 @@ function MetricBlock({
 }: {
   title: string;
   color: string;
-  data: { current: number; average: number; max: number };
+  data: { current: number; average: number; max: number; speedMbps: number };
 }) {
-  const utilization =
-    data.max > 0
-      ? Math.min(100, Math.round((data.current / data.max) * 100))
-      : 0;
-
+  const utilization = Math.min(
+    100,
+    data.speedMbps > 0
+      ? ((data.current * 8) / (data.speedMbps * 1_000_000)) * 100
+      : 0,
+  );
   const barColor =
     utilization > 85 ? "#f43f5e" : utilization > 60 ? "#f59e0b" : color;
 
@@ -309,14 +317,14 @@ function MetricBlock({
           </span>
         </div>
         <span className="text-[11px] text-slate-400">
-          {utilization}% of max
+          {utilization.toFixed(2)}% of {data.speedMbps} Mbps
         </span>
       </div>
 
       <div className="grid grid-cols-3 gap-4 text-sm mb-3">
-        <Stat label="Current" value={`${data.current} G`} />
-        <Stat label="Average" value={`${data.average} G`} />
-        <Stat label="Max" value={`${data.max} G`} highlight />
+        <Stat label="Current" value={`${formatBandwidth(data.current)}`} />
+        <Stat label="Average" value={`${formatBandwidth(data.average)}`} />
+        <Stat label="Max" value={`${formatBandwidth(data.max)}`} highlight />
       </div>
 
       <div

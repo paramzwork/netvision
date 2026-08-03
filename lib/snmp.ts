@@ -1,7 +1,8 @@
 import snmp from "net-snmp";
 import {
   InterfaceDiscovery,
-  NetworkInterface,
+  InterfaceTraffic,
+  NetworkInterfaces,
   SnmpConfig,
   SnmpVarbind,
 } from "./types";
@@ -96,7 +97,7 @@ export function mergeInterfaces(
 
   inErrors: Map<number, number>,
   outErrors: Map<number, number>,
-): NetworkInterface[] {
+): NetworkInterfaces[] {
   return interfaces.map((iface) => ({
     index: iface.index,
 
@@ -138,6 +139,24 @@ export function fetchInterfaces(
     operStatus: oper.get(iface.index) ?? 0,
 
     speedMbps: speed.get(iface.index) ?? 0,
-
   }));
+}
+
+export function fetchInOutOctets(
+  interfaces: InterfaceDiscovery[],
+  interfaceIdMap: Map<number, number>,
+  inOctets: Map<number, number>,
+  outOctets: Map<number, number>,
+  inErrors: Map<number, number>,
+  outErrors: Map<number, number>,
+): InterfaceTraffic[] {
+  return interfaces
+    .filter((iface) => interfaceIdMap.has(iface.index))
+    .map((iface) => ({
+      interfaceId: interfaceIdMap.get(iface.index)!,
+      inOctets: inOctets.get(iface.index) ?? 0,
+      outOctets: outOctets.get(iface.index) ?? 0,
+      inErrors: inErrors.get(iface.index) ?? 0,
+      outErrors: outErrors.get(iface.index) ?? 0,
+    }));
 }

@@ -108,6 +108,7 @@ export async function GET(req: NextRequest) {
         select: {
           ipAddress: true,
           sysName: true,
+          community: true,
           status: true,
         },
       });
@@ -117,10 +118,7 @@ export async function GET(req: NextRequest) {
           { status: 404 },
         );
       }
-      return NextResponse.json({
-        data: device,
-        message: "Loaded device successfully.",
-      });
+      return NextResponse.json(device);
     } else {
       const devices = await prisma.devices.findMany({
         orderBy: {

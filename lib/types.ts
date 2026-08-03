@@ -101,9 +101,11 @@ export interface SnmpVarbind {
 }
 
 export interface InterfaceTraffic {
-  index: number;
+  interfaceId: number;
   inOctets: number;
   outOctets: number;
+  inErrors: number;
+  outErrors: number;
 }
 
 export interface InterfaceTypes {
@@ -115,12 +117,31 @@ export interface InterfaceTypes {
   operStatus: number;
   speedMbps: number;
 }
+export interface InterfaceStatistic {
+  id: number;
+  interfaceId: number;
+  inOctets: string;
+  outOctets: string;
+  inErrors: number;
+  outErrors: number;
+  createdAt: string;
+}
+
+export interface InterfaceResponse {
+  id: number;
+  name: string;
+  index: number;
+  speedMbps: number;
+  adminStatus: number;
+  operStatus: number;
+  statistics: InterfaceStatistic[];
+}
 export interface InterfaceDiscovery {
   index: number;
   name: string;
 }
 
-export interface NetworkInterface {
+export interface NetworkInterfaces {
   index: number;
   name: string;
   description: string;
@@ -132,3 +153,15 @@ export interface NetworkInterface {
   inErrors: number;
   outErrors: number;
 }
+/* ============================= */
+/* GRAPH TYPES */
+/* ============================= */
+
+export type GraphType = "stacked" | "percent" | "lines" | "grid" | "sankey";
+
+// Matches the accent colors already used across the dashboard
+// (sky = Core Router / HTTP-HTTPS, indigo/violet = Edge Switch / DNS,
+// emerald = SSH, amber = SNMP, red = alerts, plus a few more in the
+// same family for interfaces beyond the first five).
+
+export type DataPoint = { timestamp: number } & Record<string, number | string>;
