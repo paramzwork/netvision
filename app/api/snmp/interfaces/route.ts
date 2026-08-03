@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  mergeInterfaces,
-  parseInterfaces,
-  snmpWalk,
-  toMap,
-} from "@/lib/snmp";
+import { mergeInterfaces, parseInterfaces, snmpWalk, toMap } from "@/lib/snmp";
 import { OIDS } from "@/lib/oid";
 import { counter64ToNumber, tripleDecode } from "@/lib/utils";
 import { discoverInterfaces } from "@/lib/services/snmp/discoverInterfaces";
 import { saveInterfaces } from "@/lib/services/snmp/saveInterfaces";
 import { pollTraffic } from "@/lib/services/snmp/pollTraffic";
+import { PrismaClient } from "@/lib/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL!,
+});
 
+const prisma = new PrismaClient({
+  adapter,
+});
 
 export async function GET() {
   const host = process.env.SNMP_HOST!;
@@ -246,5 +249,47 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { id, status } = await req.json();
+
+    if (!["1", "0"].includes(status)) {
+      return NextResponse.json(
+        { message: "Invalid request." },
+        { status: 400 },
+      );
+    }
+
+    const updatedInterface = await prisma.interfaces.update({
+      where: {
+        id,
+      },
+      data: {
+        status,
+      },
+      select: {
+        id: true,
+        status: true,
+      },
+    });
+
+    return NextResponse.json({
+      message: "Interface status updated successfully.",
+      data: updatedInterface,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        message: "Internal Server Error.",
+      },
+      {
+        status: 500,
+      },
+    );
   }
 }

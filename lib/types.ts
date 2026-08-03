@@ -109,12 +109,14 @@ export interface InterfaceTraffic {
 }
 
 export interface InterfaceTypes {
+  id: number;
   index: number;
   deviceId: number;
   name: string;
   description: string;
   adminStatus: number;
   operStatus: number;
+  status: string;
   speedMbps: number;
 }
 export interface InterfaceStatistic {
