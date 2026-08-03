@@ -1,4 +1,7 @@
-import { DeviceInfoTypes } from "@/lib/types";
+import {
+  DeviceInfoTypes,
+  InterfaceTypes,
+} from "@/lib/types";
 import { create } from "zustand";
 
 export interface Device {
@@ -32,4 +35,59 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
     set({
       selectedDevice: device,
     }),
+}));
+
+interface DevicesStore {
+  device: DeviceInfoTypes[];
+  setDevice: React.Dispatch<React.SetStateAction<DeviceInfoTypes[]>>;
+  selectedDevice: DeviceInfoTypes | null;
+  setSelectedDevice: (user: DeviceInfoTypes | null) => void;
+}
+
+export const useDevicesStore = create<DevicesStore>((set) => ({
+  device: [],
+
+  selectedDevice: null,
+
+  setDevice: (value) =>
+    set((state) => ({
+      device: typeof value === "function" ? value(state.device) : value,
+    })),
+  setSelectedDevice: (device) =>
+    set({
+      selectedDevice: device,
+    }),
+}));
+
+interface InterfaceStore {
+  interfaces: Record<string, InterfaceTypes[]>;
+
+  setInterfaces: (
+    ip: string,
+    interfaces:
+      | InterfaceTypes[]
+      | ((prev: InterfaceTypes[]) => InterfaceTypes[]),
+  ) => void;
+  getInterfaces: (ipAddress: string) => InterfaceTypes[];
+
+  clearInterfaces: () => void;
+}
+
+export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
+  interfaces: {},
+
+  setInterfaces: (ip, value) =>
+    set((state) => ({
+      interfaces: {
+        ...state.interfaces,
+        [ip]:
+          typeof value === "function"
+            ? value(state.interfaces[ip] ?? [])
+            : value,
+      },
+    })),
+
+  getInterfaces: (ipAddress) => get().interfaces[ipAddress] ?? [],
+
+  clearInterfaces: () => set({ interfaces: {} }),
 }));

@@ -48,6 +48,7 @@ export async function GET(req: Request) {
         typeof value === "bigint" ? value.toString() : value,
       ),
     );
+    console.log(serialized);
     return NextResponse.json(serialized);
   } catch (error) {
     console.error(error);

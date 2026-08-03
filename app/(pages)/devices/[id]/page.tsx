@@ -126,7 +126,6 @@ export default function ViewDevice() {
 
     hasMountedRef.current = true;
   }, [fetchDevice]);
-  console.log(interfaces)
   return (
     <div className="space-y-6">
       <Button onClick={() => fetchTraffic()}>Fetch Traffic</Button>
