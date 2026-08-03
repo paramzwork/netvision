@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
+import { getCurrentUser } from "@/lib/auth";
 import { PrismaClient } from "@/lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { getCurrentUser } from "@/lib/auth";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,

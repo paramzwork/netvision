@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Table,
   TableBody,
@@ -11,17 +11,21 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { useDeviceStore } from "@/store/device-store";
-import { StatCard } from "@/components/statcard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrafficChart } from "@/components/trafficchart";
 import { DeviceTable } from "@/components/table/devicetable";
-import { useData } from "@/context/DataContext";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { tripleEncode } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { InterfaceResponse, InterfaceTraffic } from "@/lib/types";
 export default function ViewDevice() {
-  const { activeDevices } = useData();
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
   const router = useRouter();
   const hasMountedRef = useRef<boolean>(false);
+  const [inOutTraffic, setInOutTraffic] = useState<InterfaceTraffic[]>([]);
+  const [interfaces, setInterfaces] = useState<InterfaceResponse[]>([]);
+
   const { devices, selectedDevice, setDevice, setSelectedDevice } =
     useDeviceStore();
   const fetchDevice = useCallback(async () => {
@@ -54,14 +58,94 @@ export default function ViewDevice() {
       });
     }
   }, [devices, raw, router, setDevice, setSelectedDevice]);
+
+  const fetchTraffic = async () => {
+    if (!selectedDevice) {
+      toast.error("Community is missing.");
+      return;
+    }
+    try {
+      const community = tripleEncode(selectedDevice.community);
+      const res = await fetch("/api/snmp/interfaces", {
+        method: "POST",
+        body: JSON.stringify({ raw, community }),
+      });
+      const resData = await res.json();
+      if (!res.ok) {
+        toast.error("Missing host.");
+        return;
+      }
+      setInOutTraffic(resData);
+      toast.success("Loaded traffic successfully!");
+    } catch {
+      toast.error("Internal Server Error.", {
+        description: "Server error please contact admin.",
+      });
+    }
+  };
+  const saveTraffic = async () => {
+    try {
+      const res = await fetch("/api/snmp/traffic", {
+        method: "POST",
+        body: JSON.stringify({ inOutTraffic }),
+      });
+      const resData = await res.json();
+      if (!res.ok) {
+        toast.error("Missing host.");
+        return;
+      }
+      toast.success(resData.message);
+    } catch {
+      toast.error("Internal Server Error.", {
+        description: "Server error please contact admin.",
+      });
+    }
+  };
+
+  const fetchInterfaces = async () => {
+    if (!selectedDevice) return;
+    try {
+      const raw = tripleEncode(selectedDevice.ipAddress);
+      const res = await fetch(`/api/snmp/traffic?id=${raw}`, { method: "GET" });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.message);
+        return;
+      }
+
+      setInterfaces(data.interfaces);
+    } catch {
+      toast.error("Internal Server Error");
+    }
+  };
   useEffect(() => {
     if (hasMountedRef.current) return;
     fetchDevice();
+
     hasMountedRef.current = true;
   }, [fetchDevice]);
+  console.log(interfaces)
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Device {selectedDevice?.sysName}</h1>
+      <Button onClick={() => fetchTraffic()}>Fetch Traffic</Button>
+      <Button onClick={() => saveTraffic()}>Save</Button>
+      <Button onClick={() => fetchInterfaces()}>Fetch Interface</Button>
+      <div className="space-y-2">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Dashboard",
+              href: "/dashboard",
+            },
+            {
+              label: "Devices",
+            },
+          ]}
+        />
+        <h1 className="text-2xl font-bold">Device {selectedDevice?.sysName}</h1>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -106,36 +190,16 @@ export default function ViewDevice() {
       </Table>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Network Overview</h1>
-
-        {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <StatCard
-            title="Total Traffic"
-            value="1.2 TB"
-            change="+12% from yesterday"
-          />
-          <StatCard
-            title="Active Devices"
-            value={activeDevices.length.toString()}
-            change="+0 new devices"
-          />
-          <StatCard
-            title="Avg Latency"
-            value="23ms"
-            change="-2ms improvement"
-          />
-        </div>
-
         {/* Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>CPN-1-RC</CardTitle>
+            <CardTitle>{selectedDevice?.sysName}</CardTitle>
           </CardHeader>
           <CardContent>
-            <TrafficChart />
+            <TrafficChart interfaces={interfaces} />
           </CardContent>
         </Card>
-        <DeviceTable />
+        <DeviceTable interfaces={interfaces} />
       </div>
     </div>
   );

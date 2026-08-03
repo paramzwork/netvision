@@ -5,29 +5,15 @@ import {
   useRef,
   useState,
   useEffect,
-  useCallback,
   type RefObject,
-  type ElementType,
 } from "react";
 import {
   CalendarIcon,
   AreaChart as AreaIcon,
-  LineChart as LineIcon,
-  LayoutGrid,
-  Percent,
-  Share2,
   Maximize2,
   Minimize2,
 } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+
 import {
   Select,
   SelectContent,
@@ -37,13 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { baseInterfaces } from "@/lib/interfaces";
-
-/* ============================= */
-/* GRAPH TYPES */
-/* ============================= */
-
-type GraphType = "stacked" | "percent" | "lines" | "grid" | "sankey";
+import { DataPoint, GraphType, InterfaceResponse } from "@/lib/types";
+import {
+  CHART_COLORS,
+  getInterfaceStats,
+  getTrafficSamples,
+  GRAPH_TYPES,
+} from "@/lib/utils";
+import ChartContent from "./ChartContent";
 
 /* ============================= */
 /* TIME PRESETS */
@@ -85,61 +72,6 @@ const PRESET_LABELS: Record<PresetKey, string> = PRESETS.reduce(
 
 const GRAPH_LIMIT_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
 
-/* ============================= */
-/* DATA */
-/* ============================= */
-
-const TOP_INTERFACES = [...baseInterfaces]
-  .sort(
-    (a, b) =>
-      b.inbound.current +
-      b.outbound.current -
-      (a.inbound.current + a.outbound.current),
-  )
-  .slice(0, 10);
-
-// Matches the accent colors already used across the dashboard
-// (sky = Core Router / HTTP-HTTPS, indigo/violet = Edge Switch / DNS,
-// emerald = SSH, amber = SNMP, red = alerts, plus a few more in the
-// same family for interfaces beyond the first five).
-const CHART_COLORS = [
-  "#38bdf8", // sky
-  "#818cf8", // indigo
-  "#34d399", // emerald
-  "#fbbf24", // amber
-  "#f87171", // red
-  "#a78bfa", // violet
-  "#22d3ee", // cyan
-  "#fb923c", // orange
-  "#4ade80", // green
-  "#94a3b8", // slate
-];
-
-type DataPoint = { timestamp: number } & Record<string, number | string>;
-
-function generateSeries(
-  anchor: number,
-  points: number,
-  stepMs: number,
-): DataPoint[] {
-  return Array.from({ length: points }, (_, i) => {
-    const timestamp = anchor - (points - 1 - i) * stepMs;
-    const point: DataPoint = { timestamp };
-
-    TOP_INTERFACES.forEach((iface, idx) => {
-      const avg = iface.inbound.average + iface.outbound.average;
-      const max = iface.inbound.max + iface.outbound.max;
-      const amplitude = Math.max(0.2, max - avg);
-      const period = 10 + idx * 3;
-      const phase = idx * 1.3;
-      const value = avg + amplitude * Math.sin(i / period + phase);
-      point[iface.name] = Number(Math.max(0, value).toFixed(2));
-    });
-
-    return point;
-  });
-}
-
 function toLocalInputValue(date: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
@@ -157,305 +89,25 @@ function formatTick(timestamp: number, spanMs: number) {
 }
 
 /* ============================= */
-/* GRAPH TYPE SIDEBAR */
-/* ============================= */
-
-const GRAPH_TYPES: {
-  key: GraphType;
-  label: string;
-  icon: ElementType;
-}[] = [
-  { key: "stacked", label: "Stacked", icon: AreaIcon },
-  { key: "percent", label: "100%", icon: Percent },
-  { key: "lines", label: "Lines", icon: LineIcon },
-  { key: "grid", label: "Grid", icon: LayoutGrid },
-  { key: "sankey", label: "Sankey", icon: Share2 },
-];
-
-/* ============================= */
 /* CUSTOM TOOLTIP */
 /* ============================= */
-
-interface CustomTooltipProps {
-  active?: boolean;
-  label?: string;
-  payload?: Array<{ name: string; value: number; color: string }>;
-  hoveredInterface: string | null;
-  displayedInterfaces: Array<{ name: string }>;
-  chartColors: string[];
+interface Props {
+  interfaces: InterfaceResponse[];
 }
+export function TrafficChart({ interfaces }: Props) {
+  const TOP_INTERFACES = [...interfaces]
+    .sort((a, b) => {
+      const aStats = getInterfaceStats(a);
+      const bStats = getInterfaceStats(b);
 
-function CustomTooltip({
-  active,
-  label,
-  payload,
-  hoveredInterface,
-  displayedInterfaces,
-  chartColors,
-}: CustomTooltipProps) {
-  if (!active || !payload || payload.length === 0) return null;
+      return (
+        bStats.inbound.current +
+        bStats.outbound.current -
+        (aStats.inbound.current + aStats.outbound.current)
+      );
+    })
+    .slice(0, 10);
 
-  const valueMap: Record<string, number> = {};
-  payload.forEach((p) => {
-    valueMap[p.name] = p.value;
-  });
-
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.97)",
-        border: "1px solid #e2e8f0",
-        borderRadius: 8,
-        padding: "10px 14px",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
-        minWidth: 220,
-        fontSize: 12,
-      }}
-    >
-      <div
-        style={{
-          fontWeight: 600,
-          marginBottom: 8,
-          color: "#334155",
-          fontSize: 12,
-        }}
-      >
-        {label}
-      </div>
-      {displayedInterfaces.map((iface, idx) => {
-        const color = chartColors[idx];
-        const value = valueMap[iface.name];
-        const isHovered = hoveredInterface === iface.name;
-        const isDimmed = hoveredInterface !== null && !isHovered;
-        return (
-          <div
-            key={iface.name}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              marginBottom: 3,
-              opacity: isDimmed ? 0.4 : 1,
-              transition: "opacity 0.15s",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: color,
-                flexShrink: 0,
-              }}
-            />
-            <span style={{ color: "#475569", flex: 1 }}>{iface.name}</span>
-            <span
-              style={{
-                fontWeight: isHovered ? 700 : 500,
-                color: isHovered ? "#0f172a" : "#64748b",
-                marginLeft: 8,
-              }}
-            >
-              {value !== undefined ? `${value.toFixed(2)} G` : "—"}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/* ============================= */
-/* CHART CONTENT (shared between normal and fullscreen) */
-/* ============================= */
-
-interface ChartContentProps {
-  graphType: GraphType;
-  visibleData: (DataPoint & { label: string })[];
-  displayedInterfaces: typeof TOP_INTERFACES;
-  hoveredInterface: string | null;
-  setHoveredInterface: (name: string | null) => void;
-  chartHeight?: number;
-  fullHeight?: boolean;
-}
-
-function ChartContent({
-  graphType,
-  visibleData,
-  displayedInterfaces,
-  hoveredInterface,
-  setHoveredInterface,
-  chartHeight = 420,
-  fullHeight = false,
-}: ChartContentProps) {
-  const containerStyle = fullHeight
-    ? { height: "100%", width: "100%" }
-    : { height: chartHeight };
-
-  if (graphType === "grid") {
-    const cols = 2;
-    const rows = Math.ceil(displayedInterfaces.length / cols);
-    const gap = 12;
-    const totalHeight = fullHeight ? undefined : chartHeight;
-    const cellHeight = totalHeight
-      ? Math.floor((totalHeight - gap * (rows - 1)) / rows)
-      : 180;
-
-    return (
-      <div
-        className="grid gap-3"
-        style={{
-          ...(fullHeight ? { height: "100%", width: "100%" } : {}),
-          gridTemplateColumns: "repeat(2, 1fr)",
-        }}
-      >
-        {displayedInterfaces.map((iface, idx) => {
-          const color = CHART_COLORS[idx];
-          return (
-            <div
-              key={iface.name}
-              className="relative rounded-xl overflow-hidden border border-slate-200"
-              style={{ background: "#ffffff", height: cellHeight }}
-            >
-              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2">
-                <span
-                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ color: "#fff", background: `${color}cc` }}
-                >
-                  {iface.name}
-                </span>
-              </div>
-              <ResponsiveContainer width="100%" height={cellHeight}>
-                <AreaChart
-                  data={visibleData}
-                  margin={{ top: 32, right: 8, bottom: 8, left: 8 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id={`grad-${idx}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="0%" stopColor={color} stopOpacity={0.7} />
-                      <stop
-                        offset="100%"
-                        stopColor={color}
-                        stopOpacity={0.05}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="label" hide />
-                  <YAxis hide />
-                  <Tooltip
-                    formatter={(value) => [`${Number(value)} G`, iface.name]}
-                    contentStyle={{
-                      fontSize: 11,
-                      padding: "4px 8px",
-                      borderRadius: 6,
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey={iface.name}
-                    stroke={color}
-                    strokeWidth={1.5}
-                    fill={`url(#grad-${idx})`}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  return (
-    <div style={containerStyle} onMouseLeave={() => setHoveredInterface(null)}>
-      <ResponsiveContainer width="100%" height="100%">
-        {graphType === "sankey" ? (
-          <AreaChart data={[]}>
-            <text
-              x="50%"
-              y="50%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="#94a3b8"
-              fontSize={14}
-            >
-              Sankey view coming soon...
-            </text>
-          </AreaChart>
-        ) : (
-          <AreaChart
-            data={visibleData}
-            stackOffset={graphType === "percent" ? "expand" : "none"}
-          >
-            <CartesianGrid
-              stroke="rgba(148,163,184,0.08)"
-              strokeDasharray="3 3"
-              vertical={false}
-            />
-            <XAxis dataKey="label" />
-            <YAxis />
-            <Tooltip
-              content={
-                <CustomTooltip
-                  hoveredInterface={hoveredInterface}
-                  displayedInterfaces={displayedInterfaces}
-                  chartColors={CHART_COLORS}
-                />
-              }
-            />
-            {displayedInterfaces.map((iface, idx) => {
-              const isHovered = hoveredInterface === iface.name;
-              const isDimmed = hoveredInterface !== null && !isHovered;
-              const baseColor = CHART_COLORS[idx];
-
-              return (
-                <Area
-                  key={iface.name}
-                  type="monotone"
-                  dataKey={iface.name}
-                  stackId={graphType !== "lines" ? "1" : undefined}
-                  stroke={baseColor}
-                  fill={graphType === "lines" ? "transparent" : baseColor}
-                  fillOpacity={
-                    isDimmed
-                      ? 0.05
-                      : isHovered
-                        ? 0.45
-                        : graphType === "lines"
-                          ? 0
-                          : 0.25
-                  }
-                  strokeWidth={
-                    isHovered ? 2.5 : graphType === "lines" ? 2 : 1.5
-                  }
-                  strokeOpacity={isDimmed ? 0.15 : 1}
-                  dot={false}
-                  isAnimationActive={false}
-                  onMouseEnter={() => setHoveredInterface(iface.name)}
-                />
-              );
-            })}
-          </AreaChart>
-        )}
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-/* ============================= */
-/* COMPONENT */
-/* ============================= */
-
-export function TrafficChart() {
   const [preset, setPreset] = useState<PresetKey>("1d");
   const [graphType, setGraphType] = useState<GraphType>("stacked");
   const [graphLimit, setGraphLimit] = useState<number>(10);
@@ -481,20 +133,15 @@ export function TrafficChart() {
     }
   };
 
-  // Close fullscreen on Escape key
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isFullscreen) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
         setIsFullscreen(false);
       }
-    },
-    [isFullscreen],
-  );
-
-  useEffect(() => {
+    };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+  }, []);
 
   // Prevent body scroll when fullscreen
   useEffect(() => {
@@ -508,11 +155,25 @@ export function TrafficChart() {
     };
   }, [isFullscreen]);
 
-  const fullSeries = useMemo(
-    () => generateSeries(now, 7 * 48, 30 * 60 * 1000),
-    [now],
-  );
+  const fullSeries = useMemo(() => {
+    const map = new Map<number, DataPoint>();
 
+    TOP_INTERFACES.forEach((iface) => {
+      const samples = getTrafficSamples(iface);
+
+      samples.forEach((sample) => {
+        if (!map.has(sample.timestamp)) {
+          map.set(sample.timestamp, {
+            timestamp: sample.timestamp,
+          });
+        }
+
+        map.get(sample.timestamp)![iface.name] = sample.inbound;
+      });
+    });
+
+    return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
+  }, [TOP_INTERFACES]);
   const { from, to } = useMemo(() => {
     if (preset === "custom") {
       const fromDate = customFrom
