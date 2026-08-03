@@ -42,7 +42,7 @@ export const menuItems: MenuItemTypes[] = [
   {
     name: "Weathermap",
     icon: Network,
-    href: "/weather/map",
+    href: "/weathermap",
     roles: ["admin", "super admin"],
   },
   {
