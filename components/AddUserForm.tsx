@@ -1,6 +1,7 @@
 "use client";
 
 import { RoleTypes, UserTypes } from "@/lib/types";
+import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -24,6 +25,7 @@ export default function AddUserForm({
     password: data?.password ?? "",
     roleId: data?.roles.id ?? 0,
   });
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -154,16 +156,29 @@ export default function AddUserForm({
         {/* Password */}
         <div>
           <label className="block text-sm font-medium mb-1">Password *</label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {errors.password && (
-            <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-          )}
+          <div className="w-full flex flex-row items-center border rounded-md">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full border-none rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+            )}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-muted-foreground cursor-pointer mr-3"
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Role */}

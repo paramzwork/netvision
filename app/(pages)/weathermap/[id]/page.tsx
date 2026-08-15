@@ -1,0 +1,493 @@
+"use client";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import ViewCloudNode from "@/components/weathermap/view/ViewCloudNode";
+import ViewRouterNode from "@/components/weathermap/view/ViewRouterNode";
+import ViewSwitchNode from "@/components/weathermap/view/ViewSwitchNode";
+import { tripleDecode, tripleEncode } from "@/lib/utils";
+import {
+  EdgeLabelRenderer,
+  EdgeMouseHandler,
+  MiniMap,
+  ReactFlow,
+  useEdgesState,
+  useNodesState,
+} from "@xyflow/react";
+import { Settings } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  edgeTypes,
+  TopologyEdge,
+  TopologyEdgeData,
+  TopologyNode,
+  TopologyNodeData,
+  TrafficHistoryPoint,
+} from "@/components/WeatherMapComponent";
+import ViewServerNode from "@/components/weathermap/view/ViewServerNode";
+import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
+import { useDevicesStore, useInterfacesWeathermap } from "@/store/device-store";
+import { toast } from "sonner";
+import { InterfaceTypes } from "@/lib/types";
+const nodeTypes = {
+  router: ViewRouterNode,
+  switch: ViewSwitchNode,
+  cloud: ViewCloudNode,
+  server: ViewServerNode,
+  blank: ViewCloudNode,
+};
+
+export default function ViewTopology() {
+  const params = useParams();
+  const raw = decodeURIComponent(params.id as string);
+  const topologyId = tripleDecode(raw);
+  const { interfaces, setInterfaces } = useInterfacesWeathermap();
+  const { device, setDevice } = useDevicesStore();
+
+  const [nodes, setNodes] = useNodesState<TopologyNode>([]);
+  const [edges, setEdges] = useEdgesState<TopologyEdge>([]);
+
+  const router = useRouter();
+  const hasMountedRef = useRef<boolean>(false);
+  const hasFetchedInterfacesRef = useRef<boolean>(false);
+
+  const [trafficEdgeId, setTrafficEdgeId] = useState<string | null>(null);
+  const trafficEdge = useMemo(() => {
+    if (!trafficEdgeId) return null;
+
+    return edges.find((edge) => edge.id === trafficEdgeId) ?? null;
+  }, [edges, trafficEdgeId]);
+  const trafficEdgePosition = useMemo(() => {
+    if (!trafficEdge) return null;
+
+    const sourceNode = nodes.find((node) => node.id === trafficEdge.source);
+
+    const targetNode = nodes.find((node) => node.id === trafficEdge.target);
+
+    if (!sourceNode || !targetNode) return null;
+
+    const sourceWidth = sourceNode.measured?.width ?? sourceNode.width ?? 0;
+    const sourceHeight = sourceNode.measured?.height ?? sourceNode.height ?? 0;
+
+    const targetWidth = targetNode.measured?.width ?? targetNode.width ?? 0;
+    const targetHeight = targetNode.measured?.height ?? targetNode.height ?? 0;
+
+    const sourceX = sourceNode.position.x + sourceWidth / 2;
+    const sourceY = sourceNode.position.y + sourceHeight / 2;
+
+    const targetX = targetNode.position.x + targetWidth / 2;
+    const targetY = targetNode.position.y + targetHeight / 2;
+
+    return {
+      x: (sourceX + targetX) / 2,
+      y: (sourceY + targetY) / 2,
+    };
+  }, [trafficEdge, nodes]);
+
+  const onEdgeContextMenu: EdgeMouseHandler<TopologyEdge> = useCallback(
+    (event, edge) => {
+      event.preventDefault();
+
+      const topologyEdge = edge as TopologyEdge;
+
+      setTrafficEdgeId(topologyEdge.id);
+    },
+    [],
+  );
+  const sourceInterface = useMemo(() => {
+    if (!trafficEdge) return undefined;
+
+    const interfaceId = trafficEdge.data?.sourceInterfaceId;
+
+    if (typeof interfaceId !== "number") {
+      return undefined;
+    }
+
+    return interfaces.find((iface) => iface.id === interfaceId);
+  }, [trafficEdge, interfaces]);
+
+  //   Load topology ____________________________________
+  const loadTopology = useCallback(
+    async (topologyId: string) => {
+      try {
+        const response = await fetch(`/api/topology/${topologyId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message ?? "Failed to load topology");
+        }
+
+        // ---------------------------------------------
+        // LOAD NODES
+        // ---------------------------------------------
+
+        const loadedNodes: TopologyNode[] = result.data.nodes.map(
+          (node: {
+            id: string;
+            type: string;
+            position: {
+              x: number;
+              y: number;
+            };
+            width?: number | null;
+            height?: number | null;
+            data: TopologyNodeData;
+          }) => ({
+            id: node.id,
+            type: node.type,
+            position: node.position,
+
+            ...(node.width != null
+              ? {
+                  width: node.width,
+                }
+              : {}),
+
+            ...(node.height != null
+              ? {
+                  height: node.height,
+                }
+              : {}),
+
+            data: {
+              ...node.data,
+
+              // -----------------------------------------
+              // Aggregation settings
+              // -----------------------------------------
+
+              aggregationMode: node.data.aggregationMode ?? "automatic",
+
+              aggregations: node.data.aggregations ?? [],
+
+              // -----------------------------------------
+              // Handle settings
+              // -----------------------------------------
+
+              handles: {
+                top: node.data.handles?.top ?? [],
+                right: node.data.handles?.right ?? [],
+                bottom: node.data.handles?.bottom ?? [],
+                left: node.data.handles?.left ?? [],
+              },
+            },
+          }),
+        );
+
+        // ---------------------------------------------
+        // LOAD EDGES
+        // ---------------------------------------------
+
+        const loadedEdges: TopologyEdge[] = result.data.edges.map(
+          (edge: {
+            id: string;
+            source: string;
+            target: string;
+            sourceHandle?: string | null;
+            targetHandle?: string | null;
+            type?: string;
+            data: TopologyEdgeData;
+          }) => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+
+            sourceHandle: edge.sourceHandle ?? undefined,
+            targetHandle: edge.targetHandle ?? undefined,
+
+            type: edge.type ?? "start-end",
+
+            data: {
+              ...edge.data,
+
+              aggregatedInterfaces: edge.data.aggregatedInterfaces ?? [],
+            },
+          }),
+        );
+
+        // ---------------------------------------------
+        // UPDATE REACT FLOW
+        // ---------------------------------------------
+
+        setNodes(loadedNodes);
+        setEdges(loadedEdges);
+
+        return result.data;
+      } catch (error) {
+        console.error("LOAD TOPOLOGY ERROR:", error);
+      }
+    },
+    [setNodes, setEdges],
+  );
+  const fetchDevice = useCallback(async () => {
+    if (device.length > 0) {
+      setDevice(device);
+      return;
+    }
+    try {
+      // const raw = tripleEncode("all");
+      const res = await fetch(`/api/snmp/device`, { method: "GET" });
+      const resData = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          router.replace("/");
+          return;
+        }
+        toast.error(resData.message);
+        return;
+      }
+      setDevice(resData.data);
+      toast.success("Devices loaded successfully!");
+    } catch {
+      toast.error("Internal Server Error.", {
+        description: "Server error please contact admin.",
+      });
+    }
+  }, [device, router, setDevice]);
+
+  const fetchInterfaces = useCallback(async () => {
+    if (device.length === 0) return;
+    if (interfaces.length > 0) {
+      setInterfaces(interfaces);
+      return;
+    }
+    try {
+      const results = await Promise.all(
+        device.map(async (dev) => {
+          const raw = tripleEncode(dev.ipAddress);
+
+          const res = await fetch(`/api/snmp/traffic?id=${raw}`);
+
+          const resData = await res.json();
+
+          if (!res.ok) {
+            throw new Error(resData.message || "Failed fetching interface");
+          }
+
+          return resData.interfaces.map((iface: InterfaceTypes) => ({
+            ...iface,
+
+            deviceIp: dev.ipAddress,
+          }));
+        }),
+      );
+
+      const allInterfaces = results.flat();
+      setInterfaces(allInterfaces);
+
+      toast.success("Interfaces loaded successfully!");
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Failed loading interfaces");
+    }
+  }, [device, interfaces, setInterfaces]);
+  useEffect(() => {
+    if (hasMountedRef.current) return;
+    fetchDevice();
+    hasMountedRef.current = true;
+  }, [fetchDevice]);
+
+  useEffect(() => {
+    if (device.length === 0) return;
+    if (hasFetchedInterfacesRef.current) return;
+
+    fetchInterfaces();
+    hasFetchedInterfacesRef.current = true;
+  }, [device, fetchInterfaces]);
+  useEffect(() => {
+    if (topologyId === null) return;
+    console.log(!Number.isInteger(topologyId));
+
+    loadTopology(topologyId);
+  }, [topologyId, loadTopology]);
+  useEffect(() => {
+    if (topologyId === null) return;
+
+    let cancelled = false;
+
+    const updateTraffic = async () => {
+      try {
+        const res = await fetch(`/api/topology/${topologyId}/traffic`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          console.error("Failed to fetch topology traffic");
+          return;
+        }
+
+        const result = await res.json();
+
+        if (cancelled) return;
+
+        setEdges((currentEdges) =>
+          currentEdges.map((edge): TopologyEdge => {
+            const traffic = result.data?.[edge.id];
+
+            if (!traffic) {
+              return edge;
+            }
+
+            const history = Array.isArray(edge.data?.trafficHistory)
+              ? edge.data.trafficHistory
+              : [];
+
+            const newHistory: TrafficHistoryPoint[] = [
+              ...history,
+              {
+                inbound: Number(traffic.inbound ?? 0),
+                outbound: Number(traffic.outbound ?? 0),
+                timestamp: Date.now(),
+              },
+            ].slice(-60);
+
+            return {
+              ...edge,
+
+              data: {
+                // ----------------------------------------
+                // Preserve ALL existing edge data
+                // ----------------------------------------
+                ...edge.data,
+
+                // ----------------------------------------
+                // Traffic
+                // ----------------------------------------
+                inbound: Number(traffic.inbound ?? 0),
+                outbound: Number(traffic.outbound ?? 0),
+
+                // ----------------------------------------
+                // Traffic history
+                // ----------------------------------------
+                trafficHistory: newHistory,
+
+                // ----------------------------------------
+                // Source status
+                // ----------------------------------------
+                sourceAdminStatus: Number(
+                  traffic.sourceAdminStatus ??
+                    edge.data?.sourceAdminStatus ??
+                    0,
+                ),
+
+                sourceOperStatus: Number(
+                  traffic.sourceOperStatus ?? edge.data?.sourceOperStatus ?? 0,
+                ),
+
+                sourceStatus:
+                  traffic.sourceStatus ?? edge.data?.sourceStatus ?? "",
+
+                // ----------------------------------------
+                // Target status
+                // ----------------------------------------
+                targetAdminStatus: Number(
+                  traffic.targetAdminStatus ??
+                    edge.data?.targetAdminStatus ??
+                    0,
+                ),
+
+                targetOperStatus: Number(
+                  traffic.targetOperStatus ?? edge.data?.targetOperStatus ?? 0,
+                ),
+
+                targetStatus:
+                  traffic.targetStatus ?? edge.data?.targetStatus ?? "",
+              },
+            };
+          }),
+        );
+      } catch (error) {
+        console.error("TRAFFIC UPDATE ERROR:", error);
+      }
+    };
+
+    updateTraffic();
+
+    const interval = setInterval(updateTraffic, 10 * 60 * 1000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [topologyId, setEdges]);
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Dashboard",
+              href: "/dashboard",
+            },
+            {
+              label: "Weathermap",
+            },
+          ]}
+        />
+        <div className="flex flex-row items-center justify-between">
+          <h1 className="text-2xl font-bold">Weathermap</h1>
+          <Link href={`/settings/weathermap/${raw}`}>
+            <Settings className="shrink-0 w-5 h-5" />
+          </Link>
+        </div>
+      </div>
+      <div className="w-full h-170 bg-[#2b2a2a] border">
+        <ReactFlow<TopologyNode, TopologyEdge>
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onEdgeContextMenu={onEdgeContextMenu}
+          fitView
+          colorMode="system"
+        >
+          <MiniMap />
+        </ReactFlow>
+      </div>
+      {trafficEdge && trafficEdgePosition && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: "absolute",
+              transform: `
+                translate(-50%, -100%)
+                translate(
+                  ${trafficEdgePosition.x}px,
+                  ${trafficEdgePosition.y}px
+                )
+              `,
+              pointerEvents: "all",
+              zIndex: 1000,
+            }}
+          >
+            <EdgeTrafficPanel
+              sourceInterface={sourceInterface}
+              interfaces={interfaces}
+              sourceNodeName={trafficEdge.data?.sourceNodeName ?? ""}
+              targetNodeName={trafficEdge.data?.targetNodeName ?? ""}
+              sourceInterfaceName={trafficEdge.data?.sourceInterfaceName ?? ""}
+              targetInterfaceName={trafficEdge.data?.targetInterfaceName ?? ""}
+              aggregatedInterfaces={
+                trafficEdge.data?.aggregatedInterfaces ?? []
+              }
+              onClose={() => setTrafficEdgeId(null)}
+            />
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </div>
+  );
+}

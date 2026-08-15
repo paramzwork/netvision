@@ -1,14 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { toast } from "sonner";
 import { useDeviceStore } from "@/store/device-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,14 +8,12 @@ import { TrafficChart } from "@/components/trafficchart";
 import { DeviceTable } from "@/components/table/devicetable";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { tripleEncode } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { InterfaceResponse, InterfaceTraffic } from "@/lib/types";
+import { InterfaceResponse } from "@/lib/types";
 export default function ViewDevice() {
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
   const router = useRouter();
   const hasMountedRef = useRef<boolean>(false);
-  const [inOutTraffic, setInOutTraffic] = useState<InterfaceTraffic[]>([]);
   const [interfaces, setInterfaces] = useState<InterfaceResponse[]>([]);
 
   const { devices, selectedDevice, setDevice, setSelectedDevice } =
@@ -59,50 +49,49 @@ export default function ViewDevice() {
     }
   }, [devices, raw, router, setDevice, setSelectedDevice]);
 
-  const fetchTraffic = async () => {
-    if (!selectedDevice) {
-      toast.error("Community is missing.");
-      return;
-    }
-    try {
-      const community = tripleEncode(selectedDevice.community);
-      const res = await fetch("/api/snmp/interfaces", {
-        method: "POST",
-        body: JSON.stringify({ raw, community }),
-      });
-      const resData = await res.json();
-      if (!res.ok) {
-        toast.error("Missing host.");
-        return;
-      }
-      setInOutTraffic(resData);
-      toast.success("Loaded traffic successfully!");
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  };
-  const saveTraffic = async () => {
-    try {
-      const res = await fetch("/api/snmp/traffic", {
-        method: "POST",
-        body: JSON.stringify({ inOutTraffic }),
-      });
-      const resData = await res.json();
-      if (!res.ok) {
-        toast.error("Missing host.");
-        return;
-      }
-      toast.success(resData.message);
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  };
-
-  const fetchInterfaces = async () => {
+  // const fetchTraffic = async () => {
+  //   if (!selectedDevice) {
+  //     toast.error("Community is missing.");
+  //     return;
+  //   }
+  //   try {
+  //     const community = tripleEncode(selectedDevice.community);
+  //     const res = await fetch("/api/snmp/interfaces", {
+  //       method: "POST",
+  //       body: JSON.stringify({ raw, community }),
+  //     });
+  //     const resData = await res.json();
+  //     if (!res.ok) {
+  //       toast.error("Missing host.");
+  //       return;
+  //     }
+  //     setInOutTraffic(resData);
+  //     toast.success("Loaded traffic successfully!");
+  //   } catch {
+  //     toast.error("Internal Server Error.", {
+  //       description: "Server error please contact admin.",
+  //     });
+  //   }
+  // };
+  // const saveTraffic = async () => {
+  //   try {
+  //     const res = await fetch("/api/snmp/traffic", {
+  //       method: "POST",
+  //       body: JSON.stringify({ inOutTraffic }),
+  //     });
+  //     const resData = await res.json();
+  //     if (!res.ok) {
+  //       toast.error("Missing host.");
+  //       return;
+  //     }
+  //     toast.success(resData.message);
+  //   } catch {
+  //     toast.error("Internal Server Error.", {
+  //       description: "Server error please contact admin.",
+  //     });
+  //   }
+  // };
+  const fetchInterfaces = useCallback(async () => {
     if (!selectedDevice) return;
     try {
       const raw = tripleEncode(selectedDevice.ipAddress);
@@ -119,18 +108,40 @@ export default function ViewDevice() {
     } catch {
       toast.error("Internal Server Error");
     }
-  };
+  }, [selectedDevice]);
+
   useEffect(() => {
     if (hasMountedRef.current) return;
     fetchDevice();
 
     hasMountedRef.current = true;
   }, [fetchDevice]);
+  const isFetching = useRef(false);
+
+  useEffect(() => {
+    if (!selectedDevice) return;
+
+    const refresh = async () => {
+      if (isFetching.current) return;
+      console.log("%cLoad new data", "color: green");
+      isFetching.current = true;
+
+      try {
+        await fetchInterfaces();
+      } finally {
+        isFetching.current = false;
+      }
+    };
+
+    refresh();
+
+    const interval = setInterval(refresh, 10 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [fetchInterfaces, selectedDevice]);
+
   return (
     <div className="space-y-6">
-      <Button onClick={() => fetchTraffic()}>Fetch Traffic</Button>
-      <Button onClick={() => saveTraffic()}>Save</Button>
-      <Button onClick={() => fetchInterfaces()}>Fetch Interface</Button>
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -143,9 +154,9 @@ export default function ViewDevice() {
             },
           ]}
         />
-        <h1 className="text-2xl font-bold">Device {selectedDevice?.sysName}</h1>
+        <h1 className="text-2xl font-bold">{selectedDevice?.sysName} - {selectedDevice?.ipAddress}</h1>
       </div>
-      <Table>
+      {/* <Table>
         <TableHeader>
           <TableRow>
             <TableHead>System Name</TableHead>
@@ -186,9 +197,8 @@ export default function ViewDevice() {
             </TableRow>
           )}
         </TableBody>
-      </Table>
+      </Table> */}
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Network Overview</h1>
         {/* Chart */}
         <Card>
           <CardHeader>

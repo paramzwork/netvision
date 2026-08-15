@@ -1,14 +1,8 @@
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@/lib/generated/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { tripleDecode } from "@/lib/utils";
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-});
+import { pollTraffic } from "@/lib/services/snmp/pollTraffic";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient({
-  adapter,
-});
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -43,12 +37,12 @@ export async function GET(req: Request) {
         },
       },
     });
+    
     const serialized = JSON.parse(
       JSON.stringify({ interfaces }, (_, value) =>
         typeof value === "bigint" ? value.toString() : value,
       ),
     );
-    console.log(serialized);
     return NextResponse.json(serialized);
   } catch (error) {
     console.error(error);
@@ -59,18 +53,39 @@ export async function GET(req: Request) {
     );
   }
 }
+// export async function POST(req: NextRequest) {
+//   try {
+//     const { host, community } = await req.json();
+
+//     const statistics = await pollTraffic(host, community);
+
+//     return NextResponse.json({
+//       message: "Traffic polled successfully.",
+//       count: statistics.length,
+//     });
+//   } catch (err) {
+//     return NextResponse.json(
+//       {
+//         success: false,
+//         error: err instanceof Error ? err.message : String(err),
+//       },
+//       {
+//         status: 500,
+//       },
+//     );
+//   }
+// }
+
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const { host, community } = await req.json();
 
-    console.log(body.inOutTraffic.slice(0, 10));
+    const statistics = await pollTraffic(host, community);
 
-    await prisma.interface_statistics.createMany({
-      data: body.inOutTraffic,
-      skipDuplicates: true,
-    });
     return NextResponse.json({
-      message: "Traffic loaded successfully.",
+      message: "Traffic polled successfully.",
+      count: statistics.length,
     });
   } catch (err) {
     return NextResponse.json(
