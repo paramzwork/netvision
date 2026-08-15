@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useMemo,
-  useRef,
-  useState,
-  useEffect,
-  type RefObject,
-} from "react";
+import { useMemo, useRef, useState, useEffect, type RefObject } from "react";
 import {
   CalendarIcon,
   AreaChart as AreaIcon,
@@ -175,11 +169,14 @@ export function TrafficChart({ interfaces }: Props) {
     return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
   }, [TOP_INTERFACES]);
   const { from, to } = useMemo(() => {
+    const latestTimestamp = fullSeries.at(-1)?.timestamp ?? 0;
     if (preset === "custom") {
       const fromDate = customFrom
         ? new Date(customFrom).getTime()
-        : now - 86400000;
-      const toDate = customTo ? new Date(customTo).getTime() : now;
+        : latestTimestamp - 86400000;
+
+      const toDate = customTo ? new Date(customTo).getTime() : latestTimestamp;
+
       return {
         from: Math.min(fromDate, toDate),
         to: Math.max(fromDate, toDate),
@@ -188,8 +185,12 @@ export function TrafficChart({ interfaces }: Props) {
 
     const preset_ = PRESETS.find((p) => p.value === preset);
     const hours = preset_?.hours ?? 24;
-    return { from: now - hours * 3600000, to: now };
-  }, [preset, customFrom, customTo, now]);
+
+    return {
+      from: latestTimestamp - hours * 3600000,
+      to: latestTimestamp,
+    };
+  }, [preset, customFrom, customTo, fullSeries]);
 
   const visibleData = useMemo(() => {
     const spanMs = to - from;

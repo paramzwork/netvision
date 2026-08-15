@@ -2,19 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { mergeInterfaces, parseInterfaces, snmpWalk, toMap } from "@/lib/snmp";
 import { OIDS } from "@/lib/oid";
 import { counter64ToNumber, tripleDecode } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 import { discoverInterfaces } from "@/lib/services/snmp/discoverInterfaces";
 import { saveInterfaces } from "@/lib/services/snmp/saveInterfaces";
 import { pollTraffic } from "@/lib/services/snmp/pollTraffic";
-import { PrismaClient } from "@/lib/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
 
 export async function GET() {
   const host = process.env.SNMP_HOST!;

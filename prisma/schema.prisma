@@ -68,7 +68,7 @@ model interfaces {
 
   speedMbps   Int?
 
-  statistics interface_statistics[]
+  statistics  interface_statistics[]
 
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @db.Timestamptz(6)
@@ -90,4 +90,77 @@ model interface_statistics {
   outErrors BigInt @default(0)
 
   createdAt DateTime @default(now()) @db.Timestamptz(6)
+}
+
+
+
+
+
+
+model topologies {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  nodes       topology_nodes[]
+  edges       topology_edges[]
+
+  @@map("topologies")
+}
+
+model topology_nodes {
+  id         Int      @id @default(autoincrement())
+  topologyId Int
+  
+  nodeId     String
+
+  type       String
+
+  positionX  Float
+  positionY  Float
+
+  width      Float
+  height     Float
+
+  deviceId   Int?
+  interfaceId Int?
+
+  data       Json
+
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  topology   topologies @relation( fields: [topologyId], references: [id], onDelete: Cascade)
+
+  @@unique([topologyId, nodeId])
+  @@index([topologyId])
+  @@map("topology_nodes")
+}
+
+model topology_edges {
+  id         Int      @id @default(autoincrement())
+  topologyId Int
+
+  edgeId     String
+
+  sourceNodeId String 
+  targetNodeId String
+
+  sourceHandle String?
+  targetHandle String?
+
+  type       String?
+
+  data       Json
+
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(6)
+
+  topology   topologies @relation( fields: [topologyId], references: [id], onDelete: Cascade)
+
+  @@unique([topologyId, edgeId])
+  @@index([topologyId])
+  @@map("topology_edges")
 }

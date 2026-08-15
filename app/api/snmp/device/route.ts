@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DeviceInfoTypes } from "@/lib/types";
-import { PrismaClient } from "@/lib/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { getCurrentUser } from "@/lib/auth";
 import { tripleDecode } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
 // export async function GET() {
 //   const host = process.env.SNMP_HOST!;
 //   const community = process.env.SNMP_COMMUNITY!;
