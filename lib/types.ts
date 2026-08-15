@@ -62,6 +62,7 @@ export interface Log {
 // SNMP
 
 export interface DeviceInfoTypes {
+  id: string;
   sysContact: string;
   sysDescr: string;
   sysLocation: string;
@@ -73,6 +74,13 @@ export interface DeviceInfoTypes {
   ipAddress: string;
   community: string;
   status: string;
+  interfaces: InterfaceTypes[];
+  handles: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
 }
 export interface SnmpResult {
   oid: string;
@@ -112,12 +120,20 @@ export interface InterfaceTypes {
   id: number;
   index: number;
   deviceId: number;
+  deviceIp?: string;
   name: string;
   description: string;
   adminStatus: number;
   operStatus: number;
   status: string;
   speedMbps: number;
+  handles: {
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  statistics: InterfaceStatistic[];
 }
 export interface InterfaceStatistic {
   id: number;
@@ -136,6 +152,7 @@ export interface InterfaceResponse {
   speedMbps: number;
   adminStatus: number;
   operStatus: number;
+  description: string;
   statistics: InterfaceStatistic[];
 }
 export interface InterfaceDiscovery {

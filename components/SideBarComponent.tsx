@@ -103,7 +103,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
   return (
     <aside
       className={` 
-    ${collapsed ? "w-20" : "w-72"}
+    ${collapsed ? "w-20" : "w-65"}
     shrink-0
     bg-white
     min-h-screen flex flex-col
@@ -115,9 +115,9 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
     >
       {/* ================= LOGO ================= */}
       <div
-        className={`flex items-center gap-3 px-6 border-b border-gray-200 bg-[#2b2a2a] text-white ${!collapsed ? "py-3.25" : "py-3.5"}`}
+        className={`flex items-center gap-3 px-6 border-b border-gray-200 bg-[#2b2a2a] text-white ${!collapsed ? "py-2.25" : "py-3"}`}
       >
-        <div className="w-10 h-10 bg-linear-to-br from-[#f4f5f5] to-gray-300 rounded-xl flex items-center justify-center shadow-md">
+        <div className="w-10 h-10 bg-linear-to-br from-[#f4f5f5] to-gray-300 rounded-sm flex items-center justify-center shadow-md">
           <div className="flex flex-col justify-center items-center gap-2">
             <div className="relative h-15 w-15">
               <Image
@@ -135,7 +135,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
         {!collapsed && (
           <div>
             <h1 className=" font-semibold text-lg tracking-wide">NetVision</h1>
-            <p className="text-gray-300 text-xs tracking-wide capitalize">
+            <p className="text-gray-300 text-xs tracking-wide capitalize text-nowrap">
               {currentUser?.roles?.role} Dashboard
             </p>
           </div>
@@ -165,7 +165,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
       <nav className="flex-1 px-3 py-6">
         <p
           className={`text-gray-400 text-xs font-semibold uppercase tracking-wider mb-4 ${
-            collapsed ? "text-center" : "px-4"
+            collapsed ? "text-center" : "px-2"
           }`}
         >
           {collapsed ? "•••" : ""}
@@ -185,7 +185,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                   className={`
             group flex items-center gap-3
             ${collapsed ? "justify-center px-0" : "px-2"}
-            py-3 rounded-xl relative
+            py-3 rounded-sm relative
             transition-all duration-200
             ${
               isActive
@@ -196,7 +196,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                 >
                   <div
                     className={`
-              flex items-center justify-center rounded-lg shrink-0
+              flex items-center justify-center rounded-sm shrink-0
               ${collapsed ? "w-10 h-10" : "w-9 h-9"}
               ${isActive ? "bg-indigo-100" : "bg-gray-100 group-hover:bg-gray-200"}
             `}
@@ -240,7 +240,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                   className={`
             group flex items-center gap-3
             ${collapsed ? "justify-center px-0" : "px-2"}
-            py-3 rounded-xl hover:no-underline
+            py-3 rounded-sm hover:no-underline
             transition-all duration-200
             ${
               isActive
@@ -251,7 +251,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                 >
                   <div
                     className={`
-              flex items-center justify-center rounded-lg shrink-0
+              flex items-center justify-center rounded-sm shrink-0
               ${collapsed ? "w-10 h-10" : "w-9 h-9"}
               ${isActive ? "bg-indigo-100" : "bg-gray-100 group-hover:bg-gray-200"}
             `}
@@ -287,7 +287,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                               key={device.ipAddress}
                               href={href}
                               className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm
                 transition-all duration-200
                 ${
                   isActive
@@ -312,7 +312,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                               key={sub.name}
                               href={sub.href}
                               className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm
+                flex items-center gap-3 px-3 py-2.5 rounded-sm text-sm
                 transition-all duration-200
                 ${
                   isActive
@@ -342,7 +342,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
         <button
           onClick={handleLogout}
           className={`
-        group flex items-center gap-3 px-4 py-3 rounded-xl
+        group flex items-center gap-3 px-4 py-3 rounded-sm
         text-gray-600 hover:bg-red-50 hover:text-red-600
         transition-all duration-200 w-full cursor-pointer
         ${collapsed ? "justify-center px-2" : ""}
@@ -356,7 +356,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
       {/* ================= USER ================= */}
       {!collapsed && (
         <div className="px-4 py-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl">
+          <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-sm">
             <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow">
               {currentUser?.firstname?.charAt(0) ?? "U"}
             </div>

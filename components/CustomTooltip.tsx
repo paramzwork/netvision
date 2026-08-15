@@ -80,7 +80,7 @@ export default function CustomTooltip({
                 marginLeft: 8,
               }}
             >
-              {value !== undefined ? `${formatBandwidth(value)} G` : "—"}
+              {value !== undefined ? `${formatBandwidth(value)}` : "—"}
             </span>
           </div>
         );

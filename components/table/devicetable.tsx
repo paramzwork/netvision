@@ -50,9 +50,12 @@ export function DeviceTable({ interfaces }: Props) {
   const [rawCurrentPage, setCurrentPage] = useState(1);
 
   const filteredData = useMemo(() => {
-    let data = interfaces.filter((iface) =>
-      iface.name.toLowerCase().includes(search.trim().toLowerCase()),
-    );
+    let data = interfaces.filter((iface) => {
+      return (
+        iface.name.toLowerCase().includes(search.trim().toLowerCase()),
+        iface.description.toLowerCase().includes(search.trim().toLowerCase())
+      );
+    });
 
     if (sortBy === "highest") {
       data = [...data].sort((a, b) => trafficTotal(b) - trafficTotal(a));
@@ -251,7 +254,7 @@ function InterfaceRow({
     <div className="px-6 py-5 hover:bg-white/40 transition-colors duration-150">
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-semibold text-slate-700">
-          {iface.name}
+          {iface.name}: {iface.description}
         </span>
         <span
           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${

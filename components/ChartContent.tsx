@@ -30,7 +30,7 @@ export default function ChartContent({
   chartHeight = 420,
   fullHeight = false,
 }: ChartContentProps) {
-  console.log(visibleData);
+  
   const containerStyle = fullHeight
     ? { height: "100%", width: "100%" }
     : { height: chartHeight };
@@ -65,11 +65,12 @@ export default function ChartContent({
                   className="text-xs font-semibold px-2 py-0.5 rounded-full"
                   style={{ color: "#fff", background: `${color}cc` }}
                 >
-                  {iface.name}
+                  {iface.name}: {iface.description}
                 </span>
               </div>
               <ResponsiveContainer width="100%" height={cellHeight}>
                 <AreaChart
+                  key={`${visibleData.length}-${visibleData.at(-1)?.timestamp}`}
                   data={visibleData}
                   margin={{ top: 32, right: 8, bottom: 8, left: 8 }}
                 >
@@ -92,7 +93,7 @@ export default function ChartContent({
                   <XAxis dataKey="label" hide />
                   <YAxis hide />
                   <Tooltip
-                    formatter={(value) => [`${Number(value)} G`, iface.name]}
+                    formatter={(value) => [`${formatBandwidth(Number(value))}`, iface.name]}
                     contentStyle={{
                       fontSize: 11,
                       padding: "4px 8px",

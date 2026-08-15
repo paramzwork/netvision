@@ -1,7 +1,4 @@
-import {
-  DeviceInfoTypes,
-  InterfaceTypes,
-} from "@/lib/types";
+import { DeviceInfoTypes, InterfaceTypes } from "@/lib/types";
 import { create } from "zustand";
 
 export interface Device {
@@ -90,4 +87,30 @@ export const useInterfaceStore = create<InterfaceStore>((set, get) => ({
   getInterfaces: (ipAddress) => get().interfaces[ipAddress] ?? [],
 
   clearInterfaces: () => set({ interfaces: {} }),
+}));
+
+interface InterfacesWeatherMap {
+  interfaces: InterfaceTypes[];
+
+  setInterfaces: React.Dispatch<React.SetStateAction<InterfaceTypes[]>>;
+
+  selectedDevice: InterfaceTypes | null;
+
+  setSelectedDevice: (device: InterfaceTypes | null) => void;
+}
+
+export const useInterfacesWeathermap = create<InterfacesWeatherMap>((set) => ({
+  interfaces: [],
+
+  selectedDevice: null,
+
+  setInterfaces: (value) =>
+    set((state) => ({
+      interfaces: typeof value === "function" ? value(state.interfaces) : value,
+    })),
+
+  setSelectedDevice: (device) =>
+    set({
+      selectedDevice: device,
+    }),
 }));

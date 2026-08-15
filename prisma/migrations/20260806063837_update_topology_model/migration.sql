@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "topology_positions" ADD COLUMN     "bottomHandles" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "leftHandles" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "rightHandles" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "topHandles" INTEGER NOT NULL DEFAULT 0;

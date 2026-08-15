@@ -4,15 +4,15 @@ export const OIDS = {
   sysDescr: "1.3.6.1.2.1.1.1.0",
   sysUpTime: "1.3.6.1.2.1.1.3.0",
   sysObjectID: "1.3.6.1.2.1.1.2.0",
-  sysLocation:"1.3.6.1.2.1.1.6.0",
-  sysContact:"1.3.6.1.2.1.1.4.0",
+  sysLocation: "1.3.6.1.2.1.1.6.0",
+  sysContact: "1.3.6.1.2.1.1.4.0",
 
   // Interfaces
   ifDescr: "1.3.6.1.2.1.2.2.1.2",
   ifAdminStatus: "1.3.6.1.2.1.2.2.1.7",
   ifOperStatus: "1.3.6.1.2.1.2.2.1.8",
   ifAlias: "1.3.6.1.2.1.31.1.1.1.18",
-  
+
   // Use HighSpeed instead of ifSpeed
   ifHighSpeed: "1.3.6.1.2.1.31.1.1.1.15",
 
@@ -21,4 +21,9 @@ export const OIDS = {
 
   ifInErrors: "1.3.6.1.2.1.2.2.1.14",
   ifOutErrors: "1.3.6.1.2.1.2.2.1.20",
+  
+  lldpRemSysName: "1.0.8802.1.1.2.1.4.1.1.9",
+  lldpRemPortId: "1.0.8802.1.1.2.1.4.1.1.7",
+  lldpRemPortDesc: "1.0.8802.1.1.2.1.4.1.1.8",
+  lldpRemChassisId: "1.0.8802.1.1.2.1.4.1.1.5",
 } as const;

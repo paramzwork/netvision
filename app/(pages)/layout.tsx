@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import HeaderComponent from "@/components/HeaderComponent";
 import SidebarComponent from "@/components/SideBarComponent";
 import { getCurrentUser } from "@/lib/auth";
+import { ReactFlowProvider } from "@xyflow/react";
+import { DnDProvider } from "@/components/DnDContext";
 
 export default async function DashboardLayout({
   children,
@@ -29,15 +31,19 @@ export default async function DashboardLayout({
 
   return (
     <DataProvider>
-      <div className="flex w-full h-screen overflow-hidden bg-gray-50 font-sans">
-        <SidebarComponent currentUser={currentUser} />
-        <div className="w-full flex flex-col">
-          <HeaderComponent />
-          <div className="w-full p-6 overflow-y-auto">
-            <TooltipProvider delay={500}>{children}</TooltipProvider>
+      <ReactFlowProvider>
+        <DnDProvider>
+          <div className="flex w-full h-screen overflow-hidden bg-gray-50 font-sans">
+            <SidebarComponent currentUser={currentUser} />
+            <div className="w-full flex flex-col">
+              <HeaderComponent />
+              <div className="w-full p-6 overflow-y-auto">
+                <TooltipProvider delay={500}>{children}</TooltipProvider>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </DnDProvider>
+      </ReactFlowProvider>
     </DataProvider>
   );
 }

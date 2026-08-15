@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import WeatherMapComponent from "@/components/WeatherMapComponent";
 export default function WeatherMapSettings() {
   const { device, setDevice } = useDevicesStore();
   const { interfaces, setInterfaces } = useInterfaceStore();
@@ -237,13 +238,13 @@ export default function WeatherMapSettings() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Status</TableHead>
               <TableHead className="w-16">#</TableHead>
               <TableHead>Interface</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Speed</TableHead>
               <TableHead>Admin Status</TableHead>
               <TableHead>Oper Status</TableHead>
-              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -260,6 +261,17 @@ export default function WeatherMapSettings() {
             ) : (
               filteredData.map((item) => (
                 <TableRow key={item.index} className="hover:bg-gray-300">
+                  <TableCell>
+                    <Checkbox
+                      checked={item.status === "1"}
+                      onCheckedChange={(checked) => {
+                        updateInterfaceStatus(
+                          item.id,
+                          checked === true ? "1" : "0",
+                        );
+                      }}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">{item.id}</TableCell>
 
                   <TableCell>{item.name}</TableCell>
@@ -273,22 +285,14 @@ export default function WeatherMapSettings() {
                   <TableCell>{getStatusBadge(item.adminStatus)}</TableCell>
 
                   <TableCell>{getStatusBadge(item.operStatus)}</TableCell>
-                  <TableCell>
-                    <Checkbox
-                      checked={item.status === "1"}
-                      onCheckedChange={(checked) => {
-                        updateInterfaceStatus(
-                          item.id,
-                          checked === true ? "1" : "0",
-                        );
-                      }}
-                    />
-                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
+      </div>
+      <div className="w-full h-175">
+        <WeatherMapComponent />
       </div>
     </div>
   );

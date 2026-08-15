@@ -6,17 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "poll": "tsx scripts/pollWorker.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@lottiefiles/dotlottie-react": "^0.19.12",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.1",
+    "@xyflow/react": "^12.11.2",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.24.0",
     "net-snmp": "^3.26.3",
@@ -40,11 +43,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "prisma": "^7.9.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.5",
     "typescript": "^5"
   }
 }

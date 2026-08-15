@@ -76,19 +76,45 @@ export const GRAPH_TYPES: {
   { key: "grid", label: "Grid", icon: LayoutGrid },
   { key: "sankey", label: "Sankey", icon: Share2 },
 ];
-
+// Light palette
+// export const CHART_COLORS = [
+//   "#38bdf8", // sky
+//   "#818cf8", // indigo
+//   "#34d399", // emerald
+//   "#fbbf24", // amber
+//   "#f87171", // red
+//   "#a78bfa", // violet
+//   "#22d3ee", // cyan
+//   "#fb923c", // orange
+//   "#4ade80", // green
+//   "#94a3b8", // slate
+// ];
+// Dark palette
 export const CHART_COLORS = [
-  "#38bdf8", // sky
-  "#818cf8", // indigo
-  "#34d399", // emerald
-  "#fbbf24", // amber
-  "#f87171", // red
-  "#a78bfa", // violet
-  "#22d3ee", // cyan
-  "#fb923c", // orange
-  "#4ade80", // green
-  "#94a3b8", // slate
+  "#0284c7", // dark sky
+  "#4f46e5", // dark indigo
+  "#059669", // dark emerald
+  "#d97706", // dark amber
+  "#dc2626", // dark red
+  "#7c3aed", // dark violet
+  "#0891b2", // dark cyan
+  "#ea580c", // dark orange
+  "#16a34a", // dark green
+  "#475569", // dark slate
 ];
+// Darker and Muted
+// export const CHART_COLORS = [
+//   "#0369a1",
+//   "#4338ca",
+//   "#047857",
+//   "#b45309",
+//   "#b91c1c",
+//   "#6d28d9",
+//   "#0e7490",
+//   "#c2410c",
+//   "#15803d",
+//   "#334155",
+// ];
 export function getInterfaceStats(iface: InterfaceResponse) {
   const samples = getTrafficSamples(iface);
 
@@ -152,15 +178,15 @@ export function getTrafficSamples(iface: InterfaceResponse) {
 
 export function formatBandwidth(bitsPerSecond: number) {
   if (bitsPerSecond >= 1_000_000_000) {
-    return `${(bitsPerSecond / 1_000_000_000).toFixed(2)} Gbps`;
+    return `${(bitsPerSecond / 1_000_000_000).toFixed(2)} G`;
   }
 
   if (bitsPerSecond >= 1_000_000) {
-    return `${(bitsPerSecond / 1_000_000).toFixed(2)} Mbps`;
+    return `${(bitsPerSecond / 1_000_000).toFixed(2)} M`;
   }
 
   if (bitsPerSecond >= 1_000) {
-    return `${(bitsPerSecond / 1_000).toFixed(2)} Kbps`;
+    return `${(bitsPerSecond / 1_000).toFixed(2)} K`;
   }
 
   return `${bitsPerSecond.toFixed(0)} bps`;

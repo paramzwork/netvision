@@ -1,16 +1,8 @@
-import { PrismaClient } from "@/lib/generated/prisma/client";
 import { NextResponse } from "next/server";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { tripleDecode } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-});
-
-const prisma = new PrismaClient({
-  adapter,
-});
 // export async function PUT(
 //   req: Request,
 //   { params }: { params: Promise<{ id: string }> },
