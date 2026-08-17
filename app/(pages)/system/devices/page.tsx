@@ -15,7 +15,7 @@ import Link from "next/link";
 
 export default function SystemDevices() {
   const { activeDevices } = useData();
- 
+
   return (
     <div className="w-full">
       <div className="space-y-2">

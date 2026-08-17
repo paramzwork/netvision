@@ -91,16 +91,16 @@ export const GRAPH_TYPES: {
 // ];
 // Dark palette
 export const CHART_COLORS = [
-  "#0284c7", // dark sky
-  "#4f46e5", // dark indigo
-  "#059669", // dark emerald
-  "#d97706", // dark amber
-  "#dc2626", // dark red
-  "#7c3aed", // dark violet
-  "#0891b2", // dark cyan
-  "#ea580c", // dark orange
-  "#16a34a", // dark green
-  "#475569", // dark slate
+  "#0284c7",
+  "#4f46e5",
+  "#059669",
+  "#d97706",
+  "#dc2626",
+  "#7c3aed",
+  "#0891b2",
+  "#ea580c",
+  "#16a34a",
+  "#475569",
 ];
 // Darker and Muted
 // export const CHART_COLORS = [
@@ -190,4 +190,13 @@ export function formatBandwidth(bitsPerSecond: number) {
   }
 
   return `${bitsPerSecond.toFixed(0)} bps`;
+}
+
+export function formatTick(timestamp: number, spanMs: number) {
+  const date = new Date(timestamp);
+  const oneDay = 24 * 60 * 60 * 1000;
+  if (spanMs <= oneDay * 1.5) {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }

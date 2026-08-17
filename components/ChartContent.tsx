@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import CustomTooltip from "./CustomTooltip";
 import { CHART_COLORS, formatBandwidth } from "@/lib/utils";
+import React from "react";
 
 interface ChartContentProps {
   graphType: GraphType;
@@ -19,6 +20,8 @@ interface ChartContentProps {
   setHoveredInterface: (name: string | null) => void;
   chartHeight?: number;
   fullHeight?: boolean;
+  from: number;
+  to: number;
 }
 
 export default function ChartContent({
@@ -29,17 +32,51 @@ export default function ChartContent({
   setHoveredInterface,
   chartHeight = 420,
   fullHeight = false,
+  from,
+  to,
 }: ChartContentProps) {
-  
   const containerStyle = fullHeight
     ? { height: "100%", width: "100%" }
     : { height: chartHeight };
+  function getXAxisTicks(from: number, to: number) {
+    const ticks: number[] = [];
 
+    const start = new Date(from);
+    const end = new Date(to);
+
+    // Start at midnight
+    start.setHours(0, 0, 0, 0);
+
+    // If range is more than 24 hours, use calendar dates
+    if (to - from > 24 * 60 * 60 * 1000) {
+      while (start <= end) {
+        ticks.push(start.getTime());
+
+        start.setDate(start.getDate() + 1);
+      }
+
+      return ticks;
+    }
+
+    // For shorter ranges, generate hourly ticks
+    start.setMinutes(0, 0, 0);
+
+    while (start <= end) {
+      ticks.push(start.getTime());
+
+      start.setHours(start.getHours() + 1);
+    }
+
+    return ticks;
+  }
+  const xAxisTicks = React.useMemo(() => getXAxisTicks(from, to), [from, to]);
   if (graphType === "grid") {
     const cols = 2;
     const rows = Math.ceil(displayedInterfaces.length / cols);
     const gap = 12;
+
     const totalHeight = fullHeight ? undefined : chartHeight;
+
     const cellHeight = totalHeight
       ? Math.floor((totalHeight - gap * (rows - 1)) / rows)
       : 180;
@@ -53,59 +90,82 @@ export default function ChartContent({
         }}
       >
         {displayedInterfaces.map((iface, idx) => {
-          const color = CHART_COLORS[idx];
+          const color = CHART_COLORS[idx % CHART_COLORS.length];
+
+          const gradientId = `grad-${iface.name.replace(
+            /[^a-zA-Z0-9]/g,
+            "-",
+          )}-${idx}`;
+
           return (
             <div
               key={iface.name}
-              className="relative rounded-xl overflow-hidden border border-slate-200"
-              style={{ background: "#ffffff", height: cellHeight }}
+              className="relative overflow-hidden rounded-xl border border-slate-200"
+              style={{
+                background: "#ffffff",
+                height: cellHeight,
+              }}
             >
+              {/* Interface label */}
               <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2">
                 <span
-                  className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                  style={{ color: "#fff", background: `${color}cc` }}
+                  className="rounded-full px-2 py-0.5 text-xs font-semibold"
+                  style={{
+                    color: "#fff",
+                    background: `${color}cc`,
+                  }}
                 >
                   {iface.name}: {iface.description}
                 </span>
               </div>
+
               <ResponsiveContainer width="100%" height={cellHeight}>
                 <AreaChart
                   key={`${visibleData.length}-${visibleData.at(-1)?.timestamp}`}
                   data={visibleData}
-                  margin={{ top: 32, right: 8, bottom: 8, left: 8 }}
+                  margin={{
+                    top: 32,
+                    right: 8,
+                    bottom: 8,
+                    left: 8,
+                  }}
                 >
                   <defs>
-                    <linearGradient
-                      id={`grad-${idx}`}
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="0%" stopColor={color} stopOpacity={0.7} />
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+
                       <stop
                         offset="100%"
                         stopColor={color}
-                        stopOpacity={0.05}
+                        stopOpacity={0.02}
                       />
                     </linearGradient>
                   </defs>
+
                   <XAxis dataKey="label" hide />
+
                   <YAxis hide />
+
                   <Tooltip
-                    formatter={(value) => [`${formatBandwidth(Number(value))}`, iface.name]}
+                    formatter={(value) => [
+                      formatBandwidth(Number(value)),
+                      iface.name,
+                    ]}
                     contentStyle={{
                       fontSize: 11,
-                      padding: "4px 8px",
-                      borderRadius: 6,
+                      padding: "6px 8px",
+                      borderRadius: 8,
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                     }}
                   />
+
                   <Area
                     type="monotone"
                     dataKey={iface.name}
                     stroke={color}
                     strokeWidth={1.5}
-                    fill={`url(#grad-${idx})`}
+                    fill={`url(#${gradientId})`}
                     dot={false}
                     isAnimationActive={false}
                   />
@@ -139,12 +199,31 @@ export default function ChartContent({
             data={visibleData}
             stackOffset={graphType === "percent" ? "expand" : "none"}
           >
-            <CartesianGrid
-              stroke="rgba(148,163,184,0.08)"
-              strokeDasharray="3 3"
-              vertical={false}
+            <CartesianGrid stroke="rgba(100,116,139,0.25)" vertical={false} />
+            <XAxis
+              dataKey="timestamp"
+              type="number"
+              scale="time"
+              domain={[from, to]}
+              ticks={xAxisTicks}
+              tickFormatter={(timestamp) => {
+                const date = new Date(timestamp);
+
+                if (to - from > 24 * 60 * 60 * 1000) {
+                  return date.toLocaleDateString([], {
+                    month: "short",
+                    day: "numeric",
+                  });
+                }
+
+                return date.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+              }}
+              axisLine={false}
+              tickLine={false}
             />
-            <XAxis dataKey="label" />
             <YAxis tickFormatter={(value) => formatBandwidth(value)} />
             <Tooltip
               content={
@@ -158,33 +237,60 @@ export default function ChartContent({
             {displayedInterfaces.map((iface, idx) => {
               const isHovered = hoveredInterface === iface.name;
               const isDimmed = hoveredInterface !== null && !isHovered;
-              const baseColor = CHART_COLORS[idx];
+
+              const baseColor = CHART_COLORS[idx % CHART_COLORS.length];
+
+              const gradientId = `main-grad-${iface.name.replace(
+                /[^a-zA-Z0-9]/g,
+                "-",
+              )}-${idx}`;
 
               return (
-                <Area
-                  key={iface.name}
-                  type="monotone"
-                  dataKey={iface.name}
-                  stackId={graphType !== "lines" ? "1" : undefined}
-                  stroke={baseColor}
-                  fill={graphType === "lines" ? "transparent" : baseColor}
-                  fillOpacity={
-                    isDimmed
-                      ? 0.05
-                      : isHovered
-                        ? 0.45
-                        : graphType === "lines"
-                          ? 0
-                          : 0.25
-                  }
-                  strokeWidth={
-                    isHovered ? 2.5 : graphType === "lines" ? 2 : 1.5
-                  }
-                  strokeOpacity={isDimmed ? 0.15 : 1}
-                  dot={false}
-                  isAnimationActive={false}
-                  onMouseEnter={() => setHoveredInterface(iface.name)}
-                />
+                <React.Fragment key={iface.name}>
+                  <defs>
+                    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="0%"
+                        stopColor={baseColor}
+                        stopOpacity={isDimmed ? 0.05 : 0.65}
+                      />
+
+                      <stop
+                        offset="100%"
+                        stopColor={baseColor}
+                        stopOpacity={isDimmed ? 0.01 : 0.22}
+                      />
+                    </linearGradient>
+                  </defs>
+
+                  <Area
+                    type="monotone"
+                    dataKey={iface.name}
+                    stackId={graphType !== "lines" ? "1" : undefined}
+                    stroke={baseColor}
+                    fill={
+                      graphType === "lines"
+                        ? "transparent"
+                        : `url(#${gradientId})`
+                    }
+                    fillOpacity={
+                      graphType === "lines"
+                        ? 0
+                        : isDimmed
+                          ? 0.05
+                          : isHovered
+                            ? 0.45
+                            : 1
+                    }
+                    strokeWidth={
+                      isHovered ? 2.5 : graphType === "lines" ? 2 : 1.5
+                    }
+                    strokeOpacity={isDimmed ? 0.15 : 1}
+                    dot={false}
+                    isAnimationActive={false}
+                    onMouseEnter={() => setHoveredInterface(iface.name)}
+                  />
+                </React.Fragment>
               );
             })}
           </AreaChart>

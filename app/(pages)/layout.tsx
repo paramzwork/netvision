@@ -33,7 +33,7 @@ export default async function DashboardLayout({
     <DataProvider>
       <ReactFlowProvider>
         <DnDProvider>
-          <div className="flex w-full h-screen overflow-hidden bg-gray-50 font-sans">
+          <div className="flex w-full h-screen overflow-hidden bg-gray-100 font-sans">
             <SidebarComponent currentUser={currentUser} />
             <div className="w-full flex flex-col">
               <HeaderComponent />

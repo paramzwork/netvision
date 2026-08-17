@@ -36,14 +36,14 @@ export const menuItems: MenuItemTypes[] = [
   {
     name: "Devices",
     icon: Monitor,
-    roles: ["admin", "super admin"],
+    roles: ["user", "admin", "super admin"],
     dynamicDevices: true,
   },
   {
     name: "Weathermap",
     icon: Network,
     href: "/weathermap",
-    roles: ["admin", "super admin"],
+    roles: ["user", "admin", "super admin"],
   },
   {
     name: "Users",

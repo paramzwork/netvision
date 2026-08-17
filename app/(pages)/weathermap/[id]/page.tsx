@@ -43,7 +43,7 @@ const nodeTypes = {
   blank: ViewCloudNode,
 };
 
-export default function ViewTopology() {
+export default function ViewWeathermap() {
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
   const topologyId = tripleDecode(raw);
@@ -423,6 +423,41 @@ export default function ViewTopology() {
       clearInterval(interval);
     };
   }, [topologyId, setEdges]);
+  const [trafficPanelOffset, setTrafficPanelOffset] = useState({
+    x: 0,
+    y: 0,
+  });
+
+  const handleTrafficPanelMouseDown = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startMouseX = event.clientX;
+    const startMouseY = event.clientY;
+
+    const startOffsetX = trafficPanelOffset.x;
+    const startOffsetY = trafficPanelOffset.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startMouseX;
+      const dy = moveEvent.clientY - startMouseY;
+
+      setTrafficPanelOffset({
+        x: startOffsetX + dx,
+        y: startOffsetY + dy,
+      });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -463,12 +498,12 @@ export default function ViewTopology() {
             style={{
               position: "absolute",
               transform: `
-                translate(-50%, -100%)
-                translate(
-                  ${trafficEdgePosition.x}px,
-                  ${trafficEdgePosition.y}px
-                )
-              `,
+          translate(-50%, -10%)
+          translate(
+            ${trafficEdgePosition.x + trafficPanelOffset.x}px,
+            ${trafficEdgePosition.y + trafficPanelOffset.y}px
+          )
+        `,
               pointerEvents: "all",
               zIndex: 1000,
             }}
@@ -484,6 +519,7 @@ export default function ViewTopology() {
                 trafficEdge.data?.aggregatedInterfaces ?? []
               }
               onClose={() => setTrafficEdgeId(null)}
+              onDragStart={handleTrafficPanelMouseDown}
             />
           </div>
         </EdgeLabelRenderer>

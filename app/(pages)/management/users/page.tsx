@@ -11,8 +11,9 @@ import { AddRoleFormModal } from "@/components/AddRoleFormModal";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useRoleStore, useUserStore } from "@/store/user-store";
+import Breadcrumbs from "@/components/Breadcrumbs";
 
-export default function UsersManagementPage() {
+export default function UsersManagement() {
   const router = useRouter();
   const [selectedUser, setSelectedUser] = useState<UserTypes | null>(null);
   const [userFormType, setUserFormType] = useState<string>("");
@@ -72,8 +73,23 @@ export default function UsersManagementPage() {
 
   return (
     <div className="flex flex-col justify-center gap-10 font-lexend">
+      <div className="space-y-2">
+        <Breadcrumbs
+          items={[
+            {
+              label: "Dashboard",
+              href: "/dashboard",
+            },
+            {
+              label: "Users Management",
+            },
+          ]}
+        />
+        <h1 className="text-2xl font-bold">
+          User Management
+        </h1>
+      </div>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">User Management</h1>
         <Button
           className="cursor-pointer font-lexend"
           onClick={() => handleUserForm("create")}
