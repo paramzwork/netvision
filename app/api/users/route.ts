@@ -3,37 +3,49 @@ import bcrypt from "bcrypt";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser();
 
   if (!currentUser) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-  const users = await prisma.users.findMany({
-    select: {
-      id: true,
-      username: true,
-      firstname: true,
-      lastname: true,
-      suffix: true,
-      email: true,
-      createdAt: true,
-      updatedAt: true,
-      roles: {
-        select: {
-          id: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      },
-    },
-    orderBy: {
-      id: "desc",
-    },
-  });
+  const { searchParams } = new URL(req.url);
 
-  return NextResponse.json(users);
+  const page = Math.max(Number(searchParams.get("page")) || 1, 1);
+
+  const limit = Math.min(
+    Math.max(Number(searchParams.get("limit")) || 20, 1),
+    100,
+  );
+  const skip = (page - 1) * limit;
+  const [users, total] = await Promise.all([
+    prisma.users.findMany({
+      skip,
+      take: limit,
+      select: {
+        id: true,
+        username: true,
+        firstname: true,
+        lastname: true,
+        email: true,
+        role_id: true,
+        suffix: true,
+        createdAt: true,
+        updatedAt: true,
+        roles: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
+
+    prisma.users.count(),
+  ]);
+
+  return NextResponse.json({
+    data: users,
+    total,
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -71,7 +83,7 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await bcrypt.hash(body.password, 10);
 
     // Create user
-    await prisma.users.create({
+    const user = await prisma.users.create({
       data: {
         username: body.username,
         firstname: body.firstname,
@@ -84,16 +96,27 @@ export async function POST(req: NextRequest) {
           },
         },
       },
+      select: {
+        id: true,
+        username: true,
+        firstname: true,
+        lastname: true,
+        email: true,
+        role_id: true,
+        suffix: true,
+        createdAt: true,
+        updatedAt: true,
+        roles: true,
+      },
     });
     return NextResponse.json(
       {
-        message: "User created successfully.",
+        data: user,
+        message: "Account created successfully.",
       },
       { status: 201 },
     );
-  } catch (error) {
-    console.error(error);
-
+  } catch {
     return NextResponse.json(
       { message: "Internal Server Error." },
       { status: 500 },

@@ -30,11 +30,11 @@ export default async function DashboardLayout({
   }
 
   return (
-    <DataProvider>
+    <DataProvider currentUser={currentUser}>
       <ReactFlowProvider>
         <DnDProvider>
-          <div className="flex w-full h-screen overflow-hidden bg-gray-50 font-sans">
-            <SidebarComponent currentUser={currentUser} />
+          <div className="flex w-full h-screen overflow-hidden bg-gray-100 font-sans">
+            <SidebarComponent />
             <div className="w-full flex flex-col">
               <HeaderComponent />
               <div className="w-full p-6 overflow-y-auto">

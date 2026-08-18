@@ -149,6 +149,7 @@ const nodeTypes = {
 export interface AggregatedInterface {
   interfaceId: number;
   interfaceName: string;
+  sourceNodeName: string;
 }
 export default function ViewWeathermapSettings() {
   // Interface and device
@@ -454,6 +455,7 @@ export default function ViewWeathermapSettings() {
                         {
                           interfaceId: existingData.sourceInterfaceId,
                           interfaceName: existingData.sourceInterfaceName ?? "",
+                          sourceNodeName: existingData.sourceNodeName ?? "",
                         },
                       ] as const,
                     ];
@@ -525,6 +527,7 @@ export default function ViewWeathermapSettings() {
                   .map((iface) => ({
                     interfaceId: iface.interfaceId!,
                     interfaceName: iface.interfaceName,
+                    sourceNodeName: iface.nodeName!,
                   })),
               }
             : {}),

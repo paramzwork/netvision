@@ -11,9 +11,9 @@ import {
 
 import { formatBandwidth } from "@/lib/utils";
 import { InterfaceTypes } from "@/lib/types";
-import { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+import { Maximize2, Minimize2, X } from "lucide-react";
 import { AggregatedInterface } from "@/app/(pages)/settings/weathermap/[id]/page";
-import { X } from "lucide-react";
 
 interface EdgeTrafficPanelProps {
   sourceNodeName: string;
@@ -24,17 +24,29 @@ interface EdgeTrafficPanelProps {
   interfaces: InterfaceTypes[];
   aggregatedInterfaces: AggregatedInterface[];
   onClose: () => void;
+  onDragStart?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
+type InterfaceChartData = {
+  interfaceId: number;
+  interfaceName: string;
+  sourceNodeName: string;
+  data: {
+    timestamp: number;
+    time: string;
+    inbound: number;
+    outbound: number;
+  }[];
+};
 type InterfaceTrafficStats = {
   interfaceId: number;
   interfaceName: string;
+  sourceNodeName: string;
   currentInbound: number;
   currentOutbound: number;
   averageInbound: number;
   averageOutbound: number;
   maxInbound: number;
   maxOutbound: number;
-
 };
 export default function EdgeTrafficPanel({
   sourceNodeName,
@@ -45,10 +57,11 @@ export default function EdgeTrafficPanel({
 
   sourceInterface,
   interfaces,
-
+  onDragStart,
   onClose,
 }: EdgeTrafficPanelProps) {
-  const chartData = useMemo(() => {
+  const [isGraphFullscreen, setIsGraphFullscreen] = useState<boolean>(false);
+  const chartData = useMemo<InterfaceChartData[]>(() => {
     const now = new Date();
 
     const startOfToday = new Date(now);
@@ -62,106 +75,109 @@ export default function EdgeTrafficPanel({
     // ==================================================
 
     if (aggregatedInterfaces.length > 0) {
-      const aggregatedChart = new Map<
-        number,
-        {
-          inbound: number;
-          outbound: number;
-        }
-      >();
-
-      for (const aggregated of aggregatedInterfaces) {
-        // Find the actual interface from Zustand
-        const iface = interfaces.find(
-          (item) => item.id === aggregated.interfaceId,
-        );
-
-        if (!iface?.statistics?.length) {
-          continue;
-        }
-
-        // Only today's statistics
-        const todayStats = [...iface.statistics]
-          .filter((stat) => {
-            const timestamp = new Date(stat.createdAt).getTime();
-
-            return (
-              timestamp >= startOfToday.getTime() &&
-              timestamp <= endOfToday.getTime()
-            );
-          })
-          .sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      return aggregatedInterfaces
+        .map((aggregated) => {
+          const iface = interfaces.find(
+            (item) => item.id === aggregated.interfaceId,
           );
 
-        if (todayStats.length < 2) {
-          continue;
-        }
-
-        // Calculate traffic rate for this interface
-        for (let i = 1; i < todayStats.length; i++) {
-          const previous = todayStats[i - 1];
-          const current = todayStats[i];
-
-          const previousTime = new Date(previous.createdAt).getTime();
-          const currentTime = new Date(current.createdAt).getTime();
-
-          const elapsedSeconds = (currentTime - previousTime) / 1000;
-
-          if (elapsedSeconds <= 0) {
-            continue;
+          if (!iface?.statistics?.length) {
+            return null;
           }
 
-          const previousIn = BigInt(previous.inOctets);
-          const currentIn = BigInt(current.inOctets);
+          // ----------------------------------------------
+          // Get today's statistics for THIS interface
+          // ----------------------------------------------
 
-          const previousOut = BigInt(previous.outOctets);
-          const currentOut = BigInt(current.outOctets);
+          const statistics = [...iface.statistics]
+            .filter((stat) => {
+              const timestamp = new Date(stat.createdAt).getTime();
 
-          // Counter reset
-          if (currentIn < previousIn || currentOut < previousOut) {
-            continue;
+              return (
+                timestamp >= startOfToday.getTime() &&
+                timestamp <= endOfToday.getTime()
+              );
+            })
+            .sort(
+              (a, b) =>
+                new Date(a.createdAt).getTime() -
+                new Date(b.createdAt).getTime(),
+            );
+
+          if (statistics.length < 2) {
+            return {
+              interfaceId: iface.id,
+              interfaceName: iface.name,
+              sourceNodeName: aggregated.sourceNodeName ?? "",
+              data: [],
+            };
           }
 
-          const inbound = (Number(currentIn - previousIn) * 8) / elapsedSeconds;
+          // ----------------------------------------------
+          // Calculate traffic for THIS interface only
+          // ----------------------------------------------
 
-          const outbound =
-            (Number(currentOut - previousOut) * 8) / elapsedSeconds;
+          const data: InterfaceChartData["data"] = [];
 
-          // Same timestamp = same point on graph
-          const existing = aggregatedChart.get(currentTime);
+          for (let i = 1; i < statistics.length; i++) {
+            const previous = statistics[i - 1];
+            const current = statistics[i];
 
-          if (existing) {
-            existing.inbound += inbound;
-            existing.outbound += outbound;
-          } else {
-            aggregatedChart.set(currentTime, {
+            const previousTime = new Date(previous.createdAt).getTime();
+            const currentTime = new Date(current.createdAt).getTime();
+
+            const elapsedSeconds = (currentTime - previousTime) / 1000;
+
+            if (elapsedSeconds <= 0) {
+              continue;
+            }
+
+            const previousIn = BigInt(previous.inOctets);
+            const currentIn = BigInt(current.inOctets);
+
+            const previousOut = BigInt(previous.outOctets);
+            const currentOut = BigInt(current.outOctets);
+
+            // Counter reset
+            if (currentIn < previousIn || currentOut < previousOut) {
+              continue;
+            }
+
+            const inbound =
+              (Number(currentIn - previousIn) * 8) / elapsedSeconds;
+
+            const outbound =
+              (Number(currentOut - previousOut) * 8) / elapsedSeconds;
+
+            data.push({
+              timestamp: currentTime,
+
+              time: new Date(currentTime).toLocaleTimeString(),
+
               inbound,
               outbound,
             });
           }
-        }
-      }
 
-      return Array.from(aggregatedChart.entries())
-        .sort(([timestampA], [timestampB]) => timestampA - timestampB)
-        .map(([timestamp, traffic]) => ({
-          timestamp,
-          time: new Date(timestamp).toLocaleTimeString(),
-
-          inbound: traffic.inbound,
-          outbound: traffic.outbound,
-        }));
+          return {
+            interfaceId: iface.id,
+            interfaceName: iface.name,
+            sourceNodeName: aggregated.sourceNodeName ?? "",
+            data,
+          };
+        })
+        .filter((item): item is InterfaceChartData => item !== null);
     }
 
     // ==================================================
     // NORMAL LINK
     // ==================================================
 
-    const statistics = sourceInterface?.statistics ?? [];
+    if (!sourceInterface) {
+      return [];
+    }
 
-    const sorted = [...statistics]
+    const statistics = [...(sourceInterface.statistics ?? [])]
       .filter((stat) => {
         const timestamp = new Date(stat.createdAt).getTime();
 
@@ -175,66 +191,138 @@ export default function EdgeTrafficPanel({
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
 
-    if (sorted.length < 2) {
-      return [];
+    if (statistics.length < 2) {
+      return [
+        {
+          interfaceId: sourceInterface.id,
+          interfaceName: sourceInterface.name,
+          sourceNodeName,
+          data: [],
+        },
+      ];
     }
 
-    return sorted.slice(1).map((current, index) => {
-      const previous = sorted[index];
+    const data: InterfaceChartData["data"] = [];
 
-      const elapsedSeconds =
-        (new Date(current.createdAt).getTime() -
-          new Date(previous.createdAt).getTime()) /
-        1000;
+    for (let i = 1; i < statistics.length; i++) {
+      const previous = statistics[i - 1];
+      const current = statistics[i];
+
+      const previousTime = new Date(previous.createdAt).getTime();
+      const currentTime = new Date(current.createdAt).getTime();
+
+      const elapsedSeconds = (currentTime - previousTime) / 1000;
 
       if (elapsedSeconds <= 0) {
-        return {
-          time: new Date(current.createdAt).toLocaleTimeString(),
-          timestamp: new Date(current.createdAt).getTime(),
-          inbound: 0,
-          outbound: 0,
-        };
+        continue;
       }
 
-      const currentIn = BigInt(current.inOctets);
       const previousIn = BigInt(previous.inOctets);
+      const currentIn = BigInt(current.inOctets);
 
-      const currentOut = BigInt(current.outOctets);
       const previousOut = BigInt(previous.outOctets);
+      const currentOut = BigInt(current.outOctets);
 
       if (currentIn < previousIn || currentOut < previousOut) {
-        return {
-          time: new Date(current.createdAt).toLocaleTimeString(),
-          timestamp: new Date(current.createdAt).getTime(),
-          inbound: 0,
-          outbound: 0,
-        };
+        continue;
       }
 
-      return {
-        time: new Date(current.createdAt).toLocaleTimeString(),
-        timestamp: new Date(current.createdAt).getTime(),
+      data.push({
+        timestamp: currentTime,
+
+        time: new Date(currentTime).toLocaleTimeString(),
 
         inbound: (Number(currentIn - previousIn) * 8) / elapsedSeconds,
 
         outbound: (Number(currentOut - previousOut) * 8) / elapsedSeconds,
-      };
-    });
-  }, [interfaces, sourceInterface, aggregatedInterfaces]);
+      });
+    }
 
+    return [
+      {
+        interfaceId: sourceInterface.id,
+        interfaceName: sourceInterface.name,
+        sourceNodeName,
+        data,
+      },
+    ];
+  }, [interfaces, sourceInterface, sourceNodeName, aggregatedInterfaces]);
+  const combinedChartData = useMemo(() => {
+    if (chartData.length === 0) {
+      return [];
+    }
+
+    const points = new Map<number, Record<string, string | number>>();
+
+    for (const interfaceChart of chartData) {
+      for (const point of interfaceChart.data) {
+        const existing = points.get(point.timestamp);
+
+        if (existing) {
+          existing[`inbound_${interfaceChart.interfaceId}`] = point.inbound;
+
+          existing[`outbound_${interfaceChart.interfaceId}`] = point.outbound;
+        } else {
+          points.set(point.timestamp, {
+            timestamp: point.timestamp,
+            time: point.time,
+
+            [`inbound_${interfaceChart.interfaceId}`]: point.inbound,
+
+            [`outbound_${interfaceChart.interfaceId}`]: point.outbound,
+          });
+        }
+      }
+    }
+
+    return Array.from(points.values()).sort(
+      (a, b) => Number(a.timestamp) - Number(b.timestamp),
+    );
+  }, [chartData]);
   const interfaceTrafficStats = useMemo<InterfaceTrafficStats[]>(() => {
+    // ==================================================
+    // Build interface list
+    // ==================================================
+
     const interfaceList =
       aggregatedInterfaces.length > 0
         ? aggregatedInterfaces
-            .map((aggregated) =>
-              interfaces.find((iface) => iface.id === aggregated.interfaceId),
+            .map((aggregated) => {
+              const iface = interfaces.find(
+                (iface) => iface.id === aggregated.interfaceId,
+              );
+
+              if (!iface) {
+                return null;
+              }
+
+              return {
+                iface,
+                sourceNodeName: aggregated.sourceNodeName ?? "",
+              };
+            })
+            .filter(
+              (
+                item,
+              ): item is {
+                iface: InterfaceTypes;
+                sourceNodeName: string;
+              } => item !== null,
             )
-            .filter((iface): iface is InterfaceTypes => iface !== undefined)
         : sourceInterface
-          ? [sourceInterface]
+          ? [
+              {
+                iface: sourceInterface,
+                sourceNodeName: sourceNodeName,
+              },
+            ]
           : [];
 
-    return interfaceList.map((iface) => {
+    // ==================================================
+    // Calculate statistics
+    // ==================================================
+
+    return interfaceList.map(({ iface, sourceNodeName }) => {
       const now = new Date();
 
       const startOfToday = new Date(now);
@@ -242,6 +330,10 @@ export default function EdgeTrafficPanel({
 
       const endOfToday = new Date(now);
       endOfToday.setHours(23, 59, 59, 999);
+
+      // --------------------------------------------------
+      // Get today's statistics
+      // --------------------------------------------------
 
       const statistics = [...(iface.statistics ?? [])]
         .filter((stat) => {
@@ -257,10 +349,15 @@ export default function EdgeTrafficPanel({
             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
         );
 
+      // --------------------------------------------------
+      // Not enough samples
+      // --------------------------------------------------
+
       if (statistics.length < 2) {
         return {
           interfaceId: iface.id,
           interfaceName: iface.name,
+          sourceNodeName,
 
           currentInbound: 0,
           currentOutbound: 0,
@@ -272,6 +369,10 @@ export default function EdgeTrafficPanel({
           maxOutbound: 0,
         };
       }
+
+      // --------------------------------------------------
+      // Calculate traffic samples
+      // --------------------------------------------------
 
       const samples: {
         inbound: number;
@@ -297,22 +398,34 @@ export default function EdgeTrafficPanel({
         const currentOut = BigInt(current.outOctets);
         const previousOut = BigInt(previous.outOctets);
 
+        // ------------------------------------------------
         // Counter reset
+        // ------------------------------------------------
+
         if (currentIn < previousIn || currentOut < previousOut) {
           continue;
         }
 
-        samples.push({
-          inbound: (Number(currentIn - previousIn) * 8) / elapsedSeconds,
+        const inbound = (Number(currentIn - previousIn) * 8) / elapsedSeconds;
 
-          outbound: (Number(currentOut - previousOut) * 8) / elapsedSeconds,
+        const outbound =
+          (Number(currentOut - previousOut) * 8) / elapsedSeconds;
+
+        samples.push({
+          inbound,
+          outbound,
         });
       }
+
+      // --------------------------------------------------
+      // No valid samples
+      // --------------------------------------------------
 
       if (samples.length === 0) {
         return {
           interfaceId: iface.id,
           interfaceName: iface.name,
+          sourceNodeName,
 
           currentInbound: 0,
           currentOutbound: 0,
@@ -325,15 +438,28 @@ export default function EdgeTrafficPanel({
         };
       }
 
+      // --------------------------------------------------
+      // Extract values
+      // --------------------------------------------------
+
       const inboundValues = samples.map((sample) => sample.inbound);
 
       const outboundValues = samples.map((sample) => sample.outbound);
 
+      // --------------------------------------------------
+      // Latest sample
+      // --------------------------------------------------
+
       const latest = samples[samples.length - 1];
+
+      // --------------------------------------------------
+      // Return statistics
+      // --------------------------------------------------
 
       return {
         interfaceId: iface.id,
         interfaceName: iface.name,
+        sourceNodeName,
 
         currentInbound: latest.inbound,
         currentOutbound: latest.outbound,
@@ -351,19 +477,38 @@ export default function EdgeTrafficPanel({
         maxOutbound: Math.max(...outboundValues),
       };
     });
-  }, [interfaces, sourceInterface, aggregatedInterfaces]);
+  }, [interfaces, sourceInterface, sourceNodeName, aggregatedInterfaces]);
+  const trafficLegendTotals = useMemo(() => {
+    const isAggregated = aggregatedInterfaces.length > 0;
 
+    if (!isAggregated) {
+      const stat = interfaceTrafficStats[0];
+
+      return {
+        inbound: stat?.currentInbound ?? 0,
+        outbound: stat?.currentOutbound ?? 0,
+        aggregated: false,
+      };
+    }
+
+    return {
+      inbound: interfaceTrafficStats.reduce(
+        (total, stat) => total + stat.currentInbound,
+        0,
+      ),
+
+      outbound: interfaceTrafficStats.reduce(
+        (total, stat) => total + stat.currentOutbound,
+        0,
+      ),
+
+      aggregated: true,
+    };
+  }, [interfaceTrafficStats, aggregatedInterfaces]);
   return (
     <div
-      className="
-    w-80
-    rounded-lg
-    border
-    bg-white
-    shadow-xl
-    p-3
-    text-xs
-  "
+      className="relative w-80 rounded-lg border bg-white shadow-xl p-3 text-xs "
+      onMouseDown={onDragStart}
     >
       {/* Header */}
 
@@ -393,96 +538,207 @@ export default function EdgeTrafficPanel({
       {/* GRAPH */}
       {/* ============================= */}
 
-      <div className="h-40 w-full mb-4">
-        {chartData.length > 1 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient
-                  id="inboundGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="0%" stopColor="#22c55e" stopOpacity={0.5} />
+      <div
+        className={
+          isGraphFullscreen
+            ? "absolute inset-0 z-50 bg-white p-3"
+            : "relative h-48 w-full mb-4"
+        }
+      >
+        {/* Graph header */}
+        {isGraphFullscreen && (
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <div className="font-semibold text-sm">Traffic Graph</div>
 
-                  <stop offset="100%" stopColor="#22c55e" stopOpacity={0.05} />
-                </linearGradient>
+              <div className="text-[10px] text-muted-foreground">
+                {sourceNodeName} → {targetNodeName}
+              </div>
+            </div>
 
-                <linearGradient
-                  id="outboundGradient"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.5} />
-
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-
-              <XAxis
-                dataKey="time"
-                tick={{ fontSize: 8 }}
-                tickLine={false}
-                axisLine={false}
-              />
-
-              <YAxis
-                tick={{ fontSize: 8 }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => formatBandwidth(Number(value))}
-              />
-
-              <Tooltip
-                formatter={(value, name) => [
-                  formatBandwidth(Number(value)),
-                  name === "inbound" ? "Inbound" : "Outbound",
-                ]}
-              />
-
-              <Area
-                type="monotone"
-                dataKey="inbound"
-                stroke="#22c55e"
-                fill="url(#inboundGradient)"
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-
-              <Area
-                type="monotone"
-                dataKey="outbound"
-                stroke="#3b82f6"
-                fill="url(#outboundGradient)"
-                strokeWidth={2}
-                dot={false}
-                isAnimationActive={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground">
-            Waiting for traffic history...
+            <button
+              type="button"
+              onClick={() => setIsGraphFullscreen(false)}
+              className="flex h-7 w-7 items-center justify-center rounded-md border hover:bg-gray-100"
+              title="Exit fullscreen"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </button>
           </div>
         )}
+
+        {/* Normal graph header */}
+        {!isGraphFullscreen && (
+          <div className="flex justify-end mb-1">
+            <button
+              type="button"
+              onClick={() => setIsGraphFullscreen(true)}
+              className="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100"
+              title="Expand graph"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Graph */}
+        <div
+          className={
+            isGraphFullscreen ? "h-[calc(100%-40px)] w-full" : "h-40 w-full"
+          }
+        >
+          {combinedChartData.length > 1 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={combinedChartData}>
+                <defs>
+                  {chartData.map((interfaceChart) => (
+                    <React.Fragment key={interfaceChart.interfaceId}>
+                      <linearGradient
+                        id={`inboundGradient-${interfaceChart.interfaceId}`}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#22c55e"
+                          stopOpacity={0.35}
+                        />
+
+                        <stop
+                          offset="100%"
+                          stopColor="#22c55e"
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+
+                      <linearGradient
+                        id={`outboundGradient-${interfaceChart.interfaceId}`}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="#3b82f6"
+                          stopOpacity={0.35}
+                        />
+
+                        <stop
+                          offset="100%"
+                          stopColor="#3b82f6"
+                          stopOpacity={0.02}
+                        />
+                      </linearGradient>
+                    </React.Fragment>
+                  ))}
+                </defs>
+
+                <XAxis
+                  dataKey="time"
+                  tick={{
+                    fontSize: isGraphFullscreen ? 11 : 8,
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+
+                <YAxis
+                  tick={{
+                    fontSize: isGraphFullscreen ? 11 : 8,
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => formatBandwidth(Number(value))}
+                />
+
+                <Tooltip
+                  formatter={(value, name) => {
+                    const interfaceId = String(name)
+                      .replace("inbound_", "")
+                      .replace("outbound_", "");
+
+                    const interfaceChart = chartData.find(
+                      (item) => String(item.interfaceId) === interfaceId,
+                    );
+
+                    const isInbound = String(name).startsWith("inbound_");
+
+                    return [
+                      formatBandwidth(Number(value)),
+                      `${interfaceChart?.interfaceName ?? "Interface"} ${
+                        isInbound ? "Inbound" : "Outbound"
+                      }`,
+                    ];
+                  }}
+                />
+
+                {chartData.map((interfaceChart) => (
+                  <React.Fragment key={interfaceChart.interfaceId}>
+                    <Area
+                      type="monotone"
+                      dataKey={`inbound_${interfaceChart.interfaceId}`}
+                      stroke="#22c55e"
+                      fill={`url(#inboundGradient-${interfaceChart.interfaceId})`}
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+
+                    <Area
+                      type="monotone"
+                      dataKey={`outbound_${interfaceChart.interfaceId}`}
+                      stroke="#3b82f6"
+                      fill={`url(#outboundGradient-${interfaceChart.interfaceId})`}
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </React.Fragment>
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full flex items-center justify-center text-[10px] text-muted-foreground">
+              Waiting for traffic history...
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Legend */}
+      {/* ============================= */}
+      {/* TRAFFIC TOTAL / LEGEND */}
+      {/* ============================= */}
 
-      <div className="flex justify-center gap-4 mb-4 text-[10px]">
+      <div className="flex justify-center gap-6 mb-4 text-[10px]">
+        {/* Inbound */}
+
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-green-500" />
-          Inbound
+
+          <span className="text-muted-foreground">
+            {trafficLegendTotals.aggregated ? "Total Inbound" : "Inbound"}
+          </span>
+
+          <span className="font-semibold text-green-500">
+            ↓ {formatBandwidth(trafficLegendTotals.inbound)}
+          </span>
         </div>
+
+        {/* Outbound */}
 
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-blue-500" />
-          Outbound
+
+          <span className="text-muted-foreground">
+            {trafficLegendTotals.aggregated ? "Total Outbound" : "Outbound"}
+          </span>
+
+          <span className="font-semibold text-blue-500">
+            ↑ {formatBandwidth(trafficLegendTotals.outbound)}
+          </span>
         </div>
       </div>
 
@@ -496,35 +752,36 @@ export default function EdgeTrafficPanel({
         <div className="space-y-3">
           {interfaceTrafficStats.map((stat) => (
             <div key={stat.interfaceId} className="rounded-md border p-2">
-              {/* Interface name */}
-
+              {/* Interface */}
               <div className="font-semibold text-[10px] mb-2">
                 {stat.interfaceName}
+                {stat.sourceNodeName && (
+                  <span className="ml-1 text-muted-foreground font-normal">
+                    ({stat.sourceNodeName})
+                  </span>
+                )}
               </div>
 
               {/* Current */}
-
-              <div className="mb-2">
-                <div className="text-[9px] text-muted-foreground mb-1">
+              <div className="flex items-center justify-between py-1">
+                <div className="text-[9px] text-muted-foreground w-16">
                   Current
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-4 flex-1">
                   <div>
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-[8px] text-muted-foreground">
                       Inbound
                     </div>
-
                     <div className="font-semibold text-green-500">
                       ↓ {formatBandwidth(stat.currentInbound)}
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-[8px] text-muted-foreground">
                       Outbound
                     </div>
-
                     <div className="font-semibold text-blue-500">
                       ↑ {formatBandwidth(stat.currentOutbound)}
                     </div>
@@ -533,52 +790,46 @@ export default function EdgeTrafficPanel({
               </div>
 
               {/* Average */}
-
-              <div className="mb-2">
-                <div className="text-[9px] text-muted-foreground mb-1">
+              <div className="flex items-center justify-between py-1 border-t">
+                <div className="text-[9px] text-muted-foreground w-16">
                   Average
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-4 flex-1">
                   <div>
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-[8px] text-muted-foreground">
                       Inbound
                     </div>
-
                     <div>{formatBandwidth(stat.averageInbound)}</div>
                   </div>
 
                   <div>
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-[8px] text-muted-foreground">
                       Outbound
                     </div>
-
                     <div>{formatBandwidth(stat.averageOutbound)}</div>
                   </div>
                 </div>
               </div>
 
               {/* Maximum */}
-
-              <div>
-                <div className="text-[9px] text-muted-foreground mb-1">
+              <div className="flex items-center justify-between py-1 border-t">
+                <div className="text-[9px] text-muted-foreground w-16">
                   Maximum
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-4 flex-1">
                   <div>
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-[8px] text-muted-foreground">
                       Inbound
                     </div>
-
                     <div>{formatBandwidth(stat.maxInbound)}</div>
                   </div>
 
                   <div>
-                    <div className="text-[9px] text-muted-foreground">
+                    <div className="text-[8px] text-muted-foreground">
                       Outbound
                     </div>
-
                     <div>{formatBandwidth(stat.maxOutbound)}</div>
                   </div>
                 </div>

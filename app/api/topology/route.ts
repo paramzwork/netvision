@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/lib/generated/prisma/client";
-import type { TopologyNode, TopologyEdge } from "@/components/WeatherMapComponent";
+import type {
+  TopologyNode,
+  TopologyEdge,
+} from "@/components/WeatherMapComponent";
 import { prisma } from "@/lib/prisma";
 
 interface SaveTopologyRequest {
@@ -73,7 +76,20 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    const exist = await prisma.topologies.findUnique({
+      where: {
+        name,
+      },
+    });
 
+    if (exist) {
+      return NextResponse.json(
+        {
+          message: "Topology already exists.",
+        },
+        { status: 409 },
+      );
+    }
     const topology = await prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         // ---------------------------------------------

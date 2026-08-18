@@ -4,18 +4,33 @@ import { RoleTypes, UserTypes } from "@/lib/types";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
+import { Input } from "./ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { tripleEncode } from "@/lib/utils";
 
 interface Props {
   roleData: RoleTypes[];
   setOpenUserForm: React.Dispatch<React.SetStateAction<boolean>>;
   userFormType: string;
   data: UserTypes | null;
+  setData: React.Dispatch<React.SetStateAction<UserTypes | null>>;
+  setUsers: React.Dispatch<React.SetStateAction<UserTypes[]>>;
 }
 export default function AddUserForm({
   roleData,
   setOpenUserForm,
   userFormType,
   data,
+  setData,
+  setUsers,
 }: Props) {
   const [formData, setFormData] = useState({
     username: data?.username ?? "",
@@ -23,7 +38,7 @@ export default function AddUserForm({
     lastname: data?.lastname ?? "",
     email: data?.email ?? "",
     password: data?.password ?? "",
-    roleId: data?.roles.id ?? 0,
+    roleId: data?.roles.id ?? 3,
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
@@ -39,16 +54,21 @@ export default function AddUserForm({
       [name]: name === "roleId" ? Number(value) : value,
     }));
   }
-
+  function handleSelectChange(name: string, value: string) {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "roleId" ? Number(value) : value,
+    }));
+  }
   function validate() {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.username) newErrors.username = "Username is required";
     if (!formData.firstname) newErrors.firstname = "First name is required";
-    if (!formData.lastname) newErrors.lastname = "Last name is required";
+    // if (!formData.lastname) newErrors.lastname = "Last name is required";
     if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.password || formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters";
+    // if (!formData.password || formData.password.length < 6)
+    //   newErrors.password = "Password must be at least 6 characters";
     if (!formData.roleId) newErrors.roleId = "Role is required";
 
     setErrors(newErrors);
@@ -60,14 +80,26 @@ export default function AddUserForm({
 
     if (!validate()) return;
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
+      const id = tripleEncode(String(data?.id));
+      const url = userFormType === "create" ? "/api/users" : `/api/users/${id}`;
+      const method = userFormType === "create" ? "POST" : "PUT";
+      const res = await fetch(url, {
+        method,
         body: JSON.stringify(formData),
       });
       const resData = await res.json();
       if (!res.ok) {
         toast.error(resData.message);
         return;
+      }
+      if (userFormType === "create") {
+        setUsers((current) => [...current, resData.data]);
+      } else {
+        setUsers((current) =>
+          current.map((user) =>
+            user.id === resData.data.id ? resData.data : user,
+          ),
+        );
       }
       setFormData({
         username: "",
@@ -77,6 +109,7 @@ export default function AddUserForm({
         password: "",
         roleId: 0,
       });
+      setData(null);
       setOpenUserForm(false);
       toast.success(resData.message);
     } catch {
@@ -87,130 +120,171 @@ export default function AddUserForm({
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white dark:bg-zinc-900 border rounded-lg shadow-sm p-8">
-      <h2 className="text-xl font-semibold mb-6">
-        {userFormType === "create" ? "Create" : "Update"} New User
-      </h2>
+    <div className="max-w-4xl mx-auto bg-background ">
+      {/* Header */}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* Name Fields */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Username *</label>
-            <input
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.username && (
-              <p className="text-red-500 text-xs mt-1">{errors.firstname}</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              First Name *
-            </label>
-            <input
-              name="firstname"
-              value={formData.firstname}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.firstname && (
-              <p className="text-red-500 text-xs mt-1">{errors.firstname}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Last Name *
-            </label>
-            <input
-              name="lastname"
-              value={formData.lastname}
-              onChange={handleChange}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.lastname && (
-              <p className="text-red-500 text-xs mt-1">{errors.lastname}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Email */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Email *</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          {errors.email && (
-            <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-          )}
-        </div>
-
-        {/* Password */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Password *</label>
-          <div className="w-full flex flex-row items-center border rounded-md">
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full border-none rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="text-muted-foreground cursor-pointer mr-3"
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username *</Label>
+              <Input
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                className={
+                  errors.username
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
+              />
+              {errors.username && (
+                <p className="text-destructive text-xs mt-1">
+                  {errors.username}
+                </p>
               )}
-            </button>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="firstname">First Name *</Label>
+              <Input
+                id="firstname"
+                name="firstname"
+                value={formData.firstname}
+                onChange={handleChange}
+                className={
+                  errors.firstname
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
+              />
+              {errors.firstname && (
+                <p className="text-destructive text-xs mt-1">
+                  {errors.firstname}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastname">Last Name </Label>
+              <Input
+                id="lastname"
+                name="lastname"
+                value={formData.lastname}
+                onChange={handleChange}
+                className={
+                  errors.lastname
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
+              />
+              {errors.lastname && (
+                <p className="text-destructive text-xs mt-1">
+                  {errors.lastname}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Role */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Role *</label>
-          <select
-            name="roleId"
-            value={formData.roleId}
-            onChange={handleChange}
-            className="w-full border rounded-md px-3 py-2 text-sm bg-white dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value={0}>Select a role</option>
+          {/* Email */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className={
+                errors.email
+                  ? "border-destructive focus-visible:ring-destructive"
+                  : ""
+              }
+            />
+            {errors.email && (
+              <p className="text-destructive text-xs mt-1">{errors.email}</p>
+            )}
+          </div>
 
-            {roleData.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.role}
-              </option>
-            ))}
-          </select>
-          {errors.roleId && (
-            <p className="text-red-500 text-xs mt-1">{errors.roleId}</p>
-          )}
+          {/* Password */}
+          <div className="space-y-2">
+            <Label htmlFor="password">Password *</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className={`pr-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-destructive text-xs mt-1">{errors.password}</p>
+            )}
+          </div>
+
+          {/* Role */}
+          <div className="space-y-2">
+            <Label htmlFor="role">Role *</Label>
+            <Select
+              name="roleId"
+              value={String(formData.roleId)}
+              onValueChange={(value) =>
+                handleSelectChange("roleId", value as string)
+              }
+            >
+              <SelectTrigger
+                id="role"
+                className={
+                  errors.roleId
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
+              >
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Select a role</SelectItem>
+                {roleData.map((role) => (
+                  <SelectItem key={role.id} value={String(role.id)}>
+                    {role.role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.roleId && (
+              <p className="text-destructive text-xs mt-1">{errors.roleId}</p>
+            )}
+          </div>
         </div>
 
         {/* Submit */}
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-5 py-2 rounded-md text-sm hover:bg-blue-700 transition"
+        <div className="flex justify-end gap-3 pt-4 border-t">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenUserForm(false)}
           >
-            {userFormType === "create" ? "Create" : "Update"} User
-          </button>
+            Cancel
+          </Button>
+          <Button type="submit">
+            {userFormType === "create" ? "Create User" : "Save Changes"}
+          </Button>
         </div>
       </form>
     </div>

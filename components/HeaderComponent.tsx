@@ -4,7 +4,7 @@ import { Search, Bell, MessageSquare } from "lucide-react";
 
 export default function HeaderComponent() {
   return (
-    <header className="w-full flex items-center justify-between bg-[#2b2a2a] border-b border-gray-100 px-8 py-3 font-lexend">
+    <header className="w-full flex items-center justify-between bg-[#3b3b3b] border-b border-gray-500 px-8 py-3 font-lexend">
       {/* LEFT SIDE */}
       <div className="w-full flex items-center gap-4">
         {/* Search */}

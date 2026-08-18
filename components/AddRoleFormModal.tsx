@@ -26,7 +26,7 @@ export function AddRoleFormModal({
       onOpenChange={setOpenRoleForm}
       swipeDirection="right"
     >
-      <DrawerContent className="w-250 rounded-l-md!">
+      <DrawerContent className="w-250 rounded-l-sm!">
         <DrawerHeader>
           <DrawerTitle>
             {roleFormType === "create" ? "Create" : "Update"} New Role

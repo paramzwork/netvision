@@ -2,6 +2,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { cookies } from "next/headers";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/lib/generated/prisma/client";
+import { redirect } from "next/navigation";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
@@ -76,4 +77,26 @@ export async function getCurrentUser() {
   } catch {
     return null;
   }
+}
+
+export async function requireRole(allowedRoles: string[]) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/");
+  }
+
+  const userRole = user.roles?.role;
+
+  console.log("Required roles:", allowedRoles);
+  console.log("Actual role:", userRole);
+
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    console.log("ACCESS DENIED");
+    redirect("/dashboard");
+  }
+
+  console.log("ACCESS GRANTED");
+
+  return user;
 }
