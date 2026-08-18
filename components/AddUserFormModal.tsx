@@ -13,6 +13,8 @@ interface Props {
   roleData: RoleTypes[];
   setOpenUserForm: React.Dispatch<React.SetStateAction<boolean>>;
   selectedUser: UserTypes | null;
+  setUsers: React.Dispatch<React.SetStateAction<UserTypes[]>>;
+  setSelectedUser: React.Dispatch<React.SetStateAction<UserTypes | null>>;
 }
 export function AddUserFormModal({
   openUserForm,
@@ -20,6 +22,8 @@ export function AddUserFormModal({
   setOpenUserForm,
   userFormType,
   selectedUser,
+  setUsers,
+  setSelectedUser,
 }: Props) {
   return (
     <Drawer
@@ -52,6 +56,8 @@ export function AddUserFormModal({
             roleData={roleData}
             setOpenUserForm={setOpenUserForm}
             userFormType={userFormType}
+            setUsers={setUsers}
+            setData={setSelectedUser}
           />
         </div>
       </DrawerContent>

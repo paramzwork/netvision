@@ -14,18 +14,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { tripleEncode } from "@/lib/utils";
 
 interface Props {
   roleData: RoleTypes[];
   setOpenUserForm: React.Dispatch<React.SetStateAction<boolean>>;
   userFormType: string;
   data: UserTypes | null;
+  setData: React.Dispatch<React.SetStateAction<UserTypes | null>>;
+  setUsers: React.Dispatch<React.SetStateAction<UserTypes[]>>;
 }
 export default function AddUserForm({
   roleData,
   setOpenUserForm,
   userFormType,
   data,
+  setData,
+  setUsers,
 }: Props) {
   const [formData, setFormData] = useState({
     username: data?.username ?? "",
@@ -33,7 +38,7 @@ export default function AddUserForm({
     lastname: data?.lastname ?? "",
     email: data?.email ?? "",
     password: data?.password ?? "",
-    roleId: data?.roles.id ?? 0,
+    roleId: data?.roles.id ?? 3,
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
@@ -60,10 +65,10 @@ export default function AddUserForm({
 
     if (!formData.username) newErrors.username = "Username is required";
     if (!formData.firstname) newErrors.firstname = "First name is required";
-    if (!formData.lastname) newErrors.lastname = "Last name is required";
+    // if (!formData.lastname) newErrors.lastname = "Last name is required";
     if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.password || formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters";
+    // if (!formData.password || formData.password.length < 6)
+    //   newErrors.password = "Password must be at least 6 characters";
     if (!formData.roleId) newErrors.roleId = "Role is required";
 
     setErrors(newErrors);
@@ -75,14 +80,26 @@ export default function AddUserForm({
 
     if (!validate()) return;
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
+      const id = tripleEncode(String(data?.id));
+      const url = userFormType === "create" ? "/api/users" : `/api/users/${id}`;
+      const method = userFormType === "create" ? "POST" : "PUT";
+      const res = await fetch(url, {
+        method,
         body: JSON.stringify(formData),
       });
       const resData = await res.json();
       if (!res.ok) {
         toast.error(resData.message);
         return;
+      }
+      if (userFormType === "create") {
+        setUsers((current) => [...current, resData.data]);
+      } else {
+        setUsers((current) =>
+          current.map((user) =>
+            user.id === resData.data.id ? resData.data : user,
+          ),
+        );
       }
       setFormData({
         username: "",
@@ -92,6 +109,7 @@ export default function AddUserForm({
         password: "",
         roleId: 0,
       });
+      setData(null);
       setOpenUserForm(false);
       toast.success(resData.message);
     } catch {
@@ -104,7 +122,6 @@ export default function AddUserForm({
   return (
     <div className="max-w-4xl mx-auto bg-background ">
       {/* Header */}
-    
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Name Fields */}
@@ -151,7 +168,7 @@ export default function AddUserForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lastname">Last Name *</Label>
+              <Label htmlFor="lastname">Last Name </Label>
               <Input
                 id="lastname"
                 name="lastname"
@@ -227,7 +244,9 @@ export default function AddUserForm({
             <Select
               name="roleId"
               value={String(formData.roleId)}
-              onValueChange={(value) => handleSelectChange("roleId", value as string)}
+              onValueChange={(value) =>
+                handleSelectChange("roleId", value as string)
+              }
             >
               <SelectTrigger
                 id="role"

@@ -21,12 +21,12 @@ export default function Breadcrumbs({ items }: BreadcrumbsProps) {
             {!isLast ? (
               <Link
                 href={item.href || "#"}
-                className="hover:text-foreground transition-colors"
+                className="hover:text-foreground transition-colors font-lexend"
               >
                 {item.label}
               </Link>
             ) : (
-              <span className="text-foreground font-medium">
+              <span className="text-foreground font-medium font-lexend">
                 {item.label}
               </span>
             )}

@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import {
   HandleCounts,
   HandleLayout,
+  HandleType,
   NodeHandle,
   TopologyNode,
 } from "./WeatherMapComponent";
@@ -31,6 +32,7 @@ import Image from "next/image";
 import { Switch } from "./ui/switch";
 import { AggregationGroup, AggregationMode } from "./DnDContext";
 import { Trash2 } from "lucide-react";
+import { useEffect } from "react";
 
 interface NodeHandleSettingsProps {
   open: boolean;
@@ -155,6 +157,45 @@ export default function NodeHandleSettings({
 
     onClose();
   };
+  useEffect(() => {
+    setHandles((current) => {
+      const updated: HandleLayout = {
+        top: [],
+        right: [],
+        bottom: [],
+        left: [],
+      };
+
+      const positions = ["top", "right", "bottom", "left"] as const;
+
+      for (const position of positions) {
+        const existingHandles = current[position] ?? [];
+
+        updated[position] = Array.from(
+          { length: counts[position] },
+          (_, index) => {
+            const handleId = `${position}-${index}`;
+
+            const existingHandle = existingHandles.find(
+              (handle) => handle.id === handleId,
+            );
+
+            if (existingHandle) {
+              return existingHandle;
+            }
+
+            return {
+              id: handleId,
+              interfaceName: "",
+              type: "source" as HandleType,
+            };
+          },
+        );
+      }
+
+      return updated;
+    });
+  }, [counts, setHandles]);
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="min-w-150 max-h-125 overflow-y-auto">
@@ -248,7 +289,8 @@ export default function NodeHandleSettings({
                   const existingHandle = handles[position]?.find(
                     (handle) => handle.id === handleId,
                   );
-
+                  console.log(existingHandle);
+                  console.log("Position", handleId)
                   const handleType = existingHandle?.type ?? "source";
 
                   return (
@@ -272,22 +314,32 @@ export default function NodeHandleSettings({
                       <Select
                         value={handleType}
                         onValueChange={(value) => {
-                          if (value === null) return;
+                          const type = value as HandleType;
 
-                          setHandles((current) => ({
-                            ...current,
-                            [position]: current[position].map((handle) =>
-                              handle.id === handleId
-                                ? {
-                                    ...handle,
-                                    type: value,
-                                  }
-                                : handle,
-                            ),
-                          }));
+                          console.log("Changing handle:", {
+                            position,
+                            handleId,
+                            type,
+                          });
+
+                          setHandles((current) => {
+                            const positionHandles = current[position] ?? [];
+
+                            return {
+                              ...current,
+                              [position]: positionHandles.map((handle) =>
+                                handle.id === handleId
+                                  ? {
+                                      ...handle,
+                                      type,
+                                    }
+                                  : handle,
+                              ),
+                            };
+                          });
                         }}
                       >
-                        <SelectTrigger className="w-[120px]">
+                        <SelectTrigger className="w-30">
                           <SelectValue />
                         </SelectTrigger>
 

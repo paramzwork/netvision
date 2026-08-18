@@ -1,20 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser();
 
   if (!currentUser) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-  const roles = await prisma.roles.findMany({
-    orderBy: {
-      id: "desc",
-    },
-  });
+  const { searchParams } = new URL(req.url);
 
-  return NextResponse.json(roles);
+  const page = Math.max(Number(searchParams.get("page")) || 1, 1);
+
+  const limit = Math.min(
+    Math.max(Number(searchParams.get("limit")) || 20, 1),
+    100,
+  );
+  const skip = (page - 1) * limit;
+  const [roles, total] = await Promise.all([
+    prisma.roles.findMany({
+      skip,
+      take: limit,
+      orderBy: {
+        id: "desc",
+      },
+    }),
+    prisma.roles.count(),
+  ]);
+
+  return NextResponse.json({ data: roles, total });
 }
 
 export async function POST(req: Request) {

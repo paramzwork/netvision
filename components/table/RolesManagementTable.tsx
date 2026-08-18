@@ -11,7 +11,14 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, ChevronDown, ChevronUp, PencilLine, Search, Trash2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
+  PencilLine,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { RoleTypes } from "@/lib/types";
 import { useMemo, useState } from "react";
 import Pagination from "../Pagination";
@@ -25,6 +32,12 @@ interface Props {
   setRoleData: React.Dispatch<React.SetStateAction<RoleTypes[]>>;
   setSelectedRole: React.Dispatch<React.SetStateAction<RoleTypes | null>>;
   handleForm: (type: string) => void;
+
+  page: number;
+  limit: number;
+  setPage: React.Dispatch<React.SetStateAction<number>>;
+  setLimit: React.Dispatch<React.SetStateAction<number>>;
+  totalRoles: number;
 }
 
 export default function RolesManagementTable({
@@ -32,14 +45,18 @@ export default function RolesManagementTable({
   setRoleData,
   setSelectedRole,
   handleForm,
+
+  page,
+  limit,
+  setPage,
+  setLimit,
+  totalRoles,
 }: Props) {
   const handleSelectedRole = async (value: RoleTypes) => {
     setSelectedRole(value);
     handleForm("edit");
   };
   const [search, setSearch] = useState<string>("");
-  const [page, setPage] = useState<number>(1);
-  const [limit, setLimit] = useState<number>(10);
   const [confirmDialog, setConfirmDialog] = useState<boolean>(false);
   const [selectedID, setSelectedID] = useState<number>();
   const [sortConfig, setSortConfig] = useState<{
@@ -57,6 +74,7 @@ export default function RolesManagementTable({
       return matchSearch;
     });
   }, [roleData, search]);
+  
   const sortData = <T,>(
     array: T[],
     key: keyof T,
@@ -75,7 +93,6 @@ export default function RolesManagementTable({
         : String(bVal).localeCompare(String(aVal));
     });
   };
-  const start = (page - 1) * limit;
 
   const sortedData = useMemo(() => {
     if (!sortConfig) return filteredData;
@@ -87,10 +104,8 @@ export default function RolesManagementTable({
     );
   }, [filteredData, sortConfig]);
 
-  const paginatedData =
-    limit === roleData.length
-      ? sortedData
-      : sortedData.slice(start, start + limit);
+  const paginatedData = sortedData;
+
   const handleDelete = async () => {
     if (!selectedID) return;
     const toastID = toast.loading("Deleting...");
@@ -293,6 +308,7 @@ export default function RolesManagementTable({
           limit={limit}
           data={roleData}
           filteredData={filteredData}
+          total={totalRoles}
         />
       </div>
 

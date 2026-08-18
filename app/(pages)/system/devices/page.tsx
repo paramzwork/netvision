@@ -17,7 +17,7 @@ export default function SystemDevices() {
   const { activeDevices } = useData();
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -31,7 +31,7 @@ export default function SystemDevices() {
           ]}
         />
         <div className="flex flex-row items-center justify-between">
-          <h1 className="text-2xl font-bold">Device Settings</h1>
+          <h1 className="text-xl font-bold">Device Settings</h1>
           <Link href={"/settings/devices"}>
             <Settings className="shrink-0 w-5 h-5" />
           </Link>
@@ -80,15 +80,13 @@ export default function SystemDevices() {
                     {device.currentMs}
                   </TableCell>
 
-                  <TableCell className="max-w-md whitespace-pre-wrap wrap-break-word">
+                  <TableCell className="max-w-md">
                     <TooltipComponent value={device.sysDescr}>
-                      <TableCell>
-                        <div className="max-w-md truncate cursor-pointer">
-                          {device.sysDescr.length > 20
-                            ? `${device.sysDescr.slice(0, 20)}...`
-                            : device.sysDescr}
-                        </div>
-                      </TableCell>
+                      <div className="max-w-md truncate cursor-pointer">
+                        {device.sysDescr.length > 20
+                          ? `${device.sysDescr.slice(0, 20)}...`
+                          : device.sysDescr}
+                      </div>
                     </TooltipComponent>
                   </TableCell>
 

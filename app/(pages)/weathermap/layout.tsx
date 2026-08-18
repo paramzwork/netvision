@@ -5,7 +5,7 @@ export default async function WeatherMapLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireRole(["Admin", "Super Admin"]);
+  await requireRole(["User","Admin", "Super Admin"]);
 
   return <>{children}</>;
 }

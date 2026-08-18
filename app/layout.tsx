@@ -32,7 +32,7 @@ export default function RootLayout({
         geist.variable,
       )}
     >
-      <body className="min-h-full flex flex-col font-lexend text-[#2A2A2B]">
+      <body className="min-h-full flex flex-col font-lexend text-[#3b3b3b]">
         <main>{children}</main>
         <Toaster position="top-right" richColors />
       </body>

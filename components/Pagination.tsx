@@ -11,34 +11,31 @@ interface Props {
   limit: number;
   filteredData: RoleTypes[] | UserTypes[];
   data: RoleTypes[] | UserTypes[];
+  total: number;
 }
 export default function Pagination({
   page,
   setPage,
   limit,
-  filteredData,
-  data,
+  // filteredData,
+  // data,
+  total,
 }: Props) {
   const [pageInput, setPageInput] = useState<string>(page.toString());
-  const totalPages =
-    limit === data.length ? 1 : Math.ceil(filteredData.length / limit);
+  const totalPages = Math.ceil(total / limit);
+
+  const isFirstPage = page <= 1;
+  const isLastPage = page >= totalPages;
+
+  const start = total === 0 ? 0 : (page - 1) * limit + 1;
+  const end = Math.min(page * limit, total);
   return (
     <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 w-full pt-2">
       {/* 📊 Info */}
       <div className="text-sm text-muted-foreground">
-        Showing{" "}
-        <span className="font-medium text-foreground">
-          {(page - 1) * limit + 1}
-        </span>{" "}
-        to{" "}
-        <span className="font-medium text-foreground">
-          {Math.min(page * limit, filteredData.length)}
-        </span>{" "}
-        of{" "}
-        <span className="font-medium text-foreground">
-          {filteredData.length}
-        </span>{" "}
-        results
+        Showing <span className="font-medium text-foreground">{start}</span> to{" "}
+        <span className="font-medium text-foreground">{end}</span> of{" "}
+        <span className="font-medium text-foreground">{total}</span> results
       </div>
 
       {/* 🔢 Page Controls */}
@@ -91,8 +88,7 @@ export default function Pagination({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 gap-1 pl-2.5 pr-3 disabled:opacity-50"
-            disabled={page === 1}
+            disabled={isFirstPage || totalPages === 0}
             onClick={() => setPage((p) => p - 1)}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -102,8 +98,7 @@ export default function Pagination({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 gap-1 pl-3 pr-2.5 disabled:opacity-50"
-            disabled={page === totalPages || totalPages === 0}
+            disabled={isLastPage || totalPages === 0}
             onClick={() => setPage((p) => p + 1)}
           >
             <span className="hidden sm:inline-block">Next</span>

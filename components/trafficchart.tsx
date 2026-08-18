@@ -202,13 +202,13 @@ export function TrafficChart({ interfaces }: Props) {
           className="h-9! w-50! text-sm"
           aria-label="Select a preset time range"
         >
-          <SelectValue>{() => PRESET_LABELS[preset]}</SelectValue>
+          <SelectValue className="font-lexend">{() => PRESET_LABELS[preset]}</SelectValue>
         </SelectTrigger>
         <SelectContent side="bottom" align="start" alignItemWithTrigger={false}>
           <SelectGroup>
             <SelectLabel>Presets</SelectLabel>
             {PRESETS.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
+              <SelectItem key={p.value} value={p.value} className="font-lexend">
                 {p.label}
               </SelectItem>
             ))}
@@ -224,13 +224,13 @@ export function TrafficChart({ interfaces }: Props) {
           className="h-9! w-50! text-sm"
           aria-label="Limit number of interfaces shown"
         >
-          <SelectValue>{() => `Graph Limit: ${graphLimit}`}</SelectValue>
+          <SelectValue className="font-lexend">{() => `Graph Limit: ${graphLimit}`}</SelectValue>
         </SelectTrigger>
         <SelectContent side="bottom" align="start" alignItemWithTrigger={false}>
           <SelectGroup>
             <SelectLabel>Graph Limit</SelectLabel>
             {GRAPH_LIMIT_OPTIONS.map((n) => (
-              <SelectItem key={n} value={String(n)}>
+              <SelectItem key={n} value={String(n)} className="font-lexend">
                 {n}
               </SelectItem>
             ))}
