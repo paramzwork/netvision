@@ -1,13 +1,39 @@
 import { formatBandwidth } from "@/lib/utils";
 import React from "react";
+
 interface CustomTooltipProps {
   active?: boolean;
-  label?: string;
-  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: number | string;
+  payload?: Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>;
   hoveredInterface: string | null;
-  displayedInterfaces: Array<{ name: string }>;
+  displayedInterfaces: Array<{ name: string; description: string }>;
   chartColors: string[];
 }
+
+function formatTooltipDate(value: number | string | undefined) {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  const timestamp = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(timestamp)) {
+    return String(value);
+  }
+
+  return new Date(timestamp).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function CustomTooltip({
   active,
   label,
@@ -16,9 +42,12 @@ export default function CustomTooltip({
   displayedInterfaces,
   chartColors,
 }: CustomTooltipProps) {
-  if (!active || !payload || payload.length === 0) return null;
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
 
   const valueMap: Record<string, number> = {};
+
   payload.forEach((p) => {
     valueMap[p.name] = p.value;
   });
@@ -35,6 +64,7 @@ export default function CustomTooltip({
         fontSize: 12,
       }}
     >
+      {/* Date / Time */}
       <div
         style={{
           fontWeight: 600,
@@ -43,13 +73,19 @@ export default function CustomTooltip({
           fontSize: 12,
         }}
       >
-        {label}
+        {formatTooltipDate(label)}
       </div>
+
+      {/* Interface values */}
       {displayedInterfaces.map((iface, idx) => {
-        const color = chartColors[idx];
+        const color = chartColors[idx % chartColors.length];
+
         const value = valueMap[iface.name];
+
         const isHovered = hoveredInterface === iface.name;
+
         const isDimmed = hoveredInterface !== null && !isHovered;
+
         return (
           <div
             key={iface.name}
@@ -72,7 +108,16 @@ export default function CustomTooltip({
                 flexShrink: 0,
               }}
             />
-            <span style={{ color: "#475569", flex: 1 }}>{iface.name}</span>
+
+            <span
+              style={{
+                color: "#475569",
+                flex: 1,
+              }}
+            >
+              {iface.description}
+            </span>
+
             <span
               style={{
                 fontWeight: isHovered ? 700 : 500,
@@ -80,7 +125,7 @@ export default function CustomTooltip({
                 marginLeft: 8,
               }}
             >
-              {value !== undefined ? `${formatBandwidth(value)}` : "—"}
+              {value !== undefined ? formatBandwidth(value) : "—"}
             </span>
           </div>
         );

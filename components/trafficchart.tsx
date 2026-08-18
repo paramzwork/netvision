@@ -20,6 +20,7 @@ import {
 import { DataPoint, GraphType, InterfaceResponse } from "@/lib/types";
 import {
   CHART_COLORS,
+  formatTick,
   getInterfaceStats,
   getTrafficSamples,
   GRAPH_TYPES,
@@ -64,22 +65,13 @@ const PRESET_LABELS: Record<PresetKey, string> = PRESETS.reduce(
   {} as Record<PresetKey, string>,
 );
 
-const GRAPH_LIMIT_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
+const GRAPH_LIMIT_OPTIONS = [10, 20, 50];
 
 function toLocalInputValue(date: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
     date.getDate(),
   )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function formatTick(timestamp: number, spanMs: number) {
-  const date = new Date(timestamp);
-  const oneDay = 24 * 60 * 60 * 1000;
-  if (spanMs <= oneDay * 1.5) {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-  return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 /* ============================= */
@@ -89,19 +81,6 @@ interface Props {
   interfaces: InterfaceResponse[];
 }
 export function TrafficChart({ interfaces }: Props) {
-  const TOP_INTERFACES = [...interfaces]
-    .sort((a, b) => {
-      const aStats = getInterfaceStats(a);
-      const bStats = getInterfaceStats(b);
-
-      return (
-        bStats.inbound.current +
-        bStats.outbound.current -
-        (aStats.inbound.current + aStats.outbound.current)
-      );
-    })
-    .slice(0, 10);
-
   const [preset, setPreset] = useState<PresetKey>("1d");
   const [graphType, setGraphType] = useState<GraphType>("stacked");
   const [graphLimit, setGraphLimit] = useState<number>(10);
@@ -118,7 +97,18 @@ export function TrafficChart({ interfaces }: Props) {
 
   const fromInputRef = useRef<HTMLInputElement>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
+  const TOP_INTERFACES = [...interfaces]
+    .sort((a, b) => {
+      const aStats = getInterfaceStats(a);
+      const bStats = getInterfaceStats(b);
 
+      return (
+        bStats.inbound.current +
+        bStats.outbound.current -
+        (aStats.inbound.current + aStats.outbound.current)
+      );
+    })
+    .slice(0, graphLimit);
   const openPicker = (ref: RefObject<HTMLInputElement | null>) => {
     try {
       ref.current?.showPicker?.();
@@ -212,13 +202,13 @@ export function TrafficChart({ interfaces }: Props) {
           className="h-9! w-50! text-sm"
           aria-label="Select a preset time range"
         >
-          <SelectValue>{() => PRESET_LABELS[preset]}</SelectValue>
+          <SelectValue className="font-lexend">{() => PRESET_LABELS[preset]}</SelectValue>
         </SelectTrigger>
         <SelectContent side="bottom" align="start" alignItemWithTrigger={false}>
           <SelectGroup>
             <SelectLabel>Presets</SelectLabel>
             {PRESETS.map((p) => (
-              <SelectItem key={p.value} value={p.value}>
+              <SelectItem key={p.value} value={p.value} className="font-lexend">
                 {p.label}
               </SelectItem>
             ))}
@@ -234,13 +224,13 @@ export function TrafficChart({ interfaces }: Props) {
           className="h-9! w-50! text-sm"
           aria-label="Limit number of interfaces shown"
         >
-          <SelectValue>{() => `Graph Limit: ${graphLimit}`}</SelectValue>
+          <SelectValue className="font-lexend">{() => `Graph Limit: ${graphLimit}`}</SelectValue>
         </SelectTrigger>
         <SelectContent side="bottom" align="start" alignItemWithTrigger={false}>
           <SelectGroup>
             <SelectLabel>Graph Limit</SelectLabel>
             {GRAPH_LIMIT_OPTIONS.map((n) => (
-              <SelectItem key={n} value={String(n)}>
+              <SelectItem key={n} value={String(n)} className="font-lexend">
                 {n}
               </SelectItem>
             ))}
@@ -509,7 +499,7 @@ export function TrafficChart({ interfaces }: Props) {
         </div>
 
         {/* ── Chart Area ── */}
-        <div className="flex flex-1 min-h-0 gap-3 p-5 bg-white">
+        <div className="flex flex-1 min-h-0 gap-3 p-3 bg-white">
           {/* Chart */}
           <div className="flex-1 min-w-0 rounded-xl border border-slate-100 overflow-hidden bg-white">
             <ChartContent
@@ -518,6 +508,8 @@ export function TrafficChart({ interfaces }: Props) {
               displayedInterfaces={displayedInterfaces}
               hoveredInterface={hoveredInterface}
               setHoveredInterface={setHoveredInterface}
+              from={from}
+              to={to}
               fullHeight
             />
           </div>
@@ -586,6 +578,8 @@ export function TrafficChart({ interfaces }: Props) {
             hoveredInterface={hoveredInterface}
             setHoveredInterface={setHoveredInterface}
             chartHeight={420}
+            from={from}
+            to={to}
           />
         </div>
 

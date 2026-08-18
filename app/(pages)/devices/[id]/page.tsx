@@ -49,48 +49,6 @@ export default function ViewDevice() {
     }
   }, [devices, raw, router, setDevice, setSelectedDevice]);
 
-  // const fetchTraffic = async () => {
-  //   if (!selectedDevice) {
-  //     toast.error("Community is missing.");
-  //     return;
-  //   }
-  //   try {
-  //     const community = tripleEncode(selectedDevice.community);
-  //     const res = await fetch("/api/snmp/interfaces", {
-  //       method: "POST",
-  //       body: JSON.stringify({ raw, community }),
-  //     });
-  //     const resData = await res.json();
-  //     if (!res.ok) {
-  //       toast.error("Missing host.");
-  //       return;
-  //     }
-  //     setInOutTraffic(resData);
-  //     toast.success("Loaded traffic successfully!");
-  //   } catch {
-  //     toast.error("Internal Server Error.", {
-  //       description: "Server error please contact admin.",
-  //     });
-  //   }
-  // };
-  // const saveTraffic = async () => {
-  //   try {
-  //     const res = await fetch("/api/snmp/traffic", {
-  //       method: "POST",
-  //       body: JSON.stringify({ inOutTraffic }),
-  //     });
-  //     const resData = await res.json();
-  //     if (!res.ok) {
-  //       toast.error("Missing host.");
-  //       return;
-  //     }
-  //     toast.success(resData.message);
-  //   } catch {
-  //     toast.error("Internal Server Error.", {
-  //       description: "Server error please contact admin.",
-  //     });
-  //   }
-  // };
   const fetchInterfaces = useCallback(async () => {
     if (!selectedDevice) return;
     try {
@@ -141,7 +99,7 @@ export default function ViewDevice() {
   }, [fetchInterfaces, selectedDevice]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -154,7 +112,7 @@ export default function ViewDevice() {
             },
           ]}
         />
-        <h1 className="text-2xl font-bold">{selectedDevice?.sysName} - {selectedDevice?.ipAddress}</h1>
+        <h1 className="text-xl font-bold">{selectedDevice?.sysName} - {selectedDevice?.ipAddress}</h1>
       </div>
       {/* <Table>
         <TableHeader>
@@ -200,9 +158,9 @@ export default function ViewDevice() {
       </Table> */}
       <div className="space-y-6">
         {/* Chart */}
-        <Card>
+        <Card className="rounded-md bg-white/60 shadow-sm!">
           <CardHeader>
-            <CardTitle>{selectedDevice?.sysName}</CardTitle>
+            <CardTitle className="font-lexend font-semibold text-sm text-slate-700">{selectedDevice?.sysName}</CardTitle>
           </CardHeader>
           <CardContent>
             <TrafficChart interfaces={interfaces} />

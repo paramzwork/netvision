@@ -21,10 +21,19 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { MenuItemTypes, UserTypes } from "@/lib/types";
+import { MenuItemTypes } from "@/lib/types";
 import Image from "next/image";
 import { useData } from "@/context/DataContext";
 import { tripleEncode } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "./ui/popover";
+import { Button } from "./ui/button";
 
 export const menuItems: MenuItemTypes[] = [
   {
@@ -36,14 +45,14 @@ export const menuItems: MenuItemTypes[] = [
   {
     name: "Devices",
     icon: Monitor,
-    roles: ["admin", "super admin"],
+    roles: ["user", "admin", "super admin"],
     dynamicDevices: true,
   },
   {
     name: "Weathermap",
     icon: Network,
     href: "/weathermap",
-    roles: ["admin", "super admin"],
+    roles: ["user", "admin", "super admin"],
   },
   {
     name: "Users",
@@ -65,11 +74,9 @@ export const menuItems: MenuItemTypes[] = [
     ],
   },
 ];
-interface SidebarProps {
-  currentUser: Partial<UserTypes> | null;
-}
-export default function SidebarComponent({ currentUser }: SidebarProps) {
-  const { activeDevices } = useData();
+
+export default function SidebarComponent() {
+  const { activeDevices, currentUser } = useData();
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -115,7 +122,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
     >
       {/* ================= LOGO ================= */}
       <div
-        className={`flex items-center gap-3 px-6 border-b border-gray-200 bg-[#2b2a2a] text-white ${!collapsed ? "py-2.25" : "py-3"}`}
+        className={`flex items-center gap-3 border-b border-gray-200 bg-[#3b3b3b] text-white ${!collapsed ? "py-2.25 px-6" : "py-3 px-4"}`}
       >
         <div className="w-10 h-10 bg-linear-to-br from-[#f4f5f5] to-gray-300 rounded-sm flex items-center justify-center shadow-md">
           <div className="flex flex-col justify-center items-center gap-2">
@@ -163,14 +170,6 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
 
       {/* ================= NAVIGATION ================= */}
       <nav className="flex-1 px-3 py-6">
-        <p
-          className={`text-gray-400 text-xs font-semibold uppercase tracking-wider mb-4 ${
-            collapsed ? "text-center" : "px-2"
-          }`}
-        >
-          {collapsed ? "•••" : ""}
-        </p>
-
         <Accordion multiple className="space-y-1">
           {filteredMenu.map((item) => {
             /* ================= NO SUBMENU (Standard Link) ================= */
@@ -185,11 +184,11 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                   className={`
             group flex items-center gap-3
             ${collapsed ? "justify-center px-0" : "px-2"}
-            py-3 rounded-sm relative
+            py-1 rounded-sm relative
             transition-all duration-200
             ${
               isActive
-                ? "bg-indigo-50 text-indigo-600 font-medium"
+                ? "bg-sky-50 text-sky-600 font-medium"
                 : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             }
           `}
@@ -198,7 +197,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                     className={`
               flex items-center justify-center rounded-sm shrink-0
               ${collapsed ? "w-10 h-10" : "w-9 h-9"}
-              ${isActive ? "bg-indigo-100" : "bg-gray-100 group-hover:bg-gray-200"}
+              ${isActive ? "bg-sky-100" : "bg-gray-100 group-hover:bg-gray-200"}
             `}
                   >
                     <item.icon
@@ -206,9 +205,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                     />
                   </div>
 
-                  {!collapsed && (
-                    <span className="font-semibold text-sm">{item.name}</span>
-                  )}
+                  {!collapsed && <span className="text-sm">{item.name}</span>}
 
                   {/* Tooltip */}
                   {collapsed && (
@@ -239,12 +236,12 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                 <AccordionTrigger
                   className={`
             group flex items-center gap-3
-            ${collapsed ? "justify-center px-0" : "px-2"}
-            py-3 rounded-sm hover:no-underline
+            ${collapsed ? "justify-center px-0 [&>svg]:hidden" : "px-2"}
+            py-1 rounded-sm hover:no-underline
             transition-all duration-200
             ${
               isActive
-                ? "bg-indigo-50 text-indigo-600 font-medium"
+                ? "bg-sky-50 text-sky-600 font-medium"
                 : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             }
           `}
@@ -253,7 +250,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                     className={`
               flex items-center justify-center rounded-sm shrink-0
               ${collapsed ? "w-10 h-10" : "w-9 h-9"}
-              ${isActive ? "bg-indigo-100" : "bg-gray-100 group-hover:bg-gray-200"}
+              ${isActive ? "bg-sky-100" : "bg-gray-100 group-hover:bg-gray-200"}
             `}
                   >
                     <item.icon
@@ -262,9 +259,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                   </div>
 
                   {!collapsed && (
-                    <span className="font-lexend font-semibold text-sm">
-                      {item.name}
-                    </span>
+                    <span className="font-lexend text-sm">{item.name}</span>
                   )}
 
                   {collapsed && (
@@ -291,7 +286,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                 transition-all duration-200
                 ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-600 border-l-2 border-indigo-500"
+                    ? "bg-sky-50 text-sky-600 border-l-2 border-sky-500"
                     : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 border-l-2 border-transparent"
                 }
               `}
@@ -316,7 +311,7 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
                 transition-all duration-200
                 ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-600 border-l-2 border-indigo-500"
+                    ? "bg-sky-50 text-sky-600 border-l-2 border-sky-500"
                     : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 border-l-2 border-transparent"
                 }
               `}
@@ -337,41 +332,70 @@ export default function SidebarComponent({ currentUser }: SidebarProps) {
         </Accordion>
       </nav>
 
-      {/* ================= BOTTOM ================= */}
-      <div className="px-4 py-4 border-t border-gray-200">
-        <button
-          onClick={handleLogout}
-          className={`
+      {/* ================= USER ================= */}
+      <div className="w-full items-center p-2">
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button
+                variant="outline"
+                className="w-full h-13! px-2! bg-[#f0efef] border-none cursor-pointer"
+              />
+            }
+          >
+            <div className="w-8 h-8 bg-linear-to-br from-gray-500 to-slate-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow">
+              {currentUser?.firstname?.charAt(0) ?? "U"}
+              {currentUser?.lastname?.charAt(0) ?? ""}
+            </div>
+            {!collapsed && (
+              <div className="flex-1 min-w-0 text-start px-1">
+                <p className="text-gray-900 text-sm font-medium truncate">
+                  {currentUser?.firstname} {currentUser?.lastname}
+                </p>
+                <p className="text-gray-500 text-xs capitalize">
+                  {currentUser?.roles?.role}
+                </p>
+              </div>
+            )}
+          </PopoverTrigger>
+
+          <PopoverContent>
+            <PopoverHeader>
+              <div className="p-2">
+                <div className="flex items-center gap-3 py-2 px-3 rounded-sm">
+                  <div className="w-8 h-8 bg-linear-to-br from-gray-500 to-slate-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow">
+                    {currentUser?.firstname?.charAt(0) ?? "U"}
+                    {currentUser?.lastname?.charAt(0) ?? ""}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <PopoverTitle> {currentUser?.firstname}</PopoverTitle>
+
+                    <PopoverDescription>
+                      {currentUser?.roles?.role}
+                    </PopoverDescription>
+                  </div>
+                </div>
+                {/* ================= BOTTOM ================= */}
+                <div className="py-4 border-t border-gray-200">
+                  <button
+                    onClick={handleLogout}
+                    className={`
         group flex items-center gap-3 px-4 py-3 rounded-sm
         text-gray-600 hover:bg-red-50 hover:text-red-600
         transition-all duration-200 w-full cursor-pointer
         ${collapsed ? "justify-center px-2" : ""}
       `}
-        >
-          <LogOut className="w-5 h-5 shrink-0" />
-          {!collapsed && <span>Sign Out</span>}
-        </button>
+                  >
+                    <LogOut className="w-5 h-5 shrink-0" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            </PopoverHeader>
+          </PopoverContent>
+        </Popover>
       </div>
-
-      {/* ================= USER ================= */}
-      {!collapsed && (
-        <div className="px-4 py-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-sm">
-            <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow">
-              {currentUser?.firstname?.charAt(0) ?? "U"}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <p className="text-gray-900 text-sm font-medium truncate">
-                {currentUser?.firstname}
-              </p>
-              <p className="text-gray-500 text-xs capitalize">
-                {currentUser?.roles?.role}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </aside>
   );
 }

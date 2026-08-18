@@ -66,7 +66,7 @@ const DEVICES = [
 const REALTIME_STATS = {
   onlineSessions: 12,
   activeDevices: 2,
-  failedSessionsToday: 3,
+  failedSessionsToday: 0,
 };
 
 /* Activity chart — 7 days of hourly data points */
@@ -335,7 +335,7 @@ export default function DashboardPage() {
   });
   return (
     <div className="w-full space-y-5 font-lexend">
-      <h1 className="text-2xl font-bold font-lexend">Dashboard</h1>
+      <h1 className="text-lg font-bold font-lexend">Dashboard</h1>
 
       {/* ── Row 1: Real-time + Device Summary ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

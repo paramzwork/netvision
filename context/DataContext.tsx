@@ -1,5 +1,5 @@
 "use client";
-import { DeviceInfoTypes } from "@/lib/types";
+import { DeviceInfoTypes, UserTypes } from "@/lib/types";
 import { tripleEncode } from "@/lib/utils";
 import React, {
   createContext,
@@ -15,15 +15,19 @@ interface DataContextType {
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   activeDevices: DeviceInfoTypes[];
+  currentUser: UserTypes;
 }
-
+interface DataProviderProps {
+  children: React.ReactNode;
+  currentUser: UserTypes;
+}
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-export function DataProvider({ children }: { children: React.ReactNode }) {
+export function DataProvider({ children, currentUser }: DataProviderProps) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeDevices, setDevices] = useState<DeviceInfoTypes[]>([]);
-
   const hasMountedRef = useRef<boolean>(false);
+
   const fetchDevices = useCallback(async () => {
     try {
       const val = tripleEncode("all");
@@ -41,6 +45,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       });
     }
   }, []);
+
   useEffect(() => {
     if (hasMountedRef.current) return;
     fetchDevices();
@@ -52,6 +57,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         setIsLoading,
         activeDevices,
+        currentUser,
       }}
     >
       {children}

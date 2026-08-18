@@ -21,7 +21,7 @@ export interface TopologyTypes {
   name: string;
   description: string;
 }
-export default function WeatherMap() {
+export default function WeatherMapPage() {
   const [topology, setTopology] = useState<TopologyTypes[]>([]);
   const router = useRouter();
   const hasMountedRef = useRef<boolean>(false);

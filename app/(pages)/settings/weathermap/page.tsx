@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import WeatherMapComponent from "@/components/WeatherMapComponent";
+
 export default function WeatherMapSettings() {
   const { device, setDevice } = useDevicesStore();
   const { interfaces, setInterfaces } = useInterfaceStore();

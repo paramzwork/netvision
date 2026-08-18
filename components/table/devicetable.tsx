@@ -85,7 +85,7 @@ export function DeviceTable({ interfaces }: Props) {
   const rangeEnd = Math.min(currentPage * itemsPerPage, filteredData.length);
 
   return (
-    <div className="rounded-2xl border border-slate-200/40 bg-white/60 backdrop-blur-xl shadow-sm overflow-hidden">
+    <div className="rounded-md border border-slate-200/40 bg-white/60 backdrop-blur-xl shadow-sm overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-slate-100/50">
         <h3 className="text-sm font-semibold text-slate-700 tracking-wide">
