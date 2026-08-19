@@ -90,7 +90,7 @@ export default function SidebarWeathermap({ interfaces, devices }: Props) {
   });
 
   return (
-    <aside className="w-80 border-r p-4">
+    <aside className="w-80 text-xs">
       <div className="sticky top-0 space-y-3 mb-5 rounded-lg bg-white border p-3">
         <h4 className="font-semibold">Handle Layout</h4>
         <Input

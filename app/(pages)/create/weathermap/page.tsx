@@ -1,9 +1,9 @@
 "use client";
 
 import Breadcrumbs from "@/components/Breadcrumbs";
-import SettingsWeathermapTable from "@/components/table/SettingsWeathermapTable";
+import WeatherMapComponent from "@/components/WeatherMapComponent";
 
-export default function WeatherMapSettings() {
+export default function WeatherMapCreate() {
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -18,15 +18,18 @@ export default function WeatherMapSettings() {
               href: "/weathermap",
             },
             {
-              label: "Settings",
+              label: "Create",
             },
           ]}
         />
         <div className="flex flex-row items-center justify-between">
-          <h1 className="text-lg font-bold">Weathermap Settings</h1>
+          <h1 className="text-lg font-bold">Create Weathermap</h1>
         </div>
       </div>
-      <SettingsWeathermapTable />
+
+      <div className="w-full">
+        <WeatherMapComponent />
+      </div>
     </div>
   );
 }

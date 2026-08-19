@@ -1,19 +1,11 @@
 "use client";
 
 import Breadcrumbs from "@/components/Breadcrumbs";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-} from "@/components/ui/select";
-import { tripleEncode } from "@/lib/utils";
-import { Settings } from "lucide-react";
+import OverviewWeathermapTable from "@/components/table/OverviewWeathermapTable";
+import { useTopologyStore } from "@/store/topology-store";
+import { Plus, Settings } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 export interface TopologyTypes {
@@ -22,29 +14,31 @@ export interface TopologyTypes {
   description: string;
 }
 export default function WeatherMapPage() {
-  const [topology, setTopology] = useState<TopologyTypes[]>([]);
-  const router = useRouter();
+  const { topologies, setTopologies } = useTopologyStore();
   const hasMountedRef = useRef<boolean>(false);
-  const fetchWeathermap = async () => {
+  const fetchWeathermap = useCallback(async () => {
+    if (topologies.length !== 0) {
+      return setTopologies(topologies);
+    }
     try {
       const res = await fetch("/api/topology", { method: "GET" });
       const resData = await res.json();
-      setTopology(resData);
+      setTopologies(resData);
     } catch {
       toast.error("Internal Server Error.", {
         description: "Server error please contact admin.",
       });
     }
-  };
+  }, [setTopologies, topologies]);
 
   useEffect(() => {
     if (hasMountedRef.current) return;
     fetchWeathermap();
     hasMountedRef.current = false;
-  }, []);
+  }, [fetchWeathermap]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -53,39 +47,34 @@ export default function WeatherMapPage() {
               href: "/dashboard",
             },
             {
-              label: "Weathermap",
+              label: "Weathermaps",
             },
           ]}
         />
         <div className="flex flex-row items-center justify-between">
-          <h1 className="text-2xl font-bold">Weathermap</h1>
-          <Link href={"/settings/weathermap"}>
-            <Settings className="shrink-0 w-5 h-5" />
-          </Link>
+          <div className="flex flex-row items-center gap-2">
+            <h1 className="text-lg font-bold">Weathermap</h1>
+          </div>
+          <div className="flex flex-row items-center gap-2">
+            <Link
+              href={"/create/weathermap"}
+              className="flex flex-row items-center gap-1 p-2 bg-[#3b3b3b] rounded-sm text-[#ebeaea] font-lexend text-xs transition-all hover:bg-[#525151] duration-200"
+            >
+              <Plus className="shrink-0 w-4 h-4" /> Create Weathermap
+            </Link>
+            <Link
+              href={"/settings/weathermap"}
+              className="flex flex-row items-center gap-1 p-2 bg-[#3b3b3b] rounded-sm text-[#ebeaea] font-lexend text-sm transition-all hover:bg-[#525151] duration-200"
+            >
+              <Settings className="shrink-0 w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </div>
-      <Select
-        onValueChange={(value) => {
-          const id = tripleEncode(String(value));
-          router.push(`/weathermap/${id}`);
-        }}
-      >
-        <SelectTrigger
-          className="h-9! w-50! text-sm"
-          aria-label="Select a preset time range"
-        >
-        </SelectTrigger>
-        <SelectContent side="bottom" align="start" alignItemWithTrigger={false}>
-          <SelectGroup>
-            <SelectLabel>Presets</SelectLabel>
-            {topology.map((p, idx) => (
-              <SelectItem key={idx} value={`${p.id}`}>
-                {p.id}-{p.name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      <OverviewWeathermapTable
+        topologies={topologies}
+        setTopologies={setTopologies}
+      />
     </div>
   );
 }

@@ -31,7 +31,7 @@ export default function SystemDevices() {
           ]}
         />
         <div className="flex flex-row items-center justify-between">
-          <h1 className="text-xl font-bold">Device Settings</h1>
+          <h1 className="text-xl font-bold">Devices</h1>
           <Link href={"/settings/devices"}>
             <Settings className="shrink-0 w-5 h-5" />
           </Link>

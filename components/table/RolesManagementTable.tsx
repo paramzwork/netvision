@@ -74,7 +74,7 @@ export default function RolesManagementTable({
       return matchSearch;
     });
   }, [roleData, search]);
-  
+
   const sortData = <T,>(
     array: T[],
     key: keyof T,
@@ -224,14 +224,14 @@ export default function RolesManagementTable({
               paginatedData.map((role, index) => (
                 <TableRow
                   key={role.id}
-                  className="group hover:bg-muted/30 transition-colors cursor-default"
+                  className="group hover:bg-muted/30 transition-colors cursor-default text-xs"
                 >
-                  <TableCell className="text-center text-muted-foreground text-sm">
+                  <TableCell className="text-center text-muted-foreground">
                     {(page - 1) * limit + index + 1}
                   </TableCell>
 
                   <TableCell>
-                    <span className="font-mono text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
+                    <span className="font-mono text-muted-foreground bg-muted/50 px-2 py-1 rounded-md">
                       {role.id}
                     </span>
                   </TableCell>
@@ -251,7 +251,7 @@ export default function RolesManagementTable({
                     </Badge>
                   </TableCell>
 
-                  <TableCell className="text-muted-foreground text-sm">
+                  <TableCell className="text-muted-foreground">
                     {role.createdAt
                       ? new Date(role.createdAt).toLocaleDateString("en-CA", {
                           year: "numeric",
@@ -261,7 +261,7 @@ export default function RolesManagementTable({
                       : "—"}
                   </TableCell>
 
-                  <TableCell className="text-muted-foreground text-sm hidden md:table-cell">
+                  <TableCell className="text-muted-foreground hidden md:table-cell">
                     {role.updatedAt
                       ? new Date(role.updatedAt).toLocaleDateString("en-CA", {
                           year: "numeric",
@@ -276,7 +276,7 @@ export default function RolesManagementTable({
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/50"
+                        className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/50 cursor-pointer"
                         onClick={() => handleSelectedRole(role)}
                         title="Edit Role"
                       >
@@ -285,7 +285,7 @@ export default function RolesManagementTable({
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                        className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
                         onClick={() => confirmDelete(role.id)}
                         title="Delete Role"
                       >
