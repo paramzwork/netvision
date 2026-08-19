@@ -54,6 +54,7 @@ import {
 } from "@/components/WeatherMapComponent";
 import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { Input } from "@/components/ui/input";
 const nodeTypes = {
   router: TestRouterNode,
   switch: SwitchNode,
@@ -61,91 +62,7 @@ const nodeTypes = {
   server: ServerNode,
   blank: CloudNode,
 };
-// export const edgeTypes: EdgeTypes = {
-//   "start-end": CustomEdgeStartEnd,
-// };
-// export interface DeviceInterface {
-//   id: number;
-//   name: string;
-//   description: string;
-//   speedMbps?: number;
-// }
-// export interface HandleCounts {
-//   top: number;
-//   right: number;
-//   bottom: number;
-//   left: number;
-// }
-// export interface NodeHandle {
-//   id: string;
-//   interfaceId?: number;
-//   interfaceName: string;
-// }
 
-// export interface HandleLayout {
-//   top: NodeHandle[];
-//   right: NodeHandle[];
-//   bottom: NodeHandle[];
-//   left: NodeHandle[];
-// }
-
-// export interface TopologyNodeData extends Record<string, unknown> {
-//   interfaceId?: number;
-//   deviceId?: number;
-//   nodeName: string;
-
-//   label: string;
-//   ip: string;
-
-//   vendor?: string;
-//   model?: string;
-//   description: string;
-
-//   status?: string;
-
-//   //   interfaces: DeviceInterface[];
-
-//   /**
-//    * Undefined until the user configures the node.
-//    */
-//   handles: HandleLayout;
-//   nodeType: string;
-// }
-
-// export type TopologyNode = Node<TopologyNodeData>;
-// export interface TrafficHistoryPoint {
-//   inbound: number;
-//   outbound: number;
-//   timestamp: number;
-// }
-
-// export interface TopologyEdgeData extends Record<string, unknown> {
-//   sourceInterfaceId?: number | null;
-//   sourceInterfaceName?: string;
-
-//   sourceNodeName?: string;
-//   targetNodeName?: string;
-
-//   targetInterfaceId?: number | null;
-//   targetInterfaceName?: string;
-
-//   inbound: number;
-//   outbound: number;
-
-//   swapTraffic?: boolean;
-
-//   sourceAdminStatus: number;
-//   sourceOperStatus: number;
-//   sourceStatus: string;
-
-//   targetAdminStatus: number;
-//   targetOperStatus: number;
-//   targetStatus: string;
-
-//   trafficHistory?: TrafficHistoryPoint[];
-// }
-
-// export type TopologyEdge = Edge<TopologyEdgeData>;
 export interface AggregatedInterface {
   interfaceId: number;
   interfaceName: string;
@@ -167,6 +84,9 @@ export default function ViewWeathermapSettings() {
     bottom: [],
     left: [],
   });
+  const [topologyName, setTopologyName] = useState<string>("");
+  const [topoDescription, setTopoDescription] = useState<string>("");
+
   const [aggregationMode, setAggregationMode] =
     useState<AggregationMode>("automatic");
   const [aggregations, setAggregations] = useState<AggregationGroup[]>([]);
@@ -986,7 +906,8 @@ export default function ViewWeathermapSettings() {
         // ---------------------------------------------
         // UPDATE REACT FLOW
         // ---------------------------------------------
-
+        setTopologyName(result.data.name);
+        setTopoDescription(result.data.description);
         setNodes(loadedNodes);
         setEdges(loadedEdges);
 
@@ -1006,11 +927,12 @@ export default function ViewWeathermapSettings() {
       console.error("No topology ID");
       return;
     }
-
+    const name = topologyName.trim();
+    const description = topoDescription.trim();
     try {
       const payload = {
-        name: "My Network Topology",
-        description: "NetVision weather map",
+        name: name,
+        description: description,
 
         nodes: nodes.map((node) => ({
           id: node.id,
@@ -1063,7 +985,7 @@ export default function ViewWeathermapSettings() {
     } catch (error) {
       console.error("UPDATE TOPOLOGY ERROR:", error);
     }
-  }, [topologyId, nodes, edges]);
+  }, [topologyId, topologyName, topoDescription, nodes, edges]);
   const hasLoadedRef = useRef<boolean>(false);
   useEffect(() => {
     if (topologyId === null) return;
@@ -1073,7 +995,7 @@ export default function ViewWeathermapSettings() {
     hasLoadedRef.current = false;
   }, [topologyId, loadTopology]);
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -1085,170 +1007,190 @@ export default function ViewWeathermapSettings() {
               label: "Weathermap",
               href: "/weathermap",
             },
+            {
+              label: "Weathermap Settings",
+            },
           ]}
         />
         <div className="flex flex-row items-center justify-between">
-          <h1 className="text-2xl font-bold">Weathermap</h1>
+          <h1 className="text-lg font-bold">Weathermap</h1>
         </div>
       </div>
-      <div className="flex flex-row">
-        <div className="w-full h-170">
-          <ReactFlow<TopologyNode, TopologyEdge>
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-            onNodesChange={onNodesChange}
-            onNodeDragStop={onNodeDragStop}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onReconnect={onReconnect}
-            onReconnectStart={onReconnectStart}
-            onReconnectEnd={onReconnectEnd}
-            onNodesDelete={onNodesDelete}
-            onNodeDoubleClick={onNodeDoubleClick}
-            onEdgeContextMenu={onEdgeContextMenu}
-            onEdgeDoubleClick={onEdgeDoubleClick}
-            fitView
-            colorMode="system"
-          >
-            <Background />
-            <MiniMap />
-          </ReactFlow>
-          <NodeHandleSettings
-            open={!!selectedNode}
-            node={selectedNode}
-            onClose={() => setSelectedNode(null)}
-            nodeType={nodeType}
-            counts={counts}
-            nodeName={nodeName}
-            setNodeType={setNodeType}
-            setNodeName={setNodeName}
-            setCounts={setCounts}
-            handles={handles}
-            aggregationMode={aggregationMode}
-            aggregations={aggregations}
-            setHandles={setHandles}
-            setAggregationMode={setAggregationMode}
-            setAggregations={setAggregations}
-            onSave={({ type, handles, aggregationMode, aggregations }) => {
-              if (!selectedNode) return;
+      <div className="flex flex-row items-center gap-3">
+        <Input
+          value={topologyName}
+          onChange={(e) => setTopologyName(e.target.value)}
+          placeholder="Topology name..."
+          className="w-100 rounded-sm"
+        />
+        <Input
+          value={topoDescription}
+          onChange={(e) => setTopoDescription(e.target.value)}
+          placeholder="Description..."
+          className="w-100 rounded-sm"
+        />
+        <Button
+          onClick={async () => {
+            await updateTopology();
+          }}
+        >
+          Update Topology
+        </Button>
+      </div>
+      <div className="flex flex-row gap-2">
+        <div className="w-full h-174 flex flex-col items-start justify-center border rounded-md overflow-hidden">
+          <div className="w-full h-full">
+            <ReactFlow<TopologyNode, TopologyEdge>
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onDragOver={onDragOver}
+              onDrop={onDrop}
+              onNodesChange={onNodesChange}
+              onNodeDragStop={onNodeDragStop}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onReconnect={onReconnect}
+              onReconnectStart={onReconnectStart}
+              onReconnectEnd={onReconnectEnd}
+              onNodesDelete={onNodesDelete}
+              onNodeDoubleClick={onNodeDoubleClick}
+              onEdgeContextMenu={onEdgeContextMenu}
+              onEdgeDoubleClick={onEdgeDoubleClick}
+              fitView
+              colorMode="system"
+            >
+              <Background />
+              <MiniMap />
+            </ReactFlow>
+            <NodeHandleSettings
+              open={!!selectedNode}
+              node={selectedNode}
+              onClose={() => setSelectedNode(null)}
+              nodeType={nodeType}
+              counts={counts}
+              nodeName={nodeName}
+              setNodeType={setNodeType}
+              setNodeName={setNodeName}
+              setCounts={setCounts}
+              handles={handles}
+              aggregationMode={aggregationMode}
+              aggregations={aggregations}
+              setHandles={setHandles}
+              setAggregationMode={setAggregationMode}
+              setAggregations={setAggregations}
+              onSave={({ type, handles, aggregationMode, aggregations }) => {
+                if (!selectedNode) return;
 
-              console.log("Saving node:", selectedNode);
-              console.log("Aggregation Mode:", aggregationMode);
-              console.log("Aggregations:", aggregations);
+                console.log("Saving node:", selectedNode);
+                console.log("Aggregation Mode:", aggregationMode);
+                console.log("Aggregations:", aggregations);
 
-              setNodes((nds) =>
-                nds.map((n) =>
-                  n.id === selectedNode.id
-                    ? {
-                        ...n,
-                        type,
-                        data: {
-                          ...n.data,
+                setNodes((nds) =>
+                  nds.map((n) =>
+                    n.id === selectedNode.id
+                      ? {
+                          ...n,
+                          type,
+                          data: {
+                            ...n.data,
 
-                          nodeName,
-                          nodeType: type,
+                            nodeName,
+                            nodeType: type,
 
-                          handles,
+                            handles,
 
-                          // ADD THESE
-                          aggregationMode,
-                          aggregations,
-                        },
-                      }
-                    : n,
-                ),
-              );
+                            // ADD THESE
+                            aggregationMode,
+                            aggregations,
+                          },
+                        }
+                      : n,
+                  ),
+                );
 
-              setNodeType("");
+                setNodeType("");
 
-              setCounts({
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
-              });
+                setCounts({
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  left: 0,
+                });
 
-              requestAnimationFrame(() => {
-                updateNodeInternals(selectedNode.id);
-              });
+                requestAnimationFrame(() => {
+                  updateNodeInternals(selectedNode.id);
+                });
 
-              setSelectedNode(null);
-            }}
-          />
-          <EdgeSettings
-            open={edgeSettingsOpen}
-            edge={selectedEdge}
-            swapTraffic={swapTraffic}
-            setSwapTraffic={setSwapTraffic}
-            onClose={() => setSelectedEdge(null)}
-            onSave={(data) => {
-              if (!selectedEdge) return;
-              setEdges((currentEdges) =>
-                currentEdges.map((edge): TopologyEdge => {
-                  if (edge.id !== selectedEdge.id) {
-                    return edge;
-                  }
+                setSelectedNode(null);
+              }}
+            />
+            <EdgeSettings
+              open={edgeSettingsOpen}
+              edge={selectedEdge}
+              swapTraffic={swapTraffic}
+              setSwapTraffic={setSwapTraffic}
+              onClose={() => setSelectedEdge(null)}
+              onSave={(data) => {
+                if (!selectedEdge) return;
+                setEdges((currentEdges) =>
+                  currentEdges.map((edge): TopologyEdge => {
+                    if (edge.id !== selectedEdge.id) {
+                      return edge;
+                    }
 
-                  return {
-                    ...edge,
-                    data: {
-                      ...edge.data,
-                      ...data,
-                    },
-                  };
-                }),
-              );
+                    return {
+                      ...edge,
+                      data: {
+                        ...edge.data,
+                        ...data,
+                      },
+                    };
+                  }),
+                );
 
-              setSelectedEdge(null);
-            }}
-          />
-          <Button
-            onClick={async () => {
-              await updateTopology();
-            }}
-          >
-            Update Topology
-          </Button>
-          {trafficEdge && trafficEdgePosition && (
-            <EdgeLabelRenderer>
-              <div
-                style={{
-                  position: "absolute",
-                  transform: `
+                setSelectedEdge(null);
+              }}
+            />
+            {trafficEdge && trafficEdgePosition && (
+              <EdgeLabelRenderer>
+                <div
+                  style={{
+                    position: "absolute",
+                    transform: `
           translate(-50%, -100%)
           translate(
             ${trafficEdgePosition.x}px,
             ${trafficEdgePosition.y}px
           )
         `,
-                  pointerEvents: "all",
-                  zIndex: 1000,
-                }}
-              >
-                <EdgeTrafficPanel
-                  sourceInterface={sourceInterface}
-                  interfaces={interfaces}
-                  sourceNodeName={trafficEdge.data?.sourceNodeName ?? ""}
-                  targetNodeName={trafficEdge.data?.targetNodeName ?? ""}
-                  sourceInterfaceName={
-                    trafficEdge.data?.sourceInterfaceName ?? ""
-                  }
-                  targetInterfaceName={
-                    trafficEdge.data?.targetInterfaceName ?? ""
-                  }
-                  aggregatedInterfaces={
-                    trafficEdge.data?.aggregatedInterfaces ?? []
-                  }
-                  onClose={() => setTrafficEdgeId(null)}
-                />
-              </div>
-            </EdgeLabelRenderer>
-          )}
+                    pointerEvents: "all",
+                    zIndex: 1000,
+                  }}
+                >
+                  <EdgeTrafficPanel
+                    sourceInterface={sourceInterface}
+                    interfaces={interfaces}
+                    sourceNodeName={trafficEdge.data?.sourceNodeName ?? ""}
+                    targetNodeName={trafficEdge.data?.targetNodeName ?? ""}
+                    sourceInterfaceName={
+                      trafficEdge.data?.sourceInterfaceName ?? ""
+                    }
+                    targetInterfaceName={
+                      trafficEdge.data?.targetInterfaceName ?? ""
+                    }
+                    aggregatedInterfaces={
+                      trafficEdge.data?.aggregatedInterfaces ?? []
+                    }
+                    onClose={() => setTrafficEdgeId(null)}
+                  />
+                </div>
+              </EdgeLabelRenderer>
+            )}
+          </div>
         </div>
+
         <SidebarWeathermap interfaces={interfaces} devices={device} />
       </div>
     </div>

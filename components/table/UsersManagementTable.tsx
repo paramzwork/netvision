@@ -47,7 +47,7 @@ export default function UsersManagementTable({
   setSelectedUser,
   setOpenDrawer,
   setUserFormType,
-  
+
   page,
   limit,
   setPage,
@@ -146,7 +146,7 @@ export default function UsersManagementTable({
           <input
             type="text"
             placeholder="Search users..."
-            className="w-full h-10 pl-9 pr-4 text-sm bg-background border border-input rounded-md ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+            className="w-full h-10 pl-9 pr-4 text-xs bg-background border border-input rounded-md ring-offset-background  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -247,17 +247,17 @@ export default function UsersManagementTable({
                   key={user.id}
                   className="group hover:bg-muted/30 transition-colors cursor-default"
                 >
-                  <TableCell className="text-center text-muted-foreground text-sm">
+                  <TableCell className="text-center text-muted-foreground text-xs">
                     {(page - 1) * limit + index + 1}
                   </TableCell>
 
                   {/* Combined Name and Email for better hierarchy */}
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium text-foreground cursor-pointer hover:text-primary transition-colors">
+                      <span className="font-medium text-foreground text-xs cursor-pointer hover:text-primary transition-colors">
                         {`${user.firstname ?? ""} ${user.lastname ?? ""}`}
                       </span>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-xs text-muted-foreground">
                         {user.email}
                       </span>
                     </div>
@@ -266,7 +266,7 @@ export default function UsersManagementTable({
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className={`font-medium border ${
+                      className={`font-medium text-xs border ${
                         user.roles?.role === "Admin"
                           ? "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800"
                           : user.roles?.role === "User"
@@ -278,7 +278,7 @@ export default function UsersManagementTable({
                     </Badge>
                   </TableCell>
 
-                  <TableCell className="text-muted-foreground text-sm hidden md:table-cell">
+                  <TableCell className="text-muted-foreground text-xs hidden md:table-cell">
                     {user.createdAt
                       ? new Date(user.createdAt).toLocaleDateString("en-CA", {
                           year: "numeric",
@@ -293,7 +293,7 @@ export default function UsersManagementTable({
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/50"
+                        className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/50 cursor-pointer"
                         onClick={() => handleSelectedUser(user)}
                         title="Edit User"
                       >
@@ -302,7 +302,7 @@ export default function UsersManagementTable({
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                        className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
                         onClick={() => confirmDelete(user.id)}
                         title="Delete User"
                       >

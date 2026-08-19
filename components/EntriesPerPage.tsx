@@ -28,32 +28,32 @@ export default function EntriesPerPage({
         setPage(1);
       }}
     >
-      <SelectTrigger className="w-20 h-11! bg-white border-slate-300 text-slate-500 cursor-pointer">
+      <SelectTrigger className="w-20 h-11! bg-white border-[#3b3b3b] text-[#3b3b3b] cursor-pointer text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent className="bg-white">
         <SelectGroup>
           <SelectItem
             value="10"
-            className="text-slate-500 hover:bg-slate-100 cursor-pointer trasition-all duration-300 ease-in-out p-2"
+            className="text-[#3b3b3b] text-xs hover:bg-[#3b3b3b] cursor-pointer trasition-all duration-300 ease-in-out p-2"
           >
             10
           </SelectItem>
           <SelectItem
             value="50"
-            className="text-slate-500 hover:bg-slate-100 cursor-pointer trasition-all duration-300 ease-in-out p-2"
+            className="text-[#3b3b3b] text-xs hover:bg-[#3b3b3b] cursor-pointer trasition-all duration-300 ease-in-out p-2"
           >
             50
           </SelectItem>
           <SelectItem
             value="100"
-            className="text-slate-500 hover:bg-slate-100 cursor-pointer trasition-all duration-300 ease-in-out p-2"
+            className="text-[#3b3b3b] text-xs hover:bg-[#3b3b3b] cursor-pointer trasition-all duration-300 ease-in-out p-2"
           >
             100
           </SelectItem>
           <SelectItem
             value="all"
-            className="text-slate-500 hover:bg-slate-100 cursor-pointer trasition-all duration-300 ease-in-out p-2"
+            className="text-[#3b3b3b] text-xs hover:bg-[#3b3b3b] cursor-pointer trasition-all duration-300 ease-in-out p-2"
           >
             All
           </SelectItem>

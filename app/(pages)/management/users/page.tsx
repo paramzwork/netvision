@@ -164,7 +164,7 @@ export default function UsersManagement() {
             },
           ]}
         />
-        <h1 className="text-xl font-bold">User Management</h1>
+        <h1 className="text-lg font-bold">User Management</h1>
       </div>
       <div className="space-y-5">
         <Button
@@ -198,7 +198,7 @@ export default function UsersManagement() {
         />
       </div>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Role Management</h1>
+        <h1 className="text-lg font-bold">Role Management</h1>
         <Button
           className="cursor-pointer font-lexend!"
           onClick={() => handleRoleForm("create")}

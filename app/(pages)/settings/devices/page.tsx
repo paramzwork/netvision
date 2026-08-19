@@ -131,7 +131,7 @@ export default function SystemDevicesSettings() {
         return;
       }
       toast.success(resData.message);
-      setDevices(resData.data);
+      setDevices(resData.devices);
     } catch {
       toast.error("Internal Server Error.", {
         description: "Server error please contact admin.",

@@ -39,36 +39,49 @@ export default function ChartContent({
     ? { height: "100%", width: "100%" }
     : { height: chartHeight };
   function getXAxisTicks(from: number, to: number) {
-    const ticks: number[] = [];
+    const duration = to - from;
 
-    const start = new Date(from);
-    const end = new Date(to);
+    let interval: number;
 
-    // Start at midnight
-    start.setHours(0, 0, 0, 0);
-
-    // If range is more than 24 hours, use calendar dates
-    if (to - from > 24 * 60 * 60 * 1000) {
-      while (start <= end) {
-        ticks.push(start.getTime());
-
-        start.setDate(start.getDate() + 1);
-      }
-
-      return ticks;
+    if (duration <= 30 * 60 * 1000) {
+      // Last 30 minutes → every 5 minutes
+      interval = 5 * 60 * 1000;
+    } else if (duration <= 60 * 60 * 1000) {
+      // Last 1 hour → every 10 minutes
+      interval = 10 * 60 * 1000;
+    } else if (duration <= 3 * 60 * 60 * 1000) {
+      // Last 3 hours → every 30 minutes
+      interval = 30 * 60 * 1000;
+    } else if (duration <= 24 * 60 * 60 * 1000) {
+      // Last 24 hours → every 2 hours
+      interval = 2 * 60 * 60 * 1000;
+    } else {
+      // More than 24 hours → every day
+      interval = 24 * 60 * 60 * 1000;
     }
 
-    // For shorter ranges, generate hourly ticks
-    start.setMinutes(0, 0, 0);
+    const ticks: number[] = [];
 
-    while (start <= end) {
-      ticks.push(start.getTime());
+    // Align the first tick to the interval
+    const firstTick = Math.ceil(from / interval) * interval;
 
-      start.setHours(start.getHours() + 1);
+    // Include the beginning of the selected range
+    ticks.push(from);
+
+    for (let timestamp = firstTick; timestamp < to; timestamp += interval) {
+      if (timestamp > from) {
+        ticks.push(timestamp);
+      }
+    }
+
+    // Include the end of the selected range
+    if (ticks[ticks.length - 1] !== to) {
+      ticks.push(to);
     }
 
     return ticks;
   }
+
   const xAxisTicks = React.useMemo(() => getXAxisTicks(from, to), [from, to]);
   const TOOLTIP_DELAY = 300;
   const [tooltipActive, setTooltipActive] = useState(false);

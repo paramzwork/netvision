@@ -33,12 +33,11 @@ model devices {
   id           Int       @id @default(autoincrement())
   ipAddress    String    @unique
   community    String?
-  hostname     String?
-  vendor       String?
-  model        String?
   serialNumber String?   @unique
-  macAddress   String?
   status       String    @default("1")
+  uptime       String?
+  pollTime     String?
+  currentMs    String?
 
   sysName      String
   sysDescr     String    @db.Text
