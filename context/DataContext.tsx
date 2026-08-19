@@ -38,7 +38,7 @@ export function DataProvider({ children, currentUser }: DataProviderProps) {
         toast.error(resData.message);
         return;
       }
-      setDevices(resData.data);
+      setDevices(resData.devices);
     } catch {
       toast.error("Internal Server Error.", {
         description: "Server error please contact admin.",

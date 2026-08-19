@@ -1,7 +1,43 @@
 import { TopologyEdgeData } from "@/components/WeatherMapComponent";
+import { getCurrentUser } from "@/lib/auth";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { tripleDecode } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
+
+type UpdateTopologyRequest = {
+  name: string;
+  description?: string | null;
+
+  nodes: Array<{
+    id: string;
+    type?: string;
+
+    position: {
+      x: number;
+      y: number;
+    };
+
+    width?: number | null;
+    height?: number | null;
+
+    data: Record<string, unknown>;
+  }>;
+
+  edges: Array<{
+    id: string;
+
+    source: string;
+    target: string;
+
+    sourceHandle?: string | null;
+    targetHandle?: string | null;
+
+    type?: string | null;
+
+    data?: Record<string, unknown>;
+  }>;
+};
 
 interface RouteContext {
   params: Promise<{
@@ -392,7 +428,6 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
     return NextResponse.json({
       success: true,
-
       data: {
         id: topology.id,
         name: topology.name,
@@ -416,40 +451,6 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     );
   }
 }
-
-type UpdateTopologyRequest = {
-  name: string;
-  description?: string | null;
-
-  nodes: Array<{
-    id: string;
-    type?: string;
-
-    position: {
-      x: number;
-      y: number;
-    };
-
-    width?: number | null;
-    height?: number | null;
-
-    data: Record<string, unknown>;
-  }>;
-
-  edges: Array<{
-    id: string;
-
-    source: string;
-    target: string;
-
-    sourceHandle?: string | null;
-    targetHandle?: string | null;
-
-    type?: string | null;
-
-    data?: Record<string, unknown>;
-  }>;
-};
 
 export async function PUT(request: NextRequest, { params }: RouteContext) {
   try {
@@ -675,4 +676,27 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
       },
     );
   }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const decodedID = tripleDecode(id);
+
+  await prisma.topologies.delete({
+    where: {
+      id: Number(decodedID),
+    },
+  });
+
+  return NextResponse.json({
+    message: "Topology deleted successfully.",
+  });
 }

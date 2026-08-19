@@ -68,28 +68,46 @@ export async function GET(req: NextRequest) {
     const ipAddress = tripleDecode(id);
     console.log("Request", ipAddress);
     if (ipAddress === "all") {
-      const devices = await prisma.devices.findMany({
-        select: {
-          ipAddress: true,
-          hostname: true,
-          community: true,
-          vendor: true,
-          model: true,
-          serialNumber: true,
-          macAddress: true,
-          status: true,
-          sysName: true,
-          sysDescr: true,
-          sysContact: true,
-          sysLocation: true,
-          sysObjectID: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-      });
+      const [devices, totalInterfaces] = await Promise.all([
+        prisma.devices.findMany({
+          select: {
+            ipAddress: true,
+            community: true,
+            serialNumber: true,
+            status: true,
+            sysName: true,
+            sysDescr: true,
+            sysContact: true,
+            sysLocation: true,
+            sysObjectID: true,
+            pollTime: true,
+            uptime: true,
+            currentMs: true,
+            createdAt: true,
+            updatedAt: true,
+
+            _count: {
+              select: {
+                interfaces: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        }),
+
+        prisma.interfaces.count(),
+      ]);
+
+      const result = devices.map(({ _count, ...device }) => ({
+        ...device,
+        interfaceCount: _count.interfaces,
+      }));
+
       return NextResponse.json({
-        data: devices,
+        devices: result,
+        totalInterfaces,
         message: "Loaded devices successfully!",
       });
     } else if (ipAddress) {
@@ -145,23 +163,50 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const devices = await req.json();
-    await prisma.devices.createMany({
-      data: devices.map((device: DeviceInfoTypes) => ({
-        sysContact: device.sysContact,
-        sysDescr: device.sysDescr,
-        sysLocation: device.sysLocation,
-        sysName: device.sysName,
-        sysObjectID: device.sysObjectID,
-        ipAddress: device.ipAddress,
-        community: device.community,
-        status: "1",
-      })),
-      skipDuplicates: true, // if ipAddress is unique
-    });
+    const devices: DeviceInfoTypes[] = await req.json();
+
+    await prisma.$transaction(
+      devices.map((device) =>
+        prisma.devices.upsert({
+          where: {
+            ipAddress: device.ipAddress,
+          },
+
+          // Existing device
+          update: {
+            sysContact: device.sysContact,
+            sysDescr: device.sysDescr,
+            sysLocation: device.sysLocation,
+            sysName: device.sysName,
+            sysObjectID: device.sysObjectID,
+            pollTime: device.pollTime,
+            uptime: device.uptime,
+            currentMs: String(device.currentMs),
+            community: device.community,
+            status: "1",
+          },
+
+          // New device
+          create: {
+            sysContact: device.sysContact,
+            sysDescr: device.sysDescr,
+            sysLocation: device.sysLocation,
+            sysName: device.sysName,
+            sysObjectID: device.sysObjectID,
+            ipAddress: device.ipAddress,
+            pollTime: device.pollTime,
+            uptime: device.uptime,
+            currentMs: String(device.currentMs),
+            community: device.community,
+            status: "1",
+          },
+        }),
+      ),
+    );
+
     return NextResponse.json(
       {
-        message: "Devices added successfully.",
+        message: "Devices synchronized successfully.",
       },
       { status: 201 },
     );

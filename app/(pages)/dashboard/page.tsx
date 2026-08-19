@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
 import {
   AreaChart,
   Area,
@@ -26,7 +26,7 @@ import {
   Shield,
   Zap,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useData } from "@/context/DataContext";
 
 /* ─────────────────────────────────────────── */
 /* MOCK DATA — 2 devices                       */
@@ -39,12 +39,12 @@ const DEVICES = [
     ip: "192.168.1.1",
     mac: "AA:BB:CC:DD:EE:01",
     status: "online" as const,
-    uptime: "14d 7h 22m",
+    uptime: "274d 8h 19m",
     cpu: 38,
     memory: 61,
     interfaces: baseInterfaces.slice(0, 6),
     lastSeen: "Just now",
-    type: "Router",
+    type: "Core Router",
     location: "Server Room A",
   },
   {
@@ -251,11 +251,11 @@ const ALERT_RANKING: Record<
 /* HELPERS                                     */
 /* ─────────────────────────────────────────── */
 
-function StatusDot({ status }: { status: "online" | "offline" }) {
+function StatusDot({ status }: { status: string }) {
   return (
     <span
       className={`inline-block w-2 h-2 rounded-full ${
-        status === "online" ? "bg-emerald-400" : "bg-red-400"
+        status === "1" ? "bg-emerald-400" : "bg-red-400"
       }`}
     />
   );
@@ -301,6 +301,8 @@ function SeverityBadge({ severity }: { severity: "low" | "medium" | "high" }) {
 /* ─────────────────────────────────────────── */
 
 export default function DashboardPage() {
+  const { activeDevices } = useData();
+
   const [accessPeriod, setAccessPeriod] = useState<RankPeriod>("weekly");
   const [alertPeriod, setAlertPeriod] = useState<RankPeriod>("weekly");
 
@@ -315,24 +317,6 @@ export default function DashboardPage() {
     (sum, d) => sum + d.interfaces.reduce((s, i) => s + i.outbound.current, 0),
     0,
   );
-  const hasMountedRef = useRef<boolean>(false);
-  const fetchData = async () => {
-    try {
-      const res = await fetch("/api/snmp/interfaces");
-      const resData = await res.json();
-      console.log(resData);
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (hasMountedRef.current) return;
-    hasMountedRef.current = true;
-    fetchData();
-  });
   return (
     <div className="w-full space-y-5 font-lexend">
       <h1 className="text-lg font-bold font-lexend">Dashboard</h1>
@@ -355,7 +339,7 @@ export default function DashboardPage() {
                 Online Sessions
               </p>
               <p className="text-3xl font-bold text-slate-900">
-                {REALTIME_STATS.onlineSessions}
+                {activeDevices.length}
               </p>
             </div>
             <div>
@@ -363,7 +347,7 @@ export default function DashboardPage() {
                 Active Devices
               </p>
               <p className="text-3xl font-bold text-slate-900">
-                {REALTIME_STATS.activeDevices}
+                {activeDevices.length}
               </p>
             </div>
             <div>
@@ -378,9 +362,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Device 1 summary */}
-        {DEVICES.map((device) => (
+        {activeDevices.map((device, index) => (
           <div
-            key={device.id}
+            key={`${index}-${device.id}`}
             className="bg-white rounded-xl border border-slate-200 shadow-sm p-5"
           >
             <div className="flex items-start justify-between mb-3">
@@ -390,17 +374,17 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-800 leading-tight">
-                    {device.name}
+                    {device.sysName}
                   </p>
                   <p className="text-xs text-slate-400 leading-tight">
-                    {device.type} · {device.location}
+                    {device.sysDescr} · {device.sysLocation}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
                 <StatusDot status={device.status} />
                 <span className="text-xs font-medium text-emerald-600 capitalize">
-                  {device.status}
+                  {device.status === "1" ? "up" : "down"}
                 </span>
               </div>
             </div>
@@ -408,10 +392,14 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <p className="text-[10px] text-slate-400 mb-0.5">
-                  Total Devices
+                  Total Interfaces
                 </p>
-                <p className="text-xl font-bold text-slate-900">1</p>
-                <p className="text-[10px] text-slate-400">IP: {device.ip}</p>
+                <p className="text-xl font-bold text-slate-900">
+                  {device.interfaceCount}
+                </p>
+                <p className="text-[10px] text-slate-400">
+                  IP: {device.ipAddress}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 mb-0.5">Uptime</p>
@@ -419,13 +407,14 @@ export default function DashboardPage() {
                   {device.uptime}
                 </p>
                 <p className="text-[10px] text-slate-400">
-                  Last seen: {device.lastSeen}
+                  Last seen: {new Date(device.updatedAt).toLocaleString()}
+                  {/* Last seen: {device.lastSeen} */}
                 </p>
               </div>
             </div>
 
             <div className="space-y-2">
-              <div>
+              {/* <div>
                 <div className="flex justify-between mb-0.5">
                   <span className="text-[10px] text-slate-400">CPU</span>
                   <span className="text-[10px] font-medium text-slate-600">
@@ -448,7 +437,7 @@ export default function DashboardPage() {
                   value={device.memory}
                   color={device.memory > 80 ? "#f87171" : "#818cf8"}
                 />
-              </div>
+              </div> */}
             </div>
           </div>
         ))}

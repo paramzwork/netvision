@@ -74,6 +74,7 @@ export interface DeviceInfoTypes {
   ipAddress: string;
   community: string;
   status: string;
+  interfaceCount: string;
   interfaces: InterfaceTypes[];
   handles: {
     top: number;
@@ -81,6 +82,8 @@ export interface DeviceInfoTypes {
     bottom: number;
     left: number;
   };
+  createdAt: Date;
+  updatedAt: Date;
 }
 export interface SnmpResult {
   oid: string;

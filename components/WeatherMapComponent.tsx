@@ -815,7 +815,7 @@ export default function WeatherMapComponent() {
     }
     try {
       const payload = {
-        name: topologyName,
+        name: name,
         description: desc,
 
         nodes: nodes.map((node) => ({
@@ -849,8 +849,6 @@ export default function WeatherMapComponent() {
         })),
       };
 
-      console.log("SAVING TOPOLOGY:", payload);
-
       const response = await fetch("/api/topology", {
         method: "POST",
 
@@ -868,11 +866,12 @@ export default function WeatherMapComponent() {
         return;
       }
       toast.success(result.message);
+      router.replace("/weathermap");
       return result;
     } catch (error) {
       console.error("SAVE TOPOLOGY ERROR:", error);
     }
-  }, [topologyName, description, nodes, edges]);
+  }, [topologyName, description, nodes, edges, router]);
 
   return (
     <div className="space-y-5">
@@ -889,9 +888,17 @@ export default function WeatherMapComponent() {
           placeholder="Description..."
           className="w-100 rounded-sm"
         />
+        <Button
+          className="cursor-pointer"
+          onClick={async () => {
+            await saveTopology();
+          }}
+        >
+          Save Topology
+        </Button>
       </div>
-      <div className="flex flex-row">
-        <div className="w-full h-170 border">
+      <div className="flex flex-row items-start gap-2">
+        <div className="w-full h-174 border">
           <ReactFlow<TopologyNode, TopologyEdge>
             nodes={nodes}
             edges={edges}
@@ -977,49 +984,6 @@ export default function WeatherMapComponent() {
               setSelectedNode(null);
             }}
           />
-          {/* <EdgeSettings
-            open={!!selectedEdge}
-            edge={selectedEdge}
-            swapTraffic={swapTraffic}
-            setSwapTraffic={setSwapTraffic}
-            onClose={() => setSelectedEdge(null)}
-            onSave={(data) => {
-              if (!selectedEdge) return;
-
-              setEdges((currentEdges) =>
-                currentEdges.map((edge): TopologyEdge => {
-                  if (edge.id !== selectedEdge.id) {
-                    return edge;
-                  }
-
-                  return {
-                    ...edge,
-
-                    // IMPORTANT: preserve source, target, handles, type, etc.
-                    source: edge.source,
-                    target: edge.target,
-                    sourceHandle: edge.sourceHandle,
-                    targetHandle: edge.targetHandle,
-                    type: edge.type,
-
-                    data: {
-                      ...edge.data,
-                      ...data,
-                    },
-                  };
-                }),
-              );
-
-              setSelectedEdge(null);
-            }}
-          /> */}
-          <Button
-            onClick={async () => {
-              await saveTopology();
-            }}
-          >
-            Save Topology
-          </Button>
         </div>
         <SidebarWeathermap interfaces={interfaces} devices={device} />
       </div>

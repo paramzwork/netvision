@@ -35,6 +35,7 @@ import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
 import { useDevicesStore, useInterfacesWeathermap } from "@/store/device-store";
 import { toast } from "sonner";
 import { InterfaceTypes } from "@/lib/types";
+
 const nodeTypes = {
   router: ViewRouterNode,
   switch: ViewSwitchNode,
@@ -459,7 +460,7 @@ export default function ViewWeathermap() {
     window.addEventListener("mouseup", handleMouseUp);
   };
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -468,18 +469,22 @@ export default function ViewWeathermap() {
               href: "/dashboard",
             },
             {
+              label: "Weathermaps",
+              href: "/weathermap",
+            },
+            {
               label: "Weathermap",
             },
           ]}
         />
         <div className="flex flex-row items-center justify-between">
-          <h1 className="text-2xl font-bold">Weathermap</h1>
+          <h1 className="text-lg font-bold">Weathermap</h1>
           <Link href={`/settings/weathermap/${raw}`}>
             <Settings className="shrink-0 w-5 h-5" />
           </Link>
         </div>
       </div>
-      <div className="w-full h-170 bg-[#2b2a2a] border">
+      <div className="w-full h-185 bg-[#2b2a2a] border rounded-md overflow-hidden">
         <ReactFlow<TopologyNode, TopologyEdge>
           nodes={nodes}
           edges={edges}
