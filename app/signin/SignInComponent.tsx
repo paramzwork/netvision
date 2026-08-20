@@ -41,8 +41,7 @@ export default function SignInComponent() {
         return;
       }
       toast.dismiss(toastID);
-      router.push("/dashboard");
-      router.refresh();
+      router.replace("/dashboard");
     } catch {
       toast.error("Something went wrong. Try again.");
       setLoading(false);

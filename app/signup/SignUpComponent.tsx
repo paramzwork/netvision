@@ -40,8 +40,7 @@ export default function SignUpComponent() {
         return;
       }
       toast.dismiss(toastID);
-      router.push("/signin");
-      router.refresh();
+      router.replace("/signin");
     } catch {
       toast.error("Something went wrong. Try again.");
       setLoading(false);
