@@ -34,7 +34,7 @@ export default function WeatherMapPage() {
   useEffect(() => {
     if (hasMountedRef.current) return;
     fetchWeathermap();
-    hasMountedRef.current = false;
+    hasMountedRef.current = true;
   }, [fetchWeathermap]);
 
   return (
