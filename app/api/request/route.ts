@@ -54,7 +54,6 @@ export async function POST(req: NextRequest) {
   const reqType = searchParams.get("type");
 
   if (reqType === "sign-in") {
-  
     const targetUrl = "http://10.0.3.161/cacti/index.php";
 
     // First GET request
@@ -74,7 +73,7 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       );
     }
-   
+
     const form = new URLSearchParams();
 
     form.append("__csrf_magic", csrf);
@@ -120,7 +119,6 @@ export async function POST(req: NextRequest) {
     if (fs.existsSync(logsPath)) {
       logs = JSON.parse(fs.readFileSync(logsPath, "utf8"));
     }
-
 
     fs.writeFileSync(logsPath, JSON.stringify(logs, null, 2));
 
@@ -194,15 +192,13 @@ export async function POST(req: NextRequest) {
     // Delete cookie
     cookieStore.set(kill, "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       path: "/",
       expires: new Date(0),
     });
     cookieStore.delete(kill);
-    cookieStore.delete("token");
-    cookieStore.delete("Cacti");
-    cookieStore.delete("cacti_remembers");
     return NextResponse.json({ message: "Logged out successfully" });
   }
 }
