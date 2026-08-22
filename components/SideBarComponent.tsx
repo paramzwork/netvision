@@ -343,7 +343,7 @@ export default function SidebarComponent() {
               />
             }
           >
-            <div className="w-8 h-8 bg-linear-to-br from-gray-500 to-slate-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow">
+            <div className="w-7 h-7 bg-linear-to-br from-gray-500 to-slate-600 rounded-full flex items-center justify-center text-white font-semibold text-[10px] shadow">
               {currentUser?.firstname?.charAt(0) ?? "U"}
               {currentUser?.lastname?.charAt(0) ?? ""}
             </div>
@@ -363,7 +363,7 @@ export default function SidebarComponent() {
             <PopoverHeader>
               <div className="p-2">
                 <div className="flex items-center gap-3 py-2 px-3 rounded-sm">
-                  <div className="w-8 h-8 bg-linear-to-br from-gray-500 to-slate-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow">
+                  <div className="w-7 h-7 bg-linear-to-br from-gray-500 to-slate-600 rounded-full flex items-center justify-center text-white font-semibold text-[10px] shadow">
                     {currentUser?.firstname?.charAt(0) ?? "U"}
                     {currentUser?.lastname?.charAt(0) ?? ""}
                   </div>

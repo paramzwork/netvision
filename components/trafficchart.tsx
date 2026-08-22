@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DataPoint, GraphType, InterfaceResponse } from "@/lib/types";
+import { DataPoint, GraphType, InterfaceResponse, VisibleDataPoint } from "@/lib/types";
 import {
   CHART_COLORS,
   formatTick,
@@ -182,16 +182,55 @@ export function TrafficChart({ interfaces }: Props) {
     };
   }, [preset, customFrom, customTo, fullSeries]);
 
-  const visibleData = useMemo(() => {
+  const visibleData = useMemo<VisibleDataPoint[]>(() => {
     const spanMs = to - from;
-    return fullSeries
-      .filter((d) => d.timestamp >= from && d.timestamp <= to)
-      .map((d) => ({
-        ...d,
-        label: formatTick(d.timestamp, spanMs),
-      }));
-  }, [fullSeries, from, to]);
 
+    const filtered = fullSeries
+      .filter((d) => d.timestamp >= from && d.timestamp <= to)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    if (filtered.length === 0) {
+      return [];
+    }
+
+    const GAP_THRESHOLD = 20 * 60 * 1000;
+
+    const result: VisibleDataPoint[] = [];
+
+    for (let i = 0; i < filtered.length; i++) {
+      const current = filtered[i];
+
+      result.push({
+        ...current,
+        label: formatTick(current.timestamp, spanMs),
+      });
+
+      if (i === filtered.length - 1) {
+        continue;
+      }
+
+      const next = filtered[i + 1];
+      const gap = next.timestamp - current.timestamp;
+
+      if (gap > GAP_THRESHOLD) {
+        const nullPoint: VisibleDataPoint = {
+          ...current,
+          timestamp: current.timestamp + GAP_THRESHOLD,
+          label: formatTick(current.timestamp + GAP_THRESHOLD, spanMs),
+        };
+
+        for (const key of Object.keys(nullPoint)) {
+          if (key !== "timestamp" && key !== "label") {
+            nullPoint[key] = null;
+          }
+        }
+
+        result.push(nullPoint);
+      }
+    }
+
+    return result;
+  }, [fullSeries, from, to]);
   const displayedInterfaces = TOP_INTERFACES.slice(0, graphLimit);
 
   /* ── Filters bar (shared between normal + fullscreen) ── */
@@ -202,7 +241,9 @@ export function TrafficChart({ interfaces }: Props) {
           className="h-9! w-50! text-sm"
           aria-label="Select a preset time range"
         >
-          <SelectValue className="font-lexend">{() => PRESET_LABELS[preset]}</SelectValue>
+          <SelectValue className="font-lexend">
+            {() => PRESET_LABELS[preset]}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent side="bottom" align="start" alignItemWithTrigger={false}>
           <SelectGroup>
@@ -224,7 +265,9 @@ export function TrafficChart({ interfaces }: Props) {
           className="h-9! w-50! text-sm"
           aria-label="Limit number of interfaces shown"
         >
-          <SelectValue className="font-lexend">{() => `Graph Limit: ${graphLimit}`}</SelectValue>
+          <SelectValue className="font-lexend">
+            {() => `Graph Limit: ${graphLimit}`}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent side="bottom" align="start" alignItemWithTrigger={false}>
           <SelectGroup>
