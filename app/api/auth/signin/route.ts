@@ -67,7 +67,8 @@ export async function POST(req: Request) {
     const kill = tripleEncode("kill");
     response.cookies.set(kill, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      // secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24,
