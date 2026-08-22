@@ -186,4 +186,9 @@ export type GraphType = "stacked" | "percent" | "lines" | "grid" | "sankey";
 // emerald = SSH, amber = SNMP, red = alerts, plus a few more in the
 // same family for interfaces beyond the first five).
 
-export type DataPoint = { timestamp: number } & Record<string, number | string>;
+export type DataPoint = {
+  timestamp: number;
+} & Record<string, number | string | null>;
+export type VisibleDataPoint = DataPoint & {
+  label: string;
+};

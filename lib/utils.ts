@@ -200,3 +200,30 @@ export function formatTick(timestamp: number, spanMs: number) {
   }
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
+
+export const TRAFFIC_RETENTION_KEY = "traffic_retention_months";
+
+export const TRAFFIC_RETENTION_OPTIONS = [
+  {
+    value: 1,
+    label: "30 Days",
+  },
+  {
+    value: 2,
+    label: "2 Months",
+  },
+  {
+    value: 3,
+    label: "3 Months",
+  },
+  {
+    value: 6,
+    label: "6 Months",
+  },
+  {
+    value: 12,
+    label: "12 Months",
+  },
+] as const;
+
+export const DEFAULT_TRAFFIC_RETENTION_MONTHS = 2;
