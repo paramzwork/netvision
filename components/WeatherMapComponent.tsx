@@ -148,8 +148,10 @@ export interface TopologyEdgeData extends Record<string, unknown> {
 export type TopologyEdge = Edge<TopologyEdgeData>;
 export default function WeatherMapComponent() {
   // Interface and device
-  const { interfaces, setInterfaces } = useInterfacesWeathermap();
-  const { device, setDevice } = useDevicesStore();
+  const device = useDevicesStore((state) => state.device);
+  const setDevice = useDevicesStore((state) => state.setDevice);
+  const interfaces = useInterfacesWeathermap((state) => state.interfaces);
+  const setInterfaces = useInterfacesWeathermap((state) => state.setInterfaces);
 
   // Node
   const [nodeName, setNodeName] = useState<string>("");
@@ -179,7 +181,6 @@ export default function WeatherMapComponent() {
   //   Edge
 
   const router = useRouter();
-  const hasMountedRef = useRef<boolean>(false);
   const hasFetchedInterfacesRef = useRef<boolean>(false);
   const [topologyName, setTopologyName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -729,80 +730,86 @@ export default function WeatherMapComponent() {
     },
     [dragItem, screenToFlowPosition, device, nodeType, setNodes],
   );
+  useEffect(() => {
+    const currentDevices = useDevicesStore.getState().device;
 
-  const fetchDevice = useCallback(async () => {
-    if (device.length > 0) {
-      setDevice(device);
+    if (currentDevices.length > 0) {
       return;
     }
-    try {
-      // const raw = tripleEncode("all");
-      const res = await fetch(`/api/snmp/device`, { method: "GET" });
-      const resData = await res.json();
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.replace("/");
-          return;
-        }
-        toast.error(resData.message);
-        return;
-      }
-      setDevice(resData.data);
-      toast.success("Devices loaded successfully!");
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  }, [device, router, setDevice]);
 
-  const fetchInterfaces = useCallback(async () => {
-    if (device.length === 0) return;
+    const fetchDevice = async () => {
+      try {
+        const res = await fetch("/api/snmp/device", {
+          method: "GET",
+        });
 
-    try {
-      const results = await Promise.all(
-        device.map(async (dev) => {
-          const raw = tripleEncode(dev.ipAddress);
+        const resData = await res.json();
 
-          const res = await fetch(`/api/snmp/traffic?id=${raw}`);
-
-          const resData = await res.json();
-
-          if (!res.ok) {
-            throw new Error(resData.message || "Failed fetching interface");
+        if (!res.ok) {
+          if (res.status === 401) {
+            router.replace("/");
+            return;
           }
 
-          return resData.interfaces.map((iface: InterfaceTypes) => ({
-            ...iface,
+          toast.error(resData.message);
+          return;
+        }
 
-            deviceIp: dev.ipAddress,
-          }));
-        }),
-      );
+        setDevice(resData.data);
 
-      const allInterfaces = results.flat();
-      setInterfaces(allInterfaces);
+        toast.success("Devices loaded successfully!");
+      } catch {
+        toast.error("Internal Server Error.", {
+          description: "Server error please contact admin.",
+        });
+      }
+    };
 
-      toast.success("Interfaces loaded successfully!");
-    } catch (error) {
-      console.error(error);
-
-      toast.error("Failed loading interfaces");
-    }
-  }, [device, setInterfaces]);
-  useEffect(() => {
-    if (hasMountedRef.current) return;
     fetchDevice();
-    hasMountedRef.current = true;
-  }, [fetchDevice]);
+  }, [router, setDevice]);
 
   useEffect(() => {
     if (device.length === 0) return;
     if (hasFetchedInterfacesRef.current) return;
 
-    fetchInterfaces();
     hasFetchedInterfacesRef.current = true;
-  }, [device, fetchInterfaces]);
+
+    const fetchInterfaces = async () => {
+      try {
+        const results = await Promise.all(
+          device.map(async (dev) => {
+            const raw = tripleEncode(dev.ipAddress);
+
+            const res = await fetch(`/api/snmp/traffic?id=${raw}`);
+
+            const resData = await res.json();
+
+            if (!res.ok) {
+              throw new Error(resData.message || "Failed fetching interface");
+            }
+
+            return resData.interfaces.map((iface: InterfaceTypes) => ({
+              ...iface,
+              deviceIp: dev.ipAddress,
+            }));
+          }),
+        );
+
+        setInterfaces(results.flat());
+
+        toast.success("Interfaces loaded successfully!");
+      } catch (error) {
+        console.error(error);
+
+        // Allow retry if the request failed
+        hasFetchedInterfacesRef.current = false;
+
+        toast.error("Failed loading interfaces");
+      }
+    };
+
+    fetchInterfaces();
+  }, [device, setInterfaces]);
 
   const saveTopology = useCallback(async () => {
     const name = topologyName.trim();
