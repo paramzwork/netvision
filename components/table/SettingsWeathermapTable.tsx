@@ -17,8 +17,9 @@ import { TooltipComponent } from "../TooltipComponent";
 import { Search } from "lucide-react";
 
 export default function SettingsWeathermapTable() {
-  const { device, setDevice } = useDevicesStore();
-  const { interfaces, setInterfaces } = useInterfaceStore();
+  const device = useDevicesStore((state) => state.device);
+  const setDevice = useDevicesStore((state) => state.setDevice);
+  const setInterfaces = useInterfaceStore((state) => state.setInterfaces);
   const { getInterfaces } = useInterfaceStore();
   const router = useRouter();
 
@@ -37,72 +38,78 @@ export default function SettingsWeathermapTable() {
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
-  const hasMountedRef = useRef<boolean>(false);
-  const fetchDevice = useCallback(async () => {
-    if (device.length > 0) {
-      setDevice(device);
+
+  useEffect(() => {
+    const currentDevices = useDevicesStore.getState().device;
+
+    if (currentDevices.length > 0) {
       return;
     }
-    try {
-      const raw = tripleEncode("all");
-      const res = await fetch(`/api/snmp/device?id=${raw}`, { method: "GET" });
-      const resData = await res.json();
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.replace("/");
+
+    const fetchDevice = async () => {
+      try {
+        const raw = tripleEncode("all");
+
+        const res = await fetch(`/api/snmp/device?id=${raw}`, {
+          method: "GET",
+        });
+
+        const resData = await res.json();
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            router.replace("/");
+            return;
+          }
+
+          toast.error(resData.message);
           return;
         }
-        toast.error(resData.message);
-        return;
+
+        setDevice(resData.data);
+
+        toast.success("Devices loaded successfully!");
+      } catch {
+        toast.error("Internal Server Error.", {
+          description: "Server error please contact admin.",
+        });
       }
-      setDevice(resData.data);
-      toast.success("Devices loaded successfully!");
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  }, [device, router, setDevice]);
-  const fetchInterfaces = useCallback(async () => {
+    };
+
+    fetchDevice();
+  }, [router, setDevice]);
+
+  useEffect(() => {
     if (!fetchSelectedDev) return;
 
-    const { interfaces } = useInterfaceStore.getState();
+    const existingInterfaces =
+      useInterfaceStore.getState().interfaces[fetchSelectedDev];
 
-    if (interfaces[fetchSelectedDev]) {
+    if (existingInterfaces) {
       return;
     }
-    try {
-      const raw = tripleEncode(fetchSelectedDev);
 
-      const res = await fetch(`/api/snmp/traffic?id=${raw}`);
+    const fetchData = async () => {
+      try {
+        const raw = tripleEncode(fetchSelectedDev);
 
-      const data = await res.json();
+        const res = await fetch(`/api/snmp/traffic?id=${raw}`);
 
-      if (!res.ok) {
-        toast.error(data.message);
-        return;
+        const data = await res.json();
+
+        if (!res.ok) {
+          toast.error(data.message);
+          return;
+        }
+
+        setInterfaces(fetchSelectedDev, data.interfaces);
+      } catch {
+        toast.error("Internal Server Error");
       }
+    };
 
-      setInterfaces(fetchSelectedDev, data.interfaces);
-    } catch {
-      toast.error("Internal Server Error");
-    }
+    fetchData();
   }, [fetchSelectedDev, setInterfaces]);
-
-  useEffect(() => {
-    if (hasMountedRef.current) return;
-    fetchDevice();
-
-    hasMountedRef.current = true;
-  }, [fetchDevice]);
-
-  useEffect(() => {
-    if (!fetchSelectedDev) return;
-
-    if (interfaces[fetchSelectedDev]) return;
-
-    fetchInterfaces();
-  }, [fetchSelectedDev, fetchInterfaces, interfaces]);
 
   const updateInterfaceStatus = async (id: number, status: "1" | "0") => {
     try {
