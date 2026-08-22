@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "poll": "tsx scripts/pollWorker.ts",
-    "build:poller": "esbuild scripts/pollWorker.ts --bundle --platform=node --target=node20 --outfile=dist/scripts/pollWorker.js"
+    "poll": "tsx scripts/pollWorker.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
