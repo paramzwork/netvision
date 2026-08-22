@@ -65,13 +65,20 @@ export async function POST(req: Request) {
       },
     });
     const kill = tripleEncode("kill");
+    const maxAgeByRole: Record<string, number> = {
+      "Super Admin": 60 * 60 * 24, // 24 hours
+      Admin: 60 * 60 * 8, // 8 hours
+      User: 60 * 60, // 1 hour
+    };
+
+    const maxAge = maxAgeByRole[user.roles.role] ?? 60 * 60;
     response.cookies.set(kill, token, {
       httpOnly: true,
       // secure: process.env.NODE_ENV === "production",
       secure: false,
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24,
+      maxAge,
     });
 
     return response;
