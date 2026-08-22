@@ -19,7 +19,8 @@ module.exports = {
     {
       name: "traffic-poller",
       cwd: "/var/www/netvision",
-      script: "dist/scripts/pollWorker.js",
+      script: "npm",
+      args: "run poll",
 
       env: {
         NODE_ENV: "production",
