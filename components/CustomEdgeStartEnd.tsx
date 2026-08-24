@@ -68,12 +68,12 @@ function EdgeLabel({
       style={{
         position: "absolute",
         background: "var(--xy-theme-panel-bg)",
-        padding: "2px 5px",
+        padding: "2px",
         color: "#2A2A2B",
         fontSize: 6,
         fontWeight: 700,
         border: "1px solid var(--xy-theme-subtle-border)",
-        borderRadius: 6,
+        borderRadius: 5,
         transform,
         pointerEvents: "all",
         cursor: "grab",
@@ -83,15 +83,15 @@ function EdgeLabel({
       onMouseDown={onMouseDown}
     >
       {outbound && (
-        <div className="text-center space-y-0.5 text-[10px]">
+        <div className="text-center space-y-0.2 text-[7px]">
           {description}
-          <div className="font-bold">↑ {outbound}</div>
+          <div className="font-semibold">↑ {outbound}</div>
         </div>
       )}
 
       {inbound && (
-        <div className="text-center space-y-0.5 text-[10px]">
-          <div className="font-bold">↓ {inbound}</div>
+        <div className="text-center space-y-0.2 text-[7px]">
+          <div className="font-semibold">↓ {inbound}</div>
 
           <div>{description}</div>
         </div>
@@ -396,6 +396,14 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
         </linearGradient>
       </defs>
       <BaseEdge
+        id={`${id}-border`}
+        path={edgePath}
+        style={{
+          stroke: "#000000",
+          strokeWidth: 3,
+        }}
+      />
+      <BaseEdge
         id={id}
         path={edgePath}
         style={{
@@ -404,7 +412,7 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
           cursor: "pointer",
         }}
       />
-
+    
       <path
         d={edgePath}
         fill="none"
