@@ -1157,6 +1157,8 @@ export default function ViewWeathermapSettings() {
                     aggregatedInterfaces={
                       trafficEdge.data?.aggregatedInterfaces ?? []
                     }
+                    inbound={trafficEdge.data?.inbound ?? 0}
+                    outbound={trafficEdge.data?.outbound ?? 0}
                     onClose={() => setTrafficEdgeId(null)}
                   />
                 </div>
