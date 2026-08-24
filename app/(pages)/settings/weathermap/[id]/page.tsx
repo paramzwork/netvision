@@ -291,23 +291,6 @@ export default function ViewWeathermapSettings() {
       let aggregatedInbound = 0;
       let aggregatedOutbound = 0;
 
-      console.log("========== SOURCE HANDLE AGGREGATION ==========");
-      console.log("Node:", sourceNode.data.nodeName);
-      console.log("Handle:", sourceHandle.id);
-      console.log("Handle aggregationId:", sourceHandle.aggregationId);
-
-      console.log(
-        "Available aggregations:",
-        sourceNode.data.aggregations?.map((agg) => ({
-          id: agg.id,
-          name: agg.name,
-          interfaces: agg.interfaces.map((iface) => ({
-            id: iface.id,
-            interfaceId: iface.interfaceId,
-            interfaceName: iface.interfaceName,
-          })),
-        })),
-      );
       if (
         sourceIsBlank &&
         sourceNode.data.aggregationMode === "manual" &&
@@ -329,18 +312,6 @@ export default function ViewWeathermapSettings() {
             0,
           );
 
-          console.log("========== AGGREGATION TRAFFIC ==========");
-          console.log("Aggregation:", aggregation.id);
-          console.log("Name:", aggregation.name);
-
-          aggregation.interfaces.forEach((iface) => {
-            console.log({
-              interfaceId: iface.interfaceId,
-              interfaceName: iface.interfaceName,
-              inbound: iface.inbound,
-              outbound: iface.outbound,
-            });
-          });
           // Update the handle with the aggregation traffic
           updateHandleTraffic(
             sourceNode.id,
@@ -435,6 +406,16 @@ export default function ViewWeathermapSettings() {
           targetOperStatus: 0,
           targetStatus: "",
 
+          sourceLabelOffset: {
+            x: 0,
+            y: 0,
+          },
+
+          targetLabelOffset: {
+            x: 0,
+            y: 0,
+          },
+
           swapTraffic: false,
 
           ...(shouldAggregate ? { aggregatedInterfaces } : {}),
@@ -503,7 +484,6 @@ export default function ViewWeathermapSettings() {
     [setEdges, setNodes],
   );
   const handleNodeSettings = (node: TopologyNode) => {
-    console.log(node);
     setSelectedNode(node);
 
     setNodeName(
@@ -576,7 +556,6 @@ export default function ViewWeathermapSettings() {
   const onEdgeDoubleClick: EdgeMouseHandler<TopologyEdge> = useCallback(
     (_event, edge) => {
       const topologyEdge = edge as TopologyEdge;
-      console.log(topologyEdge);
       if (edgeClickTimer.current) {
         clearTimeout(edgeClickTimer.current);
         edgeClickTimer.current = null;
@@ -603,7 +582,6 @@ export default function ViewWeathermapSettings() {
       event.preventDefault();
 
       if (!dragItem) return;
-      console.log(dragItem);
       const position = screenToFlowPosition({
         x: event.clientX,
         y: event.clientY,
@@ -1082,10 +1060,6 @@ export default function ViewWeathermapSettings() {
               setAggregations={setAggregations}
               onSave={({ type, handles, aggregationMode, aggregations }) => {
                 if (!selectedNode) return;
-
-                console.log("Saving node:", selectedNode);
-                console.log("Aggregation Mode:", aggregationMode);
-                console.log("Aggregations:", aggregations);
 
                 setNodes((nds) =>
                   nds.map((n) =>
