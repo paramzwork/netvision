@@ -85,13 +85,13 @@ function EdgeLabel({
       {outbound && (
         <div className="text-center space-y-0.5 text-[10px]">
           {description}
-          <div className="text-blue-500 font-bold">↑ {outbound}</div>
+          <div className="font-bold">↑ {outbound}</div>
         </div>
       )}
 
       {inbound && (
         <div className="text-center space-y-0.5 text-[10px]">
-          <div className="text-green-500 font-bold">↓ {inbound}</div>
+          <div className="font-bold">↓ {inbound}</div>
 
           <div>{description}</div>
         </div>
