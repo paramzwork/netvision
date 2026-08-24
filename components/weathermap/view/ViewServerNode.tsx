@@ -55,7 +55,7 @@ export default function ServerNode({ data, selected }: NodeProps<RouterNode>) {
             className="object-contain"
           />
         </div>
-        <div className="text-[clamp(8px,5cqw,14px)] mt-1 font-medium">
+        <div className="text-[clamp(8px,5cqw,14px)] mt-1 font-semibold">
           {data.nodeName}
         </div>
 

@@ -54,7 +54,7 @@ export default function CloudNode({ data, selected }: NodeProps<RouterNode>) {
       />
 
       <div className="h-full flex flex-col items-center justify-center pointer-events-none">
-        <div className="text-[clamp(6px,8cqw,14px)] font-medium mt-1 px-5">
+        <div className="text-[clamp(6px,8cqw,14px)] font-semibold mt-1 px-5">
           {data.nodeName}
         </div>
 

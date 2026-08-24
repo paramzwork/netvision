@@ -23,6 +23,10 @@ interface EdgeTrafficPanelProps {
   sourceInterface: InterfaceTypes | undefined;
   interfaces: InterfaceTypes[];
   aggregatedInterfaces: AggregatedInterface[];
+
+  inbound: number;
+  outbound: number;
+
   onClose: () => void;
   onDragStart?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
@@ -55,6 +59,9 @@ export default function EdgeTrafficPanel({
   sourceInterfaceName,
   targetInterfaceName,
 
+  inbound,
+  outbound,
+
   sourceInterface,
   interfaces,
   onDragStart,
@@ -62,14 +69,6 @@ export default function EdgeTrafficPanel({
 }: EdgeTrafficPanelProps) {
   const [isGraphFullscreen, setIsGraphFullscreen] = useState<boolean>(false);
   const chartData = useMemo<InterfaceChartData[]>(() => {
-    const now = new Date();
-
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const endOfToday = new Date(now);
-    endOfToday.setHours(23, 59, 59, 999);
-
     // ==================================================
     // AGGREGATED LINK
     // ==================================================
@@ -85,24 +84,10 @@ export default function EdgeTrafficPanel({
             return null;
           }
 
-          // ----------------------------------------------
-          // Get today's statistics for THIS interface
-          // ----------------------------------------------
-
-          const statistics = [...iface.statistics]
-            .filter((stat) => {
-              const timestamp = new Date(stat.createdAt).getTime();
-
-              return (
-                timestamp >= startOfToday.getTime() &&
-                timestamp <= endOfToday.getTime()
-              );
-            })
-            .sort(
-              (a, b) =>
-                new Date(a.createdAt).getTime() -
-                new Date(b.createdAt).getTime(),
-            );
+          const statistics = [...iface.statistics].sort(
+            (a, b) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          );
 
           if (statistics.length < 2) {
             return {
@@ -112,10 +97,6 @@ export default function EdgeTrafficPanel({
               data: [],
             };
           }
-
-          // ----------------------------------------------
-          // Calculate traffic for THIS interface only
-          // ----------------------------------------------
 
           const data: InterfaceChartData["data"] = [];
 
@@ -151,9 +132,7 @@ export default function EdgeTrafficPanel({
 
             data.push({
               timestamp: currentTime,
-
               time: new Date(currentTime).toLocaleTimeString(),
-
               inbound,
               outbound,
             });
@@ -173,23 +152,14 @@ export default function EdgeTrafficPanel({
     // NORMAL LINK
     // ==================================================
 
-    if (!sourceInterface) {
+    if (!sourceInterface?.statistics?.length) {
       return [];
     }
 
-    const statistics = [...(sourceInterface.statistics ?? [])]
-      .filter((stat) => {
-        const timestamp = new Date(stat.createdAt).getTime();
-
-        return (
-          timestamp >= startOfToday.getTime() &&
-          timestamp <= endOfToday.getTime()
-        );
-      })
-      .sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      );
+    const statistics = [...sourceInterface.statistics].sort(
+      (a, b) =>
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    );
 
     if (statistics.length < 2) {
       return [
@@ -223,18 +193,20 @@ export default function EdgeTrafficPanel({
       const previousOut = BigInt(previous.outOctets);
       const currentOut = BigInt(current.outOctets);
 
+      // Counter reset
       if (currentIn < previousIn || currentOut < previousOut) {
         continue;
       }
 
+      const inbound = (Number(currentIn - previousIn) * 8) / elapsedSeconds;
+
+      const outbound = (Number(currentOut - previousOut) * 8) / elapsedSeconds;
+
       data.push({
         timestamp: currentTime,
-
         time: new Date(currentTime).toLocaleTimeString(),
-
-        inbound: (Number(currentIn - previousIn) * 8) / elapsedSeconds,
-
-        outbound: (Number(currentOut - previousOut) * 8) / elapsedSeconds,
+        inbound,
+        outbound,
       });
     }
 
@@ -281,98 +253,14 @@ export default function EdgeTrafficPanel({
   }, [chartData]);
   const interfaceTrafficStats = useMemo<InterfaceTrafficStats[]>(() => {
     // ==================================================
-    // Build interface list
+    // NORMAL LINK
     // ==================================================
 
-    const interfaceList =
-      aggregatedInterfaces.length > 0
-        ? aggregatedInterfaces
-            .map((aggregated) => {
-              const iface = interfaces.find(
-                (iface) => iface.id === aggregated.interfaceId,
-              );
-
-              if (!iface) {
-                return null;
-              }
-
-              return {
-                iface,
-                sourceNodeName: aggregated.sourceNodeName ?? "",
-              };
-            })
-            .filter(
-              (
-                item,
-              ): item is {
-                iface: InterfaceTypes;
-                sourceNodeName: string;
-              } => item !== null,
-            )
-        : sourceInterface
-          ? [
-              {
-                iface: sourceInterface,
-                sourceNodeName: sourceNodeName,
-              },
-            ]
-          : [];
-
-    // ==================================================
-    // Calculate statistics
-    // ==================================================
-
-    return interfaceList.map(({ iface, sourceNodeName }) => {
-      const now = new Date();
-
-      const startOfToday = new Date(now);
-      startOfToday.setHours(0, 0, 0, 0);
-
-      const endOfToday = new Date(now);
-      endOfToday.setHours(23, 59, 59, 999);
-
-      // --------------------------------------------------
-      // Get today's statistics
-      // --------------------------------------------------
-
-      const statistics = [...(iface.statistics ?? [])]
-        .filter((stat) => {
-          const timestamp = new Date(stat.createdAt).getTime();
-
-          return (
-            timestamp >= startOfToday.getTime() &&
-            timestamp <= endOfToday.getTime()
-          );
-        })
-        .sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        );
-
-      // --------------------------------------------------
-      // Not enough samples
-      // --------------------------------------------------
-
-      if (statistics.length < 2) {
-        return {
-          interfaceId: iface.id,
-          interfaceName: iface.name,
-          sourceNodeName,
-
-          currentInbound: 0,
-          currentOutbound: 0,
-
-          averageInbound: 0,
-          averageOutbound: 0,
-
-          maxInbound: 0,
-          maxOutbound: 0,
-        };
-      }
-
-      // --------------------------------------------------
-      // Calculate traffic samples
-      // --------------------------------------------------
+    if (aggregatedInterfaces.length === 0 && sourceInterface) {
+      const statistics = [...(sourceInterface.statistics ?? [])].sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
 
       const samples: {
         inbound: number;
@@ -380,131 +268,227 @@ export default function EdgeTrafficPanel({
       }[] = [];
 
       for (let i = 1; i < statistics.length; i++) {
-        const current = statistics[i];
         const previous = statistics[i - 1];
+        const current = statistics[i];
 
-        const elapsedSeconds =
-          (new Date(current.createdAt).getTime() -
-            new Date(previous.createdAt).getTime()) /
-          1000;
+        const previousTime = new Date(previous.createdAt).getTime();
+        const currentTime = new Date(current.createdAt).getTime();
+
+        const elapsedSeconds = (currentTime - previousTime) / 1000;
 
         if (elapsedSeconds <= 0) {
           continue;
         }
 
-        const currentIn = BigInt(current.inOctets);
         const previousIn = BigInt(previous.inOctets);
+        const currentIn = BigInt(current.inOctets);
 
-        const currentOut = BigInt(current.outOctets);
         const previousOut = BigInt(previous.outOctets);
+        const currentOut = BigInt(current.outOctets);
 
-        // ------------------------------------------------
         // Counter reset
-        // ------------------------------------------------
-
         if (currentIn < previousIn || currentOut < previousOut) {
           continue;
         }
 
-        const inbound = (Number(currentIn - previousIn) * 8) / elapsedSeconds;
+        const calculatedInbound =
+          (Number(currentIn - previousIn) * 8) / elapsedSeconds;
 
-        const outbound =
+        const calculatedOutbound =
           (Number(currentOut - previousOut) * 8) / elapsedSeconds;
 
         samples.push({
-          inbound,
-          outbound,
+          inbound: calculatedInbound,
+          outbound: calculatedOutbound,
         });
       }
 
-      // --------------------------------------------------
-      // No valid samples
-      // --------------------------------------------------
+      const inboundValues = samples.map((sample) => sample.inbound);
+      const outboundValues = samples.map((sample) => sample.outbound);
 
-      if (samples.length === 0) {
+      return [
+        {
+          interfaceId: sourceInterface.id,
+          interfaceName: sourceInterface.name,
+          sourceNodeName,
+
+          // ============================================
+          // LIVE CURRENT VALUE
+          // ============================================
+
+          currentInbound: inbound,
+          currentOutbound: outbound,
+
+          // ============================================
+          // HISTORICAL STATISTICS
+          // ============================================
+
+          averageInbound:
+            inboundValues.length > 0
+              ? inboundValues.reduce((sum, value) => sum + value, 0) /
+                inboundValues.length
+              : 0,
+
+          averageOutbound:
+            outboundValues.length > 0
+              ? outboundValues.reduce((sum, value) => sum + value, 0) /
+                outboundValues.length
+              : 0,
+
+          maxInbound: inboundValues.length > 0 ? Math.max(...inboundValues) : 0,
+
+          maxOutbound:
+            outboundValues.length > 0 ? Math.max(...outboundValues) : 0,
+        },
+      ];
+    }
+
+    // ==================================================
+    // AGGREGATED LINK
+    // ==================================================
+
+    if (aggregatedInterfaces.length > 0) {
+      const interfaceList = aggregatedInterfaces
+        .map((aggregated) => {
+          const iface = interfaces.find(
+            (iface) => iface.id === aggregated.interfaceId,
+          );
+
+          if (!iface) {
+            return null;
+          }
+
+          return {
+            iface,
+            sourceNodeName: aggregated.sourceNodeName ?? "",
+          };
+        })
+        .filter(
+          (
+            item,
+          ): item is {
+            iface: InterfaceTypes;
+            sourceNodeName: string;
+          } => item !== null,
+        );
+
+      return interfaceList.map(({ iface, sourceNodeName }) => {
+        const statistics = [...(iface.statistics ?? [])].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
+
+        const samples: {
+          inbound: number;
+          outbound: number;
+        }[] = [];
+
+        for (let i = 1; i < statistics.length; i++) {
+          const previous = statistics[i - 1];
+          const current = statistics[i];
+
+          const previousTime = new Date(previous.createdAt).getTime();
+
+          const currentTime = new Date(current.createdAt).getTime();
+
+          const elapsedSeconds = (currentTime - previousTime) / 1000;
+
+          if (elapsedSeconds <= 0) {
+            continue;
+          }
+
+          const previousIn = BigInt(previous.inOctets);
+          const currentIn = BigInt(current.inOctets);
+
+          const previousOut = BigInt(previous.outOctets);
+          const currentOut = BigInt(current.outOctets);
+
+          if (currentIn < previousIn || currentOut < previousOut) {
+            continue;
+          }
+
+          const calculatedInbound =
+            (Number(currentIn - previousIn) * 8) / elapsedSeconds;
+
+          const calculatedOutbound =
+            (Number(currentOut - previousOut) * 8) / elapsedSeconds;
+
+          samples.push({
+            inbound: calculatedInbound,
+            outbound: calculatedOutbound,
+          });
+        }
+
+        const inboundValues = samples.map((sample) => sample.inbound);
+
+        const outboundValues = samples.map((sample) => sample.outbound);
+
+        const latest = samples.length > 0 ? samples[samples.length - 1] : null;
+
         return {
           interfaceId: iface.id,
           interfaceName: iface.name,
           sourceNodeName,
 
-          currentInbound: 0,
-          currentOutbound: 0,
+          currentInbound: latest?.inbound ?? 0,
+          currentOutbound: latest?.outbound ?? 0,
 
-          averageInbound: 0,
-          averageOutbound: 0,
+          averageInbound:
+            inboundValues.length > 0
+              ? inboundValues.reduce((sum, value) => sum + value, 0) /
+                inboundValues.length
+              : 0,
 
-          maxInbound: 0,
-          maxOutbound: 0,
+          averageOutbound:
+            outboundValues.length > 0
+              ? outboundValues.reduce((sum, value) => sum + value, 0) /
+                outboundValues.length
+              : 0,
+
+          maxInbound: inboundValues.length > 0 ? Math.max(...inboundValues) : 0,
+
+          maxOutbound:
+            outboundValues.length > 0 ? Math.max(...outboundValues) : 0,
         };
-      }
-
-      // --------------------------------------------------
-      // Extract values
-      // --------------------------------------------------
-
-      const inboundValues = samples.map((sample) => sample.inbound);
-
-      const outboundValues = samples.map((sample) => sample.outbound);
-
-      // --------------------------------------------------
-      // Latest sample
-      // --------------------------------------------------
-
-      const latest = samples[samples.length - 1];
-
-      // --------------------------------------------------
-      // Return statistics
-      // --------------------------------------------------
-
-      return {
-        interfaceId: iface.id,
-        interfaceName: iface.name,
-        sourceNodeName,
-
-        currentInbound: latest.inbound,
-        currentOutbound: latest.outbound,
-
-        averageInbound:
-          inboundValues.reduce((sum, value) => sum + value, 0) /
-          inboundValues.length,
-
-        averageOutbound:
-          outboundValues.reduce((sum, value) => sum + value, 0) /
-          outboundValues.length,
-
-        maxInbound: Math.max(...inboundValues),
-
-        maxOutbound: Math.max(...outboundValues),
-      };
-    });
-  }, [interfaces, sourceInterface, sourceNodeName, aggregatedInterfaces]);
-  const trafficLegendTotals = useMemo(() => {
-    const isAggregated = aggregatedInterfaces.length > 0;
-
-    if (!isAggregated) {
-      const stat = interfaceTrafficStats[0];
-
-      return {
-        inbound: stat?.currentInbound ?? 0,
-        outbound: stat?.currentOutbound ?? 0,
-        aggregated: false,
-      };
+      });
     }
 
+    return [];
+  }, [
+    interfaces,
+    sourceInterface,
+    sourceNodeName,
+    aggregatedInterfaces,
+    inbound,
+    outbound,
+  ]);
+const trafficLegendTotals = useMemo(() => {
+  const isAggregated = aggregatedInterfaces.length > 0;
+
+  if (!isAggregated) {
+    const stat = interfaceTrafficStats[0];
+
     return {
-      inbound: interfaceTrafficStats.reduce(
-        (total, stat) => total + stat.currentInbound,
-        0,
-      ),
-
-      outbound: interfaceTrafficStats.reduce(
-        (total, stat) => total + stat.currentOutbound,
-        0,
-      ),
-
-      aggregated: true,
+      inbound: stat?.currentInbound ?? 0,
+      outbound: stat?.currentOutbound ?? 0,
+      aggregated: false,
     };
-  }, [interfaceTrafficStats, aggregatedInterfaces]);
+  }
+
+  return {
+    inbound: interfaceTrafficStats.reduce(
+      (total, stat) => total + stat.currentInbound,
+      0,
+    ),
+
+    outbound: interfaceTrafficStats.reduce(
+      (total, stat) => total + stat.currentOutbound,
+      0,
+    ),
+
+    aggregated: true,
+  };
+}, [interfaceTrafficStats, aggregatedInterfaces]);
   return (
     <div
       className="relative w-80 rounded-lg border bg-white shadow-xl p-3 text-xs "
