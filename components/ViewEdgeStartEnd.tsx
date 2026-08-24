@@ -131,11 +131,6 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
 
   const targetIsUp = targetIsBlank || data?.targetOperStatus === 1;
   const isUp = sourceIsUp && targetIsUp;
-  // const sourceIsUp = sourceIsBlank || data?.status === "up";
-
-  // const targetIsUp = targetIsBlank || data?.status === "up";
-  const stroke = isUp ? "#22c55e" : "#ef4444";
-  // const isUp = data?.sourceOperStatus === 1 && data?.targetOperStatus === 1;
 
   let displayInbound = Number(data?.inbound ?? 0);
   let displayOutbound = Number(data?.outbound ?? 0);
@@ -281,13 +276,57 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
 
     window.addEventListener("mouseup", handleMouseUp);
   };
+  const getTrafficLoadColor = (traffic: number) => {
+    if (traffic <= 0) return "#ff0000";
+    if (traffic <= 1_000_000) return "#bdbdbd"; // 0–1 Mbps
+    if (traffic <= 10_000_000) return "#8000ff"; // 1–10 Mbps
+    if (traffic <= 25_000_000) return "#7c00ff"; // 10–25 Mbps
+    if (traffic <= 40_000_000) return "#0066ff"; // 25–40 Mbps
+    if (traffic <= 55_000_000) return "#00bfff"; // 40–55 Mbps
+    if (traffic <= 70_000_000) return "#ffff00"; // 55–70 Mbps
+    if (traffic <= 85_000_000) return "#ff9900"; // 70–85 Mbps
+
+    return "#00e600"; // >85 Mbps
+  };
+  const inboundColor = isUp
+    ? getTrafficLoadColor(Number(displayInbound ?? 0))
+    : "#ef4444";
+
+  const outboundColor = isUp
+    ? getTrafficLoadColor(Number(displayOutbound ?? 0))
+    : "#ef4444";
   return (
     <>
+      <defs>
+        <linearGradient
+          id={`traffic-gradient-${id}`}
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="0%"
+        >
+          {/* Left 50% */}
+          <stop offset="0%" stopColor={outboundColor} />
+          <stop offset="50%" stopColor={outboundColor} />
+
+          {/* Right 50% */}
+          <stop offset="50%" stopColor={inboundColor} />
+          <stop offset="100%" stopColor={inboundColor} />
+        </linearGradient>
+      </defs>
+      <BaseEdge
+        id={`${id}-border`}
+        path={edgePath}
+        style={{
+          stroke: "#000000",
+          strokeWidth: 3,
+        }}
+      />
       <BaseEdge
         id={id}
         path={edgePath}
         style={{
-          stroke,
+          stroke: `url(#traffic-gradient-${id})`,
           strokeWidth: 2,
           cursor: "pointer",
         }}
