@@ -15,6 +15,17 @@ import React, { useMemo, useState } from "react";
 import { Maximize2, Minimize2, X } from "lucide-react";
 import { AggregatedInterface } from "@/app/(pages)/settings/weathermap/[id]/page";
 
+const AGGREGATED_COLORS = [
+  "#22c55e", // green
+  "#f97316", // orange
+  "#a855f7", // purple
+  "#06b6d4", // cyan
+  "#eab308", // yellow
+  "#ec4899", // pink
+  "#14b8a6", // teal
+  "#ef4444", // red
+];
+
 interface EdgeTrafficPanelProps {
   sourceNodeName: string;
   targetNodeName: string;
@@ -462,33 +473,33 @@ export default function EdgeTrafficPanel({
     inbound,
     outbound,
   ]);
-const trafficLegendTotals = useMemo(() => {
-  const isAggregated = aggregatedInterfaces.length > 0;
+  const trafficLegendTotals = useMemo(() => {
+    const isAggregated = aggregatedInterfaces.length > 0;
 
-  if (!isAggregated) {
-    const stat = interfaceTrafficStats[0];
+    if (!isAggregated) {
+      const stat = interfaceTrafficStats[0];
+
+      return {
+        inbound: stat?.currentInbound ?? 0,
+        outbound: stat?.currentOutbound ?? 0,
+        aggregated: false,
+      };
+    }
 
     return {
-      inbound: stat?.currentInbound ?? 0,
-      outbound: stat?.currentOutbound ?? 0,
-      aggregated: false,
+      inbound: interfaceTrafficStats.reduce(
+        (total, stat) => total + stat.currentInbound,
+        0,
+      ),
+
+      outbound: interfaceTrafficStats.reduce(
+        (total, stat) => total + stat.currentOutbound,
+        0,
+      ),
+
+      aggregated: true,
     };
-  }
-
-  return {
-    inbound: interfaceTrafficStats.reduce(
-      (total, stat) => total + stat.currentInbound,
-      0,
-    ),
-
-    outbound: interfaceTrafficStats.reduce(
-      (total, stat) => total + stat.currentOutbound,
-      0,
-    ),
-
-    aggregated: true,
-  };
-}, [interfaceTrafficStats, aggregatedInterfaces]);
+  }, [interfaceTrafficStats, aggregatedInterfaces]);
   return (
     <div
       className="relative w-80 rounded-lg border bg-white shadow-xl p-3 text-xs "
@@ -575,49 +586,53 @@ const trafficLegendTotals = useMemo(() => {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={combinedChartData}>
                 <defs>
-                  {chartData.map((interfaceChart) => (
-                    <React.Fragment key={interfaceChart.interfaceId}>
-                      <linearGradient
-                        id={`inboundGradient-${interfaceChart.interfaceId}`}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#22c55e"
-                          stopOpacity={0.35}
-                        />
+                  {chartData.map((interfaceChart, index) => {
+                    const color =
+                      AGGREGATED_COLORS[index % AGGREGATED_COLORS.length];
+                    return (
+                      <React.Fragment key={interfaceChart.interfaceId}>
+                        <linearGradient
+                          id={`inboundGradient-${interfaceChart.interfaceId}`}
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={color}
+                            stopOpacity={0.35}
+                          />
 
-                        <stop
-                          offset="100%"
-                          stopColor="#22c55e"
-                          stopOpacity={0.02}
-                        />
-                      </linearGradient>
+                          <stop
+                            offset="100%"
+                            stopColor={color}
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
 
-                      <linearGradient
-                        id={`outboundGradient-${interfaceChart.interfaceId}`}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#3b82f6"
-                          stopOpacity={0.35}
-                        />
+                        <linearGradient
+                          id={`outboundGradient-${interfaceChart.interfaceId}`}
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={color}
+                            stopOpacity={0.35}
+                          />
 
-                        <stop
-                          offset="100%"
-                          stopColor="#3b82f6"
-                          stopOpacity={0.02}
-                        />
-                      </linearGradient>
-                    </React.Fragment>
-                  ))}
+                          <stop
+                            offset="100%"
+                            stopColor={color}
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                      </React.Fragment>
+                    );
+                  })}
                 </defs>
 
                 <XAxis
@@ -659,29 +674,33 @@ const trafficLegendTotals = useMemo(() => {
                   }}
                 />
 
-                {chartData.map((interfaceChart) => (
-                  <React.Fragment key={interfaceChart.interfaceId}>
-                    <Area
-                      type="monotone"
-                      dataKey={`inbound_${interfaceChart.interfaceId}`}
-                      stroke="#22c55e"
-                      fill={`url(#inboundGradient-${interfaceChart.interfaceId})`}
-                      strokeWidth={2}
-                      dot={false}
-                      isAnimationActive={false}
-                    />
+                {chartData.map((interfaceChart, index) => {
+                  const color =
+                    AGGREGATED_COLORS[index % AGGREGATED_COLORS.length];
+                  return (
+                    <React.Fragment key={interfaceChart.interfaceId}>
+                      <Area
+                        type="monotone"
+                        dataKey={`inbound_${interfaceChart.interfaceId}`}
+                        stroke={color}
+                        fill={`url(#inboundGradient-${interfaceChart.interfaceId})`}
+                        strokeWidth={2}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
 
-                    <Area
-                      type="monotone"
-                      dataKey={`outbound_${interfaceChart.interfaceId}`}
-                      stroke="#3b82f6"
-                      fill={`url(#outboundGradient-${interfaceChart.interfaceId})`}
-                      strokeWidth={2}
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  </React.Fragment>
-                ))}
+                      <Area
+                        type="monotone"
+                        dataKey={`outbound_${interfaceChart.interfaceId}`}
+                        stroke={color}
+                        fill={`url(#outboundGradient-${interfaceChart.interfaceId})`}
+                        strokeWidth={2}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    </React.Fragment>
+                  );
+                })}
               </AreaChart>
             </ResponsiveContainer>
           ) : (
