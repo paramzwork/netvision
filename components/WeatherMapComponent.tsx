@@ -25,7 +25,6 @@ import { useUpdateNodeInternals } from "@xyflow/react";
 
 import NodeHandleSettings from "./NodeHandleSettings";
 import { useCallback, useEffect, useRef, useState } from "react";
-import TestRouterNode from "./TestRouterNode";
 import CustomEdgeStartEnd, { EdgePosition } from "./CustomEdgeStartEnd";
 import SidebarWeathermap from "./SidebarWeathermap";
 import { useDevicesStore, useInterfacesWeathermap } from "@/store/device-store";
@@ -40,8 +39,9 @@ import CloudNode from "./weathermap/nodes/CloudNode";
 import { Input } from "./ui/input";
 import ServerNode from "./weathermap/nodes/ServerNode";
 import { AggregatedInterface } from "@/app/(pages)/settings/weathermap/[id]/page";
+import RouterNodeSettings from "./weathermap/nodes/RouterNode";
 const nodeTypes = {
-  router: TestRouterNode,
+  router: RouterNodeSettings,
   switch: SwitchNode,
   cloud: CloudNode,
   server: ServerNode,

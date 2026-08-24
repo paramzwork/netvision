@@ -29,7 +29,6 @@ import { toast } from "sonner";
 import { InterfaceTypes } from "@/lib/types";
 import { tripleDecode, tripleEncode } from "@/lib/utils";
 import { useParams, useRouter } from "next/navigation";
-import TestRouterNode from "@/components/TestRouterNode";
 import SwitchNode from "@/components/weathermap/nodes/SwitchNode";
 import CloudNode from "@/components/weathermap/nodes/CloudNode";
 import {
@@ -55,8 +54,9 @@ import {
 import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Input } from "@/components/ui/input";
+import RouterNodeSettings from "@/components/weathermap/nodes/RouterNode";
 const nodeTypes = {
-  router: TestRouterNode,
+  router: RouterNodeSettings,
   switch: SwitchNode,
   cloud: CloudNode,
   server: ServerNode,
@@ -224,6 +224,18 @@ export default function ViewWeathermapSettings() {
       ) {
         return;
       }
+      console.log("========== ON CONNECT ==========");
+      console.log("params:", params);
+
+      console.log("source:", {
+        nodeId: params.source,
+        handleId: params.sourceHandle,
+      });
+
+      console.log("target:", {
+        nodeId: params.target,
+        handleId: params.targetHandle,
+      });
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
 
@@ -504,6 +516,7 @@ export default function ViewWeathermapSettings() {
   };
   const onNodeDoubleClick: NodeMouseHandler<TopologyNode> = useCallback(
     (_event, node) => {
+      console.log(node);
       handleNodeSettings(node);
     },
     [],
