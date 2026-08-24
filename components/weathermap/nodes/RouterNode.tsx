@@ -55,7 +55,7 @@ export default function RouterNode({ data, selected }: NodeProps<RouterNode>) {
             className="object-contain"
           />
         </div>
-        <div className="text-[clamp(8px,10cqw,16px)] mt-1 font-medium">
+        <div className="text-[clamp(8px,10cqw,16px)] mt-1 font-semibold">
           {data.nodeName}
         </div>
 
