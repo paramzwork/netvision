@@ -296,16 +296,6 @@ export default function ChartContent({
       </div>
     );
   }
-  console.log(
-    "VISIBLE DATA",
-    visibleData.map((point) => ({
-      timestamp: new Date(point.timestamp).toISOString(),
-      values: displayedInterfaces.map((iface) => ({
-        name: iface.name,
-        value: point[iface.name],
-      })),
-    })),
-  );
 
   return (
     <div style={containerStyle} onMouseLeave={() => setHoveredInterface(null)}>

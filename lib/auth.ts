@@ -88,15 +88,9 @@ export async function requireRole(allowedRoles: string[]) {
 
   const userRole = user.roles?.role;
 
-  console.log("Required roles:", allowedRoles);
-  console.log("Actual role:", userRole);
-
   if (!userRole || !allowedRoles.includes(userRole)) {
-    console.log("ACCESS DENIED");
     redirect("/dashboard");
   }
-
-  console.log("ACCESS GRANTED");
 
   return user;
 }
