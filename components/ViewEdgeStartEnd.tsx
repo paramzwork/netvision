@@ -67,27 +67,27 @@ function EdgeLabel({
       style={{
         position: "absolute",
         background: "var(--xy-theme-panel-bg)",
-        padding: "2px 5px",
+        padding: "2px",
         color: "#2A2A2B",
         fontSize: 6,
         fontWeight: 700,
         border: "1px solid var(--xy-theme-subtle-border)",
-        borderRadius: 6,
+        borderRadius: 5,
         transform,
         pointerEvents: "none",
       }}
       className="nodrag nopan"
     >
       {outbound && (
-        <div className="text-center space-y-0.5 text-[10px]">
+        <div className="text-center space-y-0.2 text-[7px]">
           {description}
-          <div className="text-blue-500 font-bold">↑ {outbound}</div>
+          <div className="font-semibold">↑ {outbound}</div>
         </div>
       )}
 
       {inbound && (
-        <div className="text-center space-y-0.5 text-[10px]">
-          <div className="text-green-500 font-bold">↓ {inbound}</div>
+        <div className="text-center space-y-0.2 text-[7px]">
+          <div className="font-semibold">↓ {inbound}</div>
 
           <div>{description}</div>
         </div>
