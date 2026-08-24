@@ -7,6 +7,7 @@ import { tripleDecode, tripleEncode } from "@/lib/utils";
 import {
   EdgeLabelRenderer,
   EdgeMouseHandler,
+  EdgeTypes,
   MiniMap,
   ReactFlow,
   useEdgesState,
@@ -23,7 +24,6 @@ import React, {
   useState,
 } from "react";
 import {
-  edgeTypes,
   TopologyEdge,
   TopologyEdgeData,
   TopologyNode,
@@ -35,6 +35,7 @@ import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
 import { useDevicesStore, useInterfacesWeathermap } from "@/store/device-store";
 import { toast } from "sonner";
 import { InterfaceTypes } from "@/lib/types";
+import ViewEdgeStartEnd from "@/components/ViewEdgeStartEnd";
 
 const nodeTypes = {
   router: ViewRouterNode,
@@ -43,7 +44,9 @@ const nodeTypes = {
   server: ViewServerNode,
   blank: ViewCloudNode,
 };
-
+export const edgeTypes: EdgeTypes = {
+  "start-end": ViewEdgeStartEnd,
+};
 export default function ViewWeathermap() {
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
@@ -310,8 +313,6 @@ export default function ViewWeathermap() {
   }, [device, fetchInterfaces]);
   useEffect(() => {
     if (topologyId === null) return;
-    console.log(!Number.isInteger(topologyId));
-
     loadTopology(topologyId);
   }, [topologyId, loadTopology]);
   useEffect(() => {
@@ -341,7 +342,6 @@ export default function ViewWeathermap() {
             if (!traffic) {
               return edge;
             }
-
             const history = Array.isArray(edge.data?.trafficHistory)
               ? edge.data.trafficHistory
               : [];

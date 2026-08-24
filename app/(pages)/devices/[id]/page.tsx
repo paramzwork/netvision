@@ -79,9 +79,20 @@ export default function ViewDevice() {
   useEffect(() => {
     if (!selectedDevice) return;
 
+    console.log("Starting interface refresh interval");
+
     const refresh = async () => {
-      if (isFetching.current) return;
-      console.log("%cLoad new data", "color: green");
+      if (isFetching.current) {
+        console.log("Already fetching, skipping");
+        return;
+      }
+
+      console.log(
+        "%cLoad new data",
+        "color: green",
+        new Date().toLocaleTimeString(),
+      );
+
       isFetching.current = true;
 
       try {
@@ -91,11 +102,16 @@ export default function ViewDevice() {
       }
     };
 
+    // Initial fetch
     refresh();
 
+    // Test: every 20 seconds
     const interval = setInterval(refresh, 10 * 60 * 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log("Clearing interface refresh interval");
+      clearInterval(interval);
+    };
   }, [fetchInterfaces, selectedDevice]);
 
   return (
@@ -112,55 +128,17 @@ export default function ViewDevice() {
             },
           ]}
         />
-        <h1 className="text-xl font-bold">{selectedDevice?.sysName} - {selectedDevice?.ipAddress}</h1>
+        <h1 className="text-xl font-bold">
+          {selectedDevice?.sysName} - {selectedDevice?.ipAddress}
+        </h1>
       </div>
-      {/* <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>System Name</TableHead>
-            <TableHead>IP Address</TableHead>
-            <TableHead>Uptime</TableHead>
-            <TableHead>Poll Time</TableHead>
-            <TableHead>Current (ms)</TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
-          {selectedDevice === null ? (
-            <TableRow>
-              <TableCell
-                colSpan={5}
-                className="text-center py-6 text-muted-foreground"
-              >
-                No devices discovered.
-              </TableCell>
-            </TableRow>
-          ) : (
-            <TableRow className="odd:bg-gray-300">
-              <TableCell className="font-medium">
-                {selectedDevice.sysName}
-              </TableCell>
-              <TableCell className="font-medium">
-                {selectedDevice.ipAddress}
-              </TableCell>
-              <TableCell className="font-medium">
-                {selectedDevice.uptime}
-              </TableCell>
-              <TableCell className="font-medium">
-                {selectedDevice.pollTime}
-              </TableCell>
-              <TableCell className="font-medium">
-                {selectedDevice.currentMs}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table> */}
       <div className="space-y-6">
         {/* Chart */}
         <Card className="rounded-md bg-white/60 shadow-sm!">
           <CardHeader>
-            <CardTitle className="font-lexend font-semibold text-sm text-slate-700">{selectedDevice?.sysName}</CardTitle>
+            <CardTitle className="font-lexend font-semibold text-sm text-slate-700">
+              {selectedDevice?.sysName}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <TrafficChart interfaces={interfaces} />

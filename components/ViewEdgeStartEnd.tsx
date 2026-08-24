@@ -1,4 +1,4 @@
-import { useState, type FC } from "react";
+import { type FC } from "react";
 import {
   EdgeLabelRenderer,
   BaseEdge,
@@ -56,13 +56,11 @@ function EdgeLabel({
   inbound,
   outbound,
   description,
-  onMouseDown,
 }: {
   transform: string;
   inbound?: string;
   outbound?: string;
   description: string;
-  onMouseDown?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   return (
     <div
@@ -76,12 +74,9 @@ function EdgeLabel({
         border: "1px solid var(--xy-theme-subtle-border)",
         borderRadius: 6,
         transform,
-        pointerEvents: "all",
-        cursor: "grab",
-        userSelect: "none",
+        pointerEvents: "none",
       }}
       className="nodrag nopan"
-      onMouseDown={onMouseDown}
     >
       {outbound && (
         <div className="text-center space-y-0.5 text-[10px]">
@@ -101,7 +96,7 @@ function EdgeLabel({
   );
 }
 
-const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
+const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
   id,
   sourceX,
   sourceY,
@@ -141,83 +136,6 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
   // const targetIsUp = targetIsBlank || data?.status === "up";
   const stroke = isUp ? "#22c55e" : "#ef4444";
   // const isUp = data?.sourceOperStatus === 1 && data?.targetOperStatus === 1;
-  const [inboundOffset, setInboundOffset] = useState(
-    data?.targetLabelOffset ?? { x: 0, y: 0 },
-  );
-
-  const [outboundOffset, setOutboundOffset] = useState(
-    data?.sourceLabelOffset ?? { x: 0, y: 0 },
-  );
-
-  const handleLabelMouseDown = (
-    event: React.MouseEvent<HTMLDivElement>,
-    type: "inbound" | "outbound",
-  ) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const startX = event.clientX;
-    const startY = event.clientY;
-
-    const initialOffset = type === "inbound" ? inboundOffset : outboundOffset;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const dx = moveEvent.clientX - startX;
-      const dy = moveEvent.clientY - startY;
-
-      const newOffset = {
-        x: initialOffset.x + dx,
-        y: initialOffset.y + dy,
-      };
-
-      if (type === "inbound") {
-        setInboundOffset(newOffset);
-      } else {
-        setOutboundOffset(newOffset);
-      }
-
-      // Update React Flow edge data
-      setEdges((edges) =>
-        edges.map((edge) => {
-          if (edge.id !== id) {
-            return edge;
-          }
-
-          return {
-            ...edge,
-            data: {
-              ...edge.data,
-              inbound: edge.data?.inbound ?? 0,
-              outbound: edge.data?.outbound ?? 0,
-
-              sourceAdminStatus: edge.data?.sourceAdminStatus ?? 0,
-              sourceOperStatus: edge.data?.sourceOperStatus ?? 0,
-              sourceStatus: edge.data?.sourceStatus ?? "",
-
-              targetAdminStatus: edge.data?.targetAdminStatus ?? 0,
-              targetOperStatus: edge.data?.targetOperStatus ?? 0,
-              targetStatus: edge.data?.targetStatus ?? "",
-              ...(type === "inbound"
-                ? {
-                    targetLabelOffset: newOffset,
-                  }
-                : {
-                    sourceLabelOffset: newOffset,
-                  }),
-            },
-          };
-        }),
-      );
-    };
-
-    const handleMouseUp = () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-  };
 
   let displayInbound = Number(data?.inbound ?? 0);
   let displayOutbound = Number(data?.outbound ?? 0);
@@ -391,32 +309,30 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
         {data?.targetNodeName && (
           <EdgeLabel
             transform={`
-        ${getLabelTransform(targetX, targetY, targetPosition)}
-        translate(
-          ${inboundOffset.x}px,
-          ${inboundOffset.y}px
-        )
-      `}
+           ${getLabelTransform(targetX, targetY, targetPosition)}
+            translate(
+      ${data?.targetLabelOffset?.x ?? 0}px,
+      ${data?.targetLabelOffset?.y ?? 0}px
+    )
+         `}
             description={data.description}
             inbound={isUp ? formatBandwidth(Number(displayInbound ?? 0)) : "0"}
-            onMouseDown={(event) => handleLabelMouseDown(event, "inbound")}
           />
         )}
 
         {data?.sourceNodeName && (
           <EdgeLabel
             transform={`
-        ${getLabelTransform(sourceX, sourceY, sourcePosition)}
-        translate(
-          ${outboundOffset.x}px,
-          ${outboundOffset.y}px
-        )
-      `}
+           ${getLabelTransform(sourceX, sourceY, sourcePosition)}
+            translate(
+      ${data?.sourceLabelOffset?.x ?? 0}px,
+      ${data?.sourceLabelOffset?.y ?? 0}px
+    )
+         `}
             description={data.description}
             outbound={
               isUp ? formatBandwidth(Number(displayOutbound ?? 0)) : "0"
             }
-            onMouseDown={(event) => handleLabelMouseDown(event, "outbound")}
           />
         )}
       </EdgeLabelRenderer>
@@ -424,4 +340,4 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
   );
 };
 
-export default CustomEdgeStartEnd;
+export default ViewEdgeStartEnd;
