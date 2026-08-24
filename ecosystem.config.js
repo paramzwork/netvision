@@ -5,10 +5,30 @@ module.exports = {
       cwd: "/var/www/netvision",
       script: "npm",
       args: "start",
+
       env: {
         NODE_ENV: "production",
         PORT: 3000,
       },
+
+      autorestart: true,
+      restart_delay: 5000,
+      watch: false,
+    },
+
+    {
+      name: "traffic-poller",
+      cwd: "/var/www/netvision",
+      script: "npm",
+      args: "run poll",
+
+      env: {
+        NODE_ENV: "production",
+      },
+
+      autorestart: true,
+      restart_delay: 5000,
+      watch: false,
     },
   ],
 };

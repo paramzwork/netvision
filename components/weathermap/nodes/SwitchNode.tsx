@@ -54,7 +54,7 @@ export default function SwitchNode({ data, selected }: NodeProps<RouterNode>) {
           alt=""
         />
 
-        <div className="text-[clamp(8px,10cqw,14px)] mt-1 font-medium">
+        <div className="text-[clamp(8px,10cqw,14px)] mt-1 font-semibold">
           {data.nodeName}
         </div>
 

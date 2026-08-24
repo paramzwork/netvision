@@ -19,26 +19,36 @@ export interface RouterNodeData extends Record<string, unknown> {
   handles: HandleLayout;
 }
 export type RouterNode = Node<RouterNodeData>;
-export default function RouterNode({ data, selected }: NodeProps<RouterNode>) {
+export default function RouterNodeSettings({ data, selected }: NodeProps<RouterNode>) {
   const createHandles = (handles: NodeHandle[] | undefined, side: Position) => {
     if (!handles || handles.length === 0) return null;
-    return handles.map((handle, index) => (
-      <Handle
-        key={handle.id}
-        id={handle.id}
-        position={side}
-        type={handle.type}
-        style={
-          side === Position.Left || side === Position.Right
-            ? {
-                top: `${((index + 1) / (handles.length + 1)) * 100}%`,
-              }
-            : {
-                left: `${((index + 1) / (handles.length + 1)) * 100}%`,
-              }
-        }
-      />
-    ));
+    console.log("========== CREATE HANDLES ==========");
+    console.log("side:", side);
+    console.log("handles:", handles);
+    return handles.map((handle, index) => {
+      console.log("RENDER RIGHT HANDLE", {
+        handleId: handle.id,
+        type: handle.type,
+        interfaceId: handle.interfaceId,
+      });
+      return (
+        <Handle
+          key={handle.id}
+          id={handle.id}
+          position={side}
+          type={handle.type}
+          style={
+            side === Position.Left || side === Position.Right
+              ? {
+                  top: `${((index + 1) / (handles.length + 1)) * 100}%`,
+                }
+              : {
+                  left: `${((index + 1) / (handles.length + 1)) * 100}%`,
+                }
+          }
+        />
+      );
+    });
   };
 
   return (
@@ -55,7 +65,7 @@ export default function RouterNode({ data, selected }: NodeProps<RouterNode>) {
             className="object-contain"
           />
         </div>
-        <div className="text-[clamp(8px,10cqw,16px)] mt-1 font-medium">
+        <div className="text-[clamp(8px,10cqw,16px)] mt-1 font-semibold">
           {data.nodeName}
         </div>
 

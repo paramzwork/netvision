@@ -29,6 +29,7 @@ model roles {
   users     users[]
 }
 
+
 model devices {
   id           Int       @id @default(autoincrement())
   ipAddress    String    @unique
@@ -50,6 +51,19 @@ model devices {
   createdAt    DateTime  @default(now()) @db.Timestamptz(6)
   updatedAt    DateTime  @updatedAt @db.Timestamptz(6)
 }
+
+model system_settings {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+}
+
+
+
+
+
 
 model interfaces {
   id          Int      @id @default(autoincrement())

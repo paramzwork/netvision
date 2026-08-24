@@ -7,12 +7,13 @@ import { tripleDecode, tripleEncode } from "@/lib/utils";
 import {
   EdgeLabelRenderer,
   EdgeMouseHandler,
+  EdgeTypes,
   MiniMap,
   ReactFlow,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
-import { Settings } from "lucide-react";
+import { Maximize2, Minimize2, Settings } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React, {
@@ -23,7 +24,6 @@ import React, {
   useState,
 } from "react";
 import {
-  edgeTypes,
   TopologyEdge,
   TopologyEdgeData,
   TopologyNode,
@@ -35,6 +35,7 @@ import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
 import { useDevicesStore, useInterfacesWeathermap } from "@/store/device-store";
 import { toast } from "sonner";
 import { InterfaceTypes } from "@/lib/types";
+import ViewEdgeStartEnd from "@/components/ViewEdgeStartEnd";
 
 const nodeTypes = {
   router: ViewRouterNode,
@@ -43,7 +44,9 @@ const nodeTypes = {
   server: ViewServerNode,
   blank: ViewCloudNode,
 };
-
+export const edgeTypes: EdgeTypes = {
+  "start-end": ViewEdgeStartEnd,
+};
 export default function ViewWeathermap() {
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
@@ -57,6 +60,7 @@ export default function ViewWeathermap() {
   const router = useRouter();
   const hasMountedRef = useRef<boolean>(false);
   const hasFetchedInterfacesRef = useRef<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   const [trafficEdgeId, setTrafficEdgeId] = useState<string | null>(null);
   const trafficEdge = useMemo(() => {
@@ -310,8 +314,6 @@ export default function ViewWeathermap() {
   }, [device, fetchInterfaces]);
   useEffect(() => {
     if (topologyId === null) return;
-    console.log(!Number.isInteger(topologyId));
-
     loadTopology(topologyId);
   }, [topologyId, loadTopology]);
   useEffect(() => {
@@ -341,7 +343,6 @@ export default function ViewWeathermap() {
             if (!traffic) {
               return edge;
             }
-
             const history = Array.isArray(edge.data?.trafficHistory)
               ? edge.data.trafficHistory
               : [];
@@ -484,7 +485,13 @@ export default function ViewWeathermap() {
           </Link>
         </div>
       </div>
-      <div className="w-full h-185 bg-[#2b2a2a] border rounded-md overflow-hidden">
+      <div
+        className={
+          isFullscreen
+            ? "fixed inset-0 z-9999 bg-[#2b2a2a]"
+            : "w-full h-185 bg-[#2b2a2a] border rounded-md overflow-hidden"
+        }
+      >
         <ReactFlow<TopologyNode, TopologyEdge>
           nodes={nodes}
           edges={edges}
@@ -495,6 +502,21 @@ export default function ViewWeathermap() {
           colorMode="system"
         >
           <MiniMap />
+          {/* Fullscreen button */}
+          <div className="absolute top-3 right-3 z-50">
+            <button
+              type="button"
+              onClick={() => setIsFullscreen((prev) => !prev)}
+              className="flex items-center justify-center w-9 h-9 rounded-md border bg-background/90 hover:bg-background shadow-sm"
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {isFullscreen ? (
+                <Minimize2 className="w-4 h-4" />
+              ) : (
+                <Maximize2 className="w-4 h-4" />
+              )}
+            </button>
+          </div>
         </ReactFlow>
       </div>
       {trafficEdge && trafficEdgePosition && (
@@ -523,6 +545,8 @@ export default function ViewWeathermap() {
               aggregatedInterfaces={
                 trafficEdge.data?.aggregatedInterfaces ?? []
               }
+              inbound={trafficEdge.data?.inbound ?? 0}
+              outbound={trafficEdge.data?.outbound ?? 0}
               onClose={() => setTrafficEdgeId(null)}
               onDragStart={handleTrafficPanelMouseDown}
             />

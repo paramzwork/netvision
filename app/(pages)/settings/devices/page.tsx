@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -15,9 +22,30 @@ import {
 import { DeviceInfoTypes, InterfaceTypes } from "@/lib/types";
 import { tripleEncode } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
+const RETENTION_OPTIONS = [
+  {
+    value: "1",
+    label: "30 Days",
+  },
+  {
+    value: "2",
+    label: "2 Months",
+  },
+  {
+    value: "3",
+    label: "3 Months",
+  },
+  {
+    value: "6",
+    label: "6 Months",
+  },
+  {
+    value: "12",
+    label: "12 Months",
+  },
+];
 export default function SystemDevicesSettings() {
   const router = useRouter();
   const [discoverIP, setDescoverIP] = useState<string>("");
@@ -176,6 +204,63 @@ export default function SystemDevicesSettings() {
         return <Badge variant="outline">Unknown</Badge>;
     }
   };
+
+  const [months, setMonths] = useState("2");
+
+  useEffect(() => {
+    const loadSetting = async () => {
+      try {
+        const res = await fetch("/api/snmp/traffic/retention");
+
+        const data = await res.json();
+
+        if (res.ok) {
+          setMonths(String(data.months));
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSetting();
+  }, [setLoading]);
+
+  const handleChange = async (value: string) => {
+    const previousValue = months;
+
+    setMonths(value);
+
+    try {
+      const res = await fetch("/api/snmp/traffic/retention", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          months: Number(value),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMonths(previousValue);
+
+        toast.error(data.message || "Failed to update retention.");
+
+        return;
+      }
+
+      toast.success("Traffic data retention updated.");
+    } catch {
+      setMonths(previousValue);
+
+      toast.error("Failed to update retention.");
+    }
+  };
+
   return (
     <div>
       <div className="space-y-2">
@@ -416,6 +501,38 @@ export default function SystemDevicesSettings() {
         </Table>
         <Button type="submit">Save</Button>
       </form>
+      <div className="space-y-3">
+        <div>
+          <h3 className="font-medium">Traffic Data Retention</h3>
+
+          <p className="text-sm text-muted-foreground">
+            Choose how long NetVision keeps interface traffic statistics.
+          </p>
+        </div>
+
+        <Select
+          value={months}
+          onValueChange={(e) => handleChange(e as string)}
+          disabled={loading}
+        >
+          <SelectTrigger className="w-55">
+            <SelectValue placeholder="Select retention" />
+          </SelectTrigger>
+
+          <SelectContent>
+            {RETENTION_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <p className="text-xs text-muted-foreground">
+          Traffic statistics older than this period will be automatically
+          deleted.
+        </p>
+      </div>
     </div>
   );
 }

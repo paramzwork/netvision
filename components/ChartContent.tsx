@@ -1,4 +1,4 @@
-import { DataPoint, GraphType, InterfaceResponse } from "@/lib/types";
+import { GraphType, InterfaceResponse, VisibleDataPoint } from "@/lib/types";
 import {
   Area,
   AreaChart,
@@ -14,7 +14,7 @@ import React, { useRef, useState } from "react";
 
 interface ChartContentProps {
   graphType: GraphType;
-  visibleData: (DataPoint & { label: string })[];
+  visibleData: VisibleDataPoint[];
   displayedInterfaces: InterfaceResponse[];
   hoveredInterface: string | null;
   setHoveredInterface: (name: string | null) => void;
@@ -138,8 +138,14 @@ export default function ChartContent({
           // ==========================================
 
           const values = visibleData
-            .map((point) => Number(point[iface.name] ?? 0))
-            .filter((value) => Number.isFinite(value));
+            .map((point) => point[iface.name])
+            .filter(
+              (value): value is number =>
+                value !== null &&
+                value !== undefined &&
+                Number.isFinite(Number(value)),
+            )
+            .map(Number);
 
           const current = values.length > 0 ? values[values.length - 1] : 0;
 
@@ -242,7 +248,6 @@ export default function ChartContent({
                       fill={`url(#${gradientId})`}
                       dot={false}
                       isAnimationActive={false}
-                      connectNulls
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -417,6 +422,7 @@ export default function ChartContent({
                     strokeOpacity={isDimmed ? 0.15 : 1}
                     dot={false}
                     isAnimationActive={false}
+                    connectNulls={false}
                     onMouseEnter={() => setHoveredInterface(iface.name)}
                   />
                 </React.Fragment>

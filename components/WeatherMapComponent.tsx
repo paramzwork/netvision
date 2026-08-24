@@ -25,7 +25,6 @@ import { useUpdateNodeInternals } from "@xyflow/react";
 
 import NodeHandleSettings from "./NodeHandleSettings";
 import { useCallback, useEffect, useRef, useState } from "react";
-import TestRouterNode from "./TestRouterNode";
 import CustomEdgeStartEnd, { EdgePosition } from "./CustomEdgeStartEnd";
 import SidebarWeathermap from "./SidebarWeathermap";
 import { useDevicesStore, useInterfacesWeathermap } from "@/store/device-store";
@@ -40,8 +39,9 @@ import CloudNode from "./weathermap/nodes/CloudNode";
 import { Input } from "./ui/input";
 import ServerNode from "./weathermap/nodes/ServerNode";
 import { AggregatedInterface } from "@/app/(pages)/settings/weathermap/[id]/page";
+import RouterNodeSettings from "./weathermap/nodes/RouterNode";
 const nodeTypes = {
-  router: TestRouterNode,
+  router: RouterNodeSettings,
   switch: SwitchNode,
   cloud: CloudNode,
   server: ServerNode,
@@ -143,13 +143,25 @@ export interface TopologyEdgeData extends Record<string, unknown> {
   aggregatedInterfaces?: AggregatedInterface[];
 
   edgePosition?: EdgePosition;
+
+  targetLabelOffset?: {
+    x: number;
+    y: number;
+  };
+
+  sourceLabelOffset?: {
+    x: number;
+    y: number;
+  };
 }
 
 export type TopologyEdge = Edge<TopologyEdgeData>;
 export default function WeatherMapComponent() {
   // Interface and device
-  const { interfaces, setInterfaces } = useInterfacesWeathermap();
-  const { device, setDevice } = useDevicesStore();
+  const device = useDevicesStore((state) => state.device);
+  const setDevice = useDevicesStore((state) => state.setDevice);
+  const interfaces = useInterfacesWeathermap((state) => state.interfaces);
+  const setInterfaces = useInterfacesWeathermap((state) => state.setInterfaces);
 
   // Node
   const [nodeName, setNodeName] = useState<string>("");
@@ -179,7 +191,6 @@ export default function WeatherMapComponent() {
   //   Edge
 
   const router = useRouter();
-  const hasMountedRef = useRef<boolean>(false);
   const hasFetchedInterfacesRef = useRef<boolean>(false);
   const [topologyName, setTopologyName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -366,23 +377,6 @@ export default function WeatherMapComponent() {
       let aggregatedInbound = 0;
       let aggregatedOutbound = 0;
 
-      console.log("========== SOURCE HANDLE AGGREGATION ==========");
-      console.log("Node:", sourceNode.data.nodeName);
-      console.log("Handle:", sourceHandle.id);
-      console.log("Handle aggregationId:", sourceHandle.aggregationId);
-
-      console.log(
-        "Available aggregations:",
-        sourceNode.data.aggregations?.map((agg) => ({
-          id: agg.id,
-          name: agg.name,
-          interfaces: agg.interfaces.map((iface) => ({
-            id: iface.id,
-            interfaceId: iface.interfaceId,
-            interfaceName: iface.interfaceName,
-          })),
-        })),
-      );
       if (
         sourceIsBlank &&
         sourceNode.data.aggregationMode === "manual" &&
@@ -404,18 +398,6 @@ export default function WeatherMapComponent() {
             0,
           );
 
-          console.log("========== AGGREGATION TRAFFIC ==========");
-          console.log("Aggregation:", aggregation.id);
-          console.log("Name:", aggregation.name);
-
-          aggregation.interfaces.forEach((iface) => {
-            console.log({
-              interfaceId: iface.interfaceId,
-              interfaceName: iface.interfaceName,
-              inbound: iface.inbound,
-              outbound: iface.outbound,
-            });
-          });
           // Update the handle with the aggregation traffic
           updateHandleTraffic(
             sourceNode.id,
@@ -580,7 +562,6 @@ export default function WeatherMapComponent() {
   );
 
   const handleNodeSettings = (node: TopologyNode) => {
-    console.log(node);
     setSelectedNode(node);
 
     setNodeName(
@@ -688,7 +669,6 @@ export default function WeatherMapComponent() {
             aggregations: [],
           },
         };
-        console.log(newNode);
         setNodes((nds) => [...nds, newNode]);
         return;
       }
@@ -729,80 +709,86 @@ export default function WeatherMapComponent() {
     },
     [dragItem, screenToFlowPosition, device, nodeType, setNodes],
   );
+  useEffect(() => {
+    const currentDevices = useDevicesStore.getState().device;
 
-  const fetchDevice = useCallback(async () => {
-    if (device.length > 0) {
-      setDevice(device);
+    if (currentDevices.length > 0) {
       return;
     }
-    try {
-      // const raw = tripleEncode("all");
-      const res = await fetch(`/api/snmp/device`, { method: "GET" });
-      const resData = await res.json();
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.replace("/");
-          return;
-        }
-        toast.error(resData.message);
-        return;
-      }
-      setDevice(resData.data);
-      toast.success("Devices loaded successfully!");
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  }, [device, router, setDevice]);
 
-  const fetchInterfaces = useCallback(async () => {
-    if (device.length === 0) return;
+    const fetchDevice = async () => {
+      try {
+        const res = await fetch("/api/snmp/device", {
+          method: "GET",
+        });
 
-    try {
-      const results = await Promise.all(
-        device.map(async (dev) => {
-          const raw = tripleEncode(dev.ipAddress);
+        const resData = await res.json();
 
-          const res = await fetch(`/api/snmp/traffic?id=${raw}`);
-
-          const resData = await res.json();
-
-          if (!res.ok) {
-            throw new Error(resData.message || "Failed fetching interface");
+        if (!res.ok) {
+          if (res.status === 401) {
+            router.replace("/");
+            return;
           }
 
-          return resData.interfaces.map((iface: InterfaceTypes) => ({
-            ...iface,
+          toast.error(resData.message);
+          return;
+        }
 
-            deviceIp: dev.ipAddress,
-          }));
-        }),
-      );
+        setDevice(resData.data);
 
-      const allInterfaces = results.flat();
-      setInterfaces(allInterfaces);
+        toast.success("Devices loaded successfully!");
+      } catch {
+        toast.error("Internal Server Error.", {
+          description: "Server error please contact admin.",
+        });
+      }
+    };
 
-      toast.success("Interfaces loaded successfully!");
-    } catch (error) {
-      console.error(error);
-
-      toast.error("Failed loading interfaces");
-    }
-  }, [device, setInterfaces]);
-  useEffect(() => {
-    if (hasMountedRef.current) return;
     fetchDevice();
-    hasMountedRef.current = true;
-  }, [fetchDevice]);
+  }, [router, setDevice]);
 
   useEffect(() => {
     if (device.length === 0) return;
     if (hasFetchedInterfacesRef.current) return;
 
-    fetchInterfaces();
     hasFetchedInterfacesRef.current = true;
-  }, [device, fetchInterfaces]);
+
+    const fetchInterfaces = async () => {
+      try {
+        const results = await Promise.all(
+          device.map(async (dev) => {
+            const raw = tripleEncode(dev.ipAddress);
+
+            const res = await fetch(`/api/snmp/traffic?id=${raw}`);
+
+            const resData = await res.json();
+
+            if (!res.ok) {
+              throw new Error(resData.message || "Failed fetching interface");
+            }
+
+            return resData.interfaces.map((iface: InterfaceTypes) => ({
+              ...iface,
+              deviceIp: dev.ipAddress,
+            }));
+          }),
+        );
+
+        setInterfaces(results.flat());
+
+        toast.success("Interfaces loaded successfully!");
+      } catch (error) {
+        console.error(error);
+
+        // Allow retry if the request failed
+        hasFetchedInterfacesRef.current = false;
+
+        toast.error("Failed loading interfaces");
+      }
+    };
+
+    fetchInterfaces();
+  }, [device, setInterfaces]);
 
   const saveTopology = useCallback(async () => {
     const name = topologyName.trim();
@@ -940,10 +926,6 @@ export default function WeatherMapComponent() {
             setAggregations={setAggregations}
             onSave={({ type, handles, aggregationMode, aggregations }) => {
               if (!selectedNode) return;
-
-              console.log("Saving node:", selectedNode);
-              console.log("Aggregation Mode:", aggregationMode);
-              console.log("Aggregations:", aggregations);
 
               setNodes((nds) =>
                 nds.map((n) =>
