@@ -517,6 +517,36 @@ export default function ViewWeathermap() {
               )}
             </button>
           </div>
+          <div className="absolute top-3 left-3 z-50">
+            <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
+              <div className="mb-2 text-xs font-semibold">Traffic Load</div>
+
+              <div className="space-y-1">
+                {[
+                  { color: "#ff0000", label: "0–0%" },
+                  { color: "#bdbdbd", label: "0–1%" },
+                  { color: "#f3f4f6", label: "1–10%" },
+                  { color: "#8b00ff", label: "10–25%" },
+                  { color: "#6a00ff", label: "25–40%" },
+                  { color: "#00bfff", label: "40–55%" },
+                  { color: "#ffff00", label: "55–70%" },
+                  { color: "#ffa500", label: "70–85%" },
+                  { color: "#00e600", label: "85–100%" },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-2">
+                    <span
+                      className="h-3 w-6 rounded-sm border"
+                      style={{
+                        backgroundColor: item.color,
+                      }}
+                    />
+
+                    <span className="text-[10px]">{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </ReactFlow>
       </div>
       {trafficEdge && trafficEdgePosition && (

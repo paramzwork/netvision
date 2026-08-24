@@ -55,6 +55,7 @@ import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Input } from "@/components/ui/input";
 import RouterNodeSettings from "@/components/weathermap/nodes/RouterNode";
+import { Maximize2, Minimize2 } from "lucide-react";
 const nodeTypes = {
   router: RouterNodeSettings,
   switch: SwitchNode,
@@ -107,6 +108,7 @@ export default function ViewWeathermapSettings() {
     bottom: 0,
     left: 0,
   });
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // React Flow
   const { screenToFlowPosition } = useReactFlow();
@@ -1029,7 +1031,13 @@ export default function ViewWeathermapSettings() {
         </Button>
       </div>
       <div className="flex flex-row gap-2">
-        <div className="w-full h-174 flex flex-col items-start justify-center border rounded-md overflow-hidden">
+        <div
+          className={
+            isFullscreen
+              ? "fixed inset-0 z-9999"
+              : "w-full h-174 flex flex-col items-start justify-center border rounded-md overflow-hidden"
+          }
+        >
           <div className="w-full h-full">
             <ReactFlow<TopologyNode, TopologyEdge>
               nodes={nodes}
@@ -1053,7 +1061,51 @@ export default function ViewWeathermapSettings() {
               colorMode="system"
             >
               <Background />
-              <MiniMap />
+              <MiniMap />{" "}
+              <div className="absolute top-3 right-3 z-50">
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen((prev) => !prev)}
+                  className="flex items-center justify-center w-9 h-9 rounded-md border bg-background/90 hover:bg-background shadow-sm"
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="w-4 h-4" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              <div className="absolute top-3 left-3 z-50">
+                <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
+                  <div className="mb-2 text-xs font-semibold">Traffic Load</div>
+
+                  <div className="space-y-1">
+                    {[
+                      { color: "#ff0000", label: "0–0%" },
+                      { color: "#bdbdbd", label: "0–1%" },
+                      { color: "#f3f4f6", label: "1–10%" },
+                      { color: "#8b00ff", label: "10–25%" },
+                      { color: "#6a00ff", label: "25–40%" },
+                      { color: "#00bfff", label: "40–55%" },
+                      { color: "#ffff00", label: "55–70%" },
+                      { color: "#ffa500", label: "70–85%" },
+                      { color: "#00e600", label: "85–100%" },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-6 rounded-sm border"
+                          style={{
+                            backgroundColor: item.color,
+                          }}
+                        />
+
+                        <span className="text-[10px]">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </ReactFlow>
             <NodeHandleSettings
               open={!!selectedNode}
