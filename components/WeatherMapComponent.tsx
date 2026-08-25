@@ -46,6 +46,7 @@ const nodeTypes = {
   cloud: CloudNode,
   server: ServerNode,
   blank: CloudNode,
+  blank1: RouterNodeSettings,
 };
 export const edgeTypes: EdgeTypes = {
   "start-end": CustomEdgeStartEnd,

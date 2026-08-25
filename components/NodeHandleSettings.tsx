@@ -70,6 +70,7 @@ const nodeTypeList = [
   { value: "cloud", image: "/images/cloud.png" },
   { value: "server", image: "/images/server.png" },
   { value: "blank", image: "/images/cloud.png" },
+  { value: "blank1", image: "/images/router.png" },
 ];
 export default function NodeHandleSettings({
   open,
@@ -220,14 +221,16 @@ export default function NodeHandleSettings({
             <SelectValue placeholder="Select device">
               <div className="flex items-center gap-2">
                 <Image
-                  src={`/images/${nodeType === "blank" ? "cloud" : nodeType}.png`}
+                  src={`/images/${nodeType === "blank" ? "cloud" : nodeType === "blank1" ? "router" : nodeType}.png`}
                   width={32}
                   height={32}
                   alt={`${nodeType} icon`}
                   className="object-contain"
                 />
 
-                <span className="capitalize">{nodeType}</span>
+                <span className="capitalize">
+                  {nodeType === "blank1" ? "Router" : nodeType}
+                </span>
               </div>
             </SelectValue>
           </SelectTrigger>
@@ -290,7 +293,7 @@ export default function NodeHandleSettings({
                     (handle) => handle.id === handleId,
                   );
                   console.log(existingHandle);
-                  console.log("Position", handleId)
+                  console.log("Position", handleId);
                   const handleType = existingHandle?.type ?? "source";
 
                   return (
