@@ -264,7 +264,7 @@ export default function ViewWeathermapSettings() {
       // ---------------------------------------------
       const isBlankNode = (nodeType?: string) =>
         nodeType === "blank" || nodeType === "blank1";
-      
+
       const sourceIsBlank = isBlankNode(sourceNode.data.nodeType);
       const targetIsBlank = isBlankNode(targetNode.data.nodeType);
 
@@ -306,7 +306,9 @@ export default function ViewWeathermapSettings() {
       let aggregation: AggregationGroup | undefined;
       let aggregatedInbound = 0;
       let aggregatedOutbound = 0;
-
+      console.log(sourceIsBlank);
+      console.log(sourceNode.data.aggregationMode);
+      console.log(sourceHandle?.aggregationId);
       if (
         sourceIsBlank &&
         sourceNode.data.aggregationMode === "manual" &&
@@ -450,7 +452,7 @@ export default function ViewWeathermapSettings() {
             : {}),
         },
       };
-
+      console.log("Edge:",edge);
       setEdges((eds) => [...eds, edge]);
     },
     [edges, nodes, setEdges, updateHandle, updateHandleTraffic],
