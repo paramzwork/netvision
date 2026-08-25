@@ -62,6 +62,7 @@ const nodeTypes = {
   cloud: CloudNode,
   server: ServerNode,
   blank: CloudNode,
+  blank1: RouterNodeSettings,
 };
 
 export interface AggregatedInterface {
