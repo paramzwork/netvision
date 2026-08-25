@@ -23,7 +23,7 @@ import {
 } from "@xyflow/react";
 import { useUpdateNodeInternals } from "@xyflow/react";
 
-import NodeHandleSettings from "./NodeHandleSettings";
+import NodeHandleSettings, { NodeType } from "./NodeHandleSettings";
 import { useCallback, useEffect, useRef, useState } from "react";
 import CustomEdgeStartEnd, { EdgePosition } from "./CustomEdgeStartEnd";
 import SidebarWeathermap from "./SidebarWeathermap";
@@ -47,6 +47,7 @@ const nodeTypes = {
   server: ServerNode,
   blank: CloudNode,
   blank1: RouterNodeSettings,
+  blank2: ServerNode,
 };
 export const edgeTypes: EdgeTypes = {
   "start-end": CustomEdgeStartEnd,
@@ -167,7 +168,8 @@ export default function WeatherMapComponent() {
   // Node
   const [nodeName, setNodeName] = useState<string>("");
   const [nodes, setNodes] = useNodesState<TopologyNode>([]);
-  const [nodeType, setNodeType] = useState<string>("");
+  const [nodeType, setNodeType] = useState<NodeType>("router");
+
   const [selectedNode, setSelectedNode] = useState<TopologyNode | null>(null);
   const [aggregationMode, setAggregationMode] =
     useState<AggregationMode>("automatic");
@@ -334,10 +336,11 @@ export default function WeatherMapComponent() {
       // ---------------------------------------------
       // Determine logical node purpose
       // ---------------------------------------------
+      const isBlankNode = (nodeType?: string) =>
+        nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
 
-      const sourceIsBlank = sourceNode.data.nodeType === "blank";
-
-      const targetIsBlank = targetNode.data.nodeType === "blank";
+      const sourceIsBlank = isBlankNode(sourceNode.data.nodeType);
+      const targetIsBlank = isBlankNode(targetNode.data.nodeType);
 
       // ---------------------------------------------
       // Normal nodes MUST have interfaces
@@ -362,12 +365,25 @@ export default function WeatherMapComponent() {
           sourceNode.data.nodeName ?? "Unknown",
         );
       }
-      if (!sourceIsBlank && sourceNode.data.interfaceId == null) {
+      const sourceInterfaceId = sourceIsBlank
+        ? sourceHandle.interfaceId
+        : sourceNode.data.interfaceId;
+
+      const targetInterfaceId = targetIsBlank
+        ? targetHandle.interfaceId
+        : targetNode.data.interfaceId;
+
+      const sourceIsAggregated = sourceIsBlank && !!sourceHandle.aggregationId;
+
+      const targetIsAggregated = targetIsBlank && !!targetHandle.aggregationId;
+
+      // Normal interface validation
+      if (sourceInterfaceId == null && !sourceIsAggregated) {
         toast.warning("Please assign an interface to the source handle.");
         return;
       }
 
-      if (!targetIsBlank && targetNode.data.interfaceId == null) {
+      if (targetInterfaceId == null && !targetIsAggregated) {
         toast.warning("Please assign an interface to the target handle.");
         return;
       }
@@ -377,7 +393,6 @@ export default function WeatherMapComponent() {
       let aggregation: AggregationGroup | undefined;
       let aggregatedInbound = 0;
       let aggregatedOutbound = 0;
-
       if (
         sourceIsBlank &&
         sourceNode.data.aggregationMode === "manual" &&
@@ -455,27 +470,14 @@ export default function WeatherMapComponent() {
         type: "start-end",
 
         data: {
-          ...(sourceIsBlank
-            ? {
-                sourceInterfaceName: sourceHandle.interfaceName ?? "Blank Node",
-                sourceNodeType: sourceNode.type,
-              }
-            : {
-                sourceInterfaceId: sourceNode.data.interfaceId,
-                sourceInterfaceName: sourceHandle.interfaceName ?? "",
-                sourceNodeType: sourceNode.type ?? "",
-              }),
+          sourceInterfaceId,
+          sourceInterfaceName: sourceHandle.interfaceName ?? "",
+          sourceNodeType: sourceNode.type ?? "",
 
-          ...(targetIsBlank
-            ? {
-                targetInterfaceName: targetHandle.interfaceName ?? "Blank Node",
-                targetNodeType: targetNode.type,
-              }
-            : {
-                targetInterfaceId: targetNode.data.interfaceId,
-                targetInterfaceName: targetHandle.interfaceName ?? "",
-                targetNodeType: targetNode.type ?? "",
-              }),
+          targetInterfaceId,
+          targetInterfaceName: targetHandle.interfaceName ?? "",
+          targetNodeType: targetNode.type ?? "",
+
           sourceNodeName: sourceNode.data.nodeName ?? "Unknown",
           targetNodeName: targetNode.data.nodeName ?? "Unknown",
           bandwidthMbps: 1000,
@@ -492,6 +494,16 @@ export default function WeatherMapComponent() {
           targetAdminStatus: 0,
           targetOperStatus: 0,
           targetStatus: "",
+
+          sourceLabelOffset: {
+            x: 0,
+            y: 0,
+          },
+
+          targetLabelOffset: {
+            x: 0,
+            y: 0,
+          },
 
           swapTraffic: false,
 
@@ -511,7 +523,6 @@ export default function WeatherMapComponent() {
             : {}),
         },
       };
-
       setEdges((eds) => [...eds, edge]);
     },
     [edges, nodes, setEdges, updateHandle, updateHandleTraffic],
@@ -568,7 +579,7 @@ export default function WeatherMapComponent() {
     setNodeName(
       node.data.nodeName === "" ? node.data.description : node.data.nodeName,
     );
-    setNodeType(node.type ?? "");
+    setNodeType((node.type ?? "") as NodeType);
 
     setCounts({
       top: node.data.handles.top.length,
@@ -925,6 +936,7 @@ export default function WeatherMapComponent() {
             setHandles={setHandles}
             setAggregationMode={setAggregationMode}
             setAggregations={setAggregations}
+            interfaces={interfaces}
             onSave={({ type, handles, aggregationMode, aggregations }) => {
               if (!selectedNode) return;
 
@@ -951,7 +963,7 @@ export default function WeatherMapComponent() {
                 ),
               );
 
-              setNodeType("");
+              setNodeType("router");
 
               setCounts({
                 top: 0,

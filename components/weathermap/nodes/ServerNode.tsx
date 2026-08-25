@@ -46,7 +46,7 @@ export default function ServerNode({ data, selected }: NodeProps<RouterNode>) {
       <NodeResizer isVisible={selected} />
 
       <div className="h-full flex flex-col items-center justify-center p-2">
-        <div className="relative w-[20cqw] h-[20cqw] max-w-20 max-h-20 min-w-14 min-h-14">
+        <div className="relative w-[20cqw] h-[20cqw] max-w-20 max-h-20 min-w-9 min-h-9">
           <Image
             src="/images/server.png"
             alt="Server icon"
