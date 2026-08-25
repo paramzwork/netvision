@@ -262,10 +262,11 @@ export default function ViewWeathermapSettings() {
       // ---------------------------------------------
       // Determine logical node purpose
       // ---------------------------------------------
-
-      const sourceIsBlank = sourceNode.data.nodeType === "blank";
-
-      const targetIsBlank = targetNode.data.nodeType === "blank";
+      const isBlankNode = (nodeType?: string) =>
+        nodeType === "blank" || nodeType === "blank1";
+      
+      const sourceIsBlank = isBlankNode(sourceNode.data.nodeType);
+      const targetIsBlank = isBlankNode(targetNode.data.nodeType);
 
       // ---------------------------------------------
       // Normal nodes MUST have interfaces
