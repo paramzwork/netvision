@@ -36,7 +36,7 @@ import {
   AggregationMode,
   useDnD,
 } from "@/components/DnDContext";
-import NodeHandleSettings from "@/components/NodeHandleSettings";
+import NodeHandleSettings, { NodeType } from "@/components/NodeHandleSettings";
 import EdgeSettings from "@/components/EdgeSettings";
 import { Button } from "@/components/ui/button";
 import SidebarWeathermap from "@/components/SidebarWeathermap";
@@ -63,6 +63,7 @@ const nodeTypes = {
   server: ServerNode,
   blank: CloudNode,
   blank1: RouterNodeSettings,
+  blank2: ServerNode,
 };
 
 export interface AggregatedInterface {
@@ -78,7 +79,7 @@ export default function ViewWeathermapSettings() {
   // Node
   const [nodes, setNodes] = useNodesState<TopologyNode>([]);
   const [nodeName, setNodeName] = useState<string>("");
-  const [nodeType, setNodeType] = useState<string>("");
+  const [nodeType, setNodeType] = useState<NodeType>("router");
   const [selectedNode, setSelectedNode] = useState<TopologyNode | null>(null);
   const [handles, setHandles] = useState<HandleLayout>({
     top: [],
@@ -227,18 +228,6 @@ export default function ViewWeathermapSettings() {
       ) {
         return;
       }
-      console.log("========== ON CONNECT ==========");
-      console.log("params:", params);
-
-      console.log("source:", {
-        nodeId: params.source,
-        handleId: params.sourceHandle,
-      });
-
-      console.log("target:", {
-        nodeId: params.target,
-        handleId: params.targetHandle,
-      });
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
 
@@ -263,7 +252,7 @@ export default function ViewWeathermapSettings() {
       // Determine logical node purpose
       // ---------------------------------------------
       const isBlankNode = (nodeType?: string) =>
-        nodeType === "blank" || nodeType === "blank1";
+        nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
 
       const sourceIsBlank = isBlankNode(sourceNode.data.nodeType);
       const targetIsBlank = isBlankNode(targetNode.data.nodeType);
@@ -291,13 +280,25 @@ export default function ViewWeathermapSettings() {
           sourceNode.data.nodeName ?? "Unknown",
         );
       }
-      if (!sourceIsBlank && sourceNode.data.interfaceId == null) {
-        toast.warning("Please assign an interface to the source handle.");
+      const sourceInterfaceId = sourceIsBlank
+        ? sourceHandle.interfaceId
+        : sourceNode.data.interfaceId;
+
+      const targetInterfaceId = targetIsBlank
+        ? targetHandle.interfaceId
+        : targetNode.data.interfaceId;
+
+      // const sourceIsAggregated = sourceIsBlank && !!sourceHandle.aggregationId;
+
+      // const targetIsAggregated = targetIsBlank && !!targetHandle.aggregationId;
+      // Normal interface validation
+      if (!sourceIsBlank && sourceInterfaceId == null) {
+        toast.warning("Please assign an interface to the source node.");
         return;
       }
 
-      if (!targetIsBlank && targetNode.data.interfaceId == null) {
-        toast.warning("Please assign an interface to the target handle.");
+      if (!targetIsBlank && targetInterfaceId == null) {
+        toast.warning("Please assign an interface to the target node.");
         return;
       }
 
@@ -306,9 +307,6 @@ export default function ViewWeathermapSettings() {
       let aggregation: AggregationGroup | undefined;
       let aggregatedInbound = 0;
       let aggregatedOutbound = 0;
-      console.log(sourceIsBlank);
-      console.log(sourceNode.data.aggregationMode);
-      console.log(sourceHandle?.aggregationId);
       if (
         sourceIsBlank &&
         sourceNode.data.aggregationMode === "manual" &&
@@ -386,27 +384,14 @@ export default function ViewWeathermapSettings() {
         type: "start-end",
 
         data: {
-          ...(sourceIsBlank
-            ? {
-                sourceInterfaceName: sourceHandle.interfaceName ?? "Blank Node",
-                sourceNodeType: sourceNode.type,
-              }
-            : {
-                sourceInterfaceId: sourceNode.data.interfaceId,
-                sourceInterfaceName: sourceHandle.interfaceName ?? "",
-                sourceNodeType: sourceNode.type ?? "",
-              }),
+          sourceInterfaceId,
+          sourceInterfaceName: sourceHandle.interfaceName ?? "",
+          sourceNodeType: sourceNode.type ?? "",
 
-          ...(targetIsBlank
-            ? {
-                targetInterfaceName: targetHandle.interfaceName ?? "Blank Node",
-                targetNodeType: targetNode.type,
-              }
-            : {
-                targetInterfaceId: targetNode.data.interfaceId,
-                targetInterfaceName: targetHandle.interfaceName ?? "",
-                targetNodeType: targetNode.type ?? "",
-              }),
+          targetInterfaceId,
+          targetInterfaceName: targetHandle.interfaceName ?? "",
+          targetNodeType: targetNode.type ?? "",
+
           sourceNodeName: sourceNode.data.nodeName ?? "Unknown",
           targetNodeName: targetNode.data.nodeName ?? "Unknown",
           bandwidthMbps: 1000,
@@ -452,7 +437,6 @@ export default function ViewWeathermapSettings() {
             : {}),
         },
       };
-      console.log("Edge:",edge);
       setEdges((eds) => [...eds, edge]);
     },
     [edges, nodes, setEdges, updateHandle, updateHandleTraffic],
@@ -507,7 +491,7 @@ export default function ViewWeathermapSettings() {
     setNodeName(
       node.data.nodeName === "" ? node.data.description : node.data.nodeName,
     );
-    setNodeType(node.type ?? "");
+    setNodeType((node.type ?? "router") as NodeType);
 
     setCounts({
       top: node.data.handles.top.length,
@@ -1127,6 +1111,7 @@ export default function ViewWeathermapSettings() {
               setHandles={setHandles}
               setAggregationMode={setAggregationMode}
               setAggregations={setAggregations}
+              interfaces={interfaces}
               onSave={({ type, handles, aggregationMode, aggregations }) => {
                 if (!selectedNode) return;
 
@@ -1153,7 +1138,7 @@ export default function ViewWeathermapSettings() {
                   ),
                 );
 
-                setNodeType("");
+                setNodeType("router");
 
                 setCounts({
                   top: 0,

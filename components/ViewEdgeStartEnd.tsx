@@ -126,7 +126,7 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
   };
 
   const isBlankNode = (nodeType?: string) =>
-    nodeType === "blank" || nodeType === "blank1";
+    nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
 
   const sourceIsBlank = isBlankNode(data?.sourceNodeType);
   const targetIsBlank = isBlankNode(data?.targetNodeType);
