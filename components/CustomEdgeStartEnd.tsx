@@ -129,8 +129,11 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
     }
   };
 
-  const sourceIsBlank = data?.sourceNodeType === "blank";
-  const targetIsBlank = data?.targetNodeType === "blank";
+  const isBlankNode = (nodeType?: string) =>
+    nodeType === "blank" || nodeType === "blank1";
+
+  const sourceIsBlank = isBlankNode(data?.sourceNodeType);
+  const targetIsBlank = isBlankNode(data?.targetNodeType);
   const sourceIsUp = sourceIsBlank || data?.sourceOperStatus === 1;
 
   const targetIsUp = targetIsBlank || data?.targetOperStatus === 1;
@@ -412,7 +415,7 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
           cursor: "pointer",
         }}
       />
-    
+
       <path
         d={edgePath}
         fill="none"
