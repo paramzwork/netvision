@@ -269,14 +269,14 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
         return [node.nodeId, nodeData];
       }),
     );
+    const isBlankNodeType = (nodeType?: string) => {
+      return nodeType === "blank" || nodeType === "blank1";
+    };
+
     const isBlankNode = (nodeId: string): boolean => {
       const node = nodeById.get(nodeId);
 
-      if (!node) {
-        return false;
-      }
-
-      return node.nodeType === "blank";
+      return isBlankNodeType(node?.nodeType);
     };
     const calculateEdgeTraffic = (
       edge: (typeof topology.edges)[number],
