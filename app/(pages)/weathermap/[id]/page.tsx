@@ -44,6 +44,7 @@ const nodeTypes = {
   server: ViewServerNode,
   blank: ViewCloudNode,
   blank1: ViewRouterNode,
+  blank2: ViewServerNode,
 };
 export const edgeTypes: EdgeTypes = {
   "start-end": ViewEdgeStartEnd,

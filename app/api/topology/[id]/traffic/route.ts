@@ -138,7 +138,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     );
 
     const isBlankNodeType = (nodeType?: string) =>
-      nodeType === "blank" || nodeType === "blank1";
+      nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
 
     const isBlankNode = (nodeId: string) => {
       return isBlankNodeType(nodeById.get(nodeId)?.nodeType);

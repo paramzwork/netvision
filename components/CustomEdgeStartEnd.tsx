@@ -130,7 +130,7 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
   };
 
   const isBlankNode = (nodeType?: string) =>
-    nodeType === "blank" || nodeType === "blank1";
+    nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
 
   const sourceIsBlank = isBlankNode(data?.sourceNodeType);
   const targetIsBlank = isBlankNode(data?.targetNodeType);
@@ -138,12 +138,7 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
 
   const targetIsUp = targetIsBlank || data?.targetOperStatus === 1;
   const isUp = sourceIsUp && targetIsUp;
-  console.log(data?.sourceNodeName);
-  console.log(sourceIsBlank);
-  console.log(targetIsBlank);
-  console.log(data?.sourceOperStatus);
-  console.log(data?.targetOperStatus);
-  console.log(isUp);
+
   const [inboundOffset, setInboundOffset] = useState(
     data?.targetLabelOffset ?? { x: 0, y: 0 },
   );
@@ -385,9 +380,6 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
   const outboundColor = isUp
     ? getTrafficLoadColor(Number(displayOutbound ?? 0))
     : "#ef4444";
-
-  console.log(`%cInbound ${displayInbound}`, `color: ${inboundColor}`);
-  console.log(`%cOutbound ${displayOutbound}`, `color: ${outboundColor}`);
 
   return (
     <>

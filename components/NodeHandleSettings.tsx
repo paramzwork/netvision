@@ -28,22 +28,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+
 import Image from "next/image";
 import { Switch } from "./ui/switch";
 import { AggregationGroup, AggregationMode } from "./DnDContext";
 import { Trash2 } from "lucide-react";
 import { useEffect } from "react";
+import { InterfaceTypes } from "@/lib/types";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "./ui/combobox";
 
 interface NodeHandleSettingsProps {
   open: boolean;
   node: TopologyNode | null;
   onClose: () => void;
-  nodeType: string;
+  nodeType: NodeType;
   nodeName: string;
   counts: HandleCounts;
 
   setCounts: React.Dispatch<React.SetStateAction<HandleCounts>>;
-  setNodeType: React.Dispatch<React.SetStateAction<string>>;
+  setNodeType: React.Dispatch<React.SetStateAction<NodeType>>;
   setNodeName: React.Dispatch<React.SetStateAction<string>>;
 
   handles: HandleLayout;
@@ -53,6 +63,8 @@ interface NodeHandleSettingsProps {
   setAggregationMode: React.Dispatch<React.SetStateAction<AggregationMode>>;
   setAggregations: React.Dispatch<React.SetStateAction<AggregationGroup[]>>;
 
+  interfaces: InterfaceTypes[];
+
   onSave: (settings: {
     nodeName: string;
     type: string;
@@ -61,17 +73,41 @@ interface NodeHandleSettingsProps {
     aggregations: AggregationGroup[];
   }) => void;
 }
-const nodeTypeList = [
-  {
-    value: "router",
-    image: "/images/router.png",
+const normalNodeTypes = ["router", "switch", "cloud", "server"] as const;
+
+const blankNodeTypes = ["blank", "blank1", "blank2"] as const;
+const nodeTypeConfig = {
+  router: {
+    image: "router",
+    label: "Router",
   },
-  { value: "switch", image: "/images/switch.png" },
-  { value: "cloud", image: "/images/cloud.png" },
-  { value: "server", image: "/images/server.png" },
-  { value: "blank", image: "/images/cloud.png" },
-  { value: "blank1", image: "/images/router.png" },
-];
+  switch: {
+    image: "switch",
+    label: "Switch",
+  },
+  cloud: {
+    image: "cloud",
+    label: "Cloud",
+  },
+  server: {
+    image: "server",
+    label: "Server",
+  },
+  blank: {
+    image: "cloud",
+    label: "Blank Cloud",
+  },
+  blank1: {
+    image: "router",
+    label: "Blank Router",
+  },
+  blank2: {
+    image: "server",
+    label: "Blank Server",
+  },
+} as const;
+
+export type NodeType = keyof typeof nodeTypeConfig;
 export default function NodeHandleSettings({
   open,
   node,
@@ -86,6 +122,8 @@ export default function NodeHandleSettings({
   setHandles,
   setAggregationMode,
   setAggregations,
+
+  interfaces,
 
   setCounts,
   setNodeType,
@@ -105,7 +143,7 @@ export default function NodeHandleSettings({
 
         interfaceId: existingHandle?.interfaceId,
 
-        interfaceName: existingHandle?.interfaceName ?? "",
+        interfaceName: existingHandle?.interfaceName ?? undefined,
 
         nodeName: existingHandle?.nodeName,
 
@@ -113,7 +151,6 @@ export default function NodeHandleSettings({
 
         type: existingHandle?.type ?? "source",
 
-        // Traffic
         inbound: existingHandle?.inbound ?? 0,
 
         outbound: existingHandle?.outbound ?? 0,
@@ -125,9 +162,6 @@ export default function NodeHandleSettings({
     handleId: string,
     aggregationId?: string,
   ) => {
-    console.log("position", position);
-    console.log("position", handleId);
-    console.log("position", aggregationId);
     setHandles((current) => ({
       ...current,
 
@@ -137,13 +171,28 @@ export default function NodeHandleSettings({
               ...handle,
               aggregationId:
                 aggregationId === "none" ? undefined : aggregationId,
+              interfaceId: undefined,
+              interfaceName: undefined,
+              nodeName: undefined,
             }
           : handle,
       ),
     }));
   };
+  const interfaceItems = [
+    {
+      id: "none",
+      name: "None",
+      description: "",
+    },
+    ...interfaces.map((iface) => ({
+      id: String(iface.id),
+      name: iface.name,
+      description: iface.description,
+    })),
+  ];
   const handleClose = () => {
-    setNodeType("");
+    setNodeType("router");
     setNodeName("");
 
     setCounts({
@@ -212,26 +261,26 @@ export default function NodeHandleSettings({
         />
         <Select
           value={nodeType}
-          onValueChange={(v) => setNodeType(v as string)}
+          onValueChange={(v) => setNodeType(v as NodeType)}
         >
           <SelectTrigger
             className="h-9! w-full! text-sm"
             aria-label="Select a preset time range"
           >
             <SelectValue placeholder="Select device">
-              <div className="flex items-center gap-2">
-                <Image
-                  src={`/images/${nodeType === "blank" ? "cloud" : nodeType === "blank1" ? "router" : nodeType}.png`}
-                  width={32}
-                  height={32}
-                  alt={`${nodeType} icon`}
-                  className="object-contain"
-                />
+              {nodeType && (
+                <div className="flex items-center gap-2">
+                  <Image
+                    src={`/images/${nodeTypeConfig[nodeType].image}.png`}
+                    width={32}
+                    height={32}
+                    alt={`${nodeTypeConfig[nodeType].label} icon`}
+                    className="object-contain"
+                  />
 
-                <span className="capitalize">
-                  {nodeType === "blank1" ? "Router" : nodeType}
-                </span>
-              </div>
+                  <span>{nodeTypeConfig[nodeType].label}</span>
+                </div>
+              )}
             </SelectValue>
           </SelectTrigger>
           <SelectContent
@@ -240,22 +289,51 @@ export default function NodeHandleSettings({
             alignItemWithTrigger={false}
           >
             <SelectGroup>
-              <SelectLabel>Node Type</SelectLabel>
-              {nodeTypeList.map((p, idx) => (
-                <SelectItem key={idx} value={p.value}>
-                  <div className="flex items-center gap-2">
-                    <Image
-                      src={p.image}
-                      width={32}
-                      height={32}
-                      alt={`${p.value} icon`}
-                      className="object-contain"
-                    />
+              <SelectLabel>Normal Nodes</SelectLabel>
 
-                    <span className="capitalize">{p.value}</span>
-                  </div>
-                </SelectItem>
-              ))}
+              {normalNodeTypes.map((type) => {
+                const config = nodeTypeConfig[type];
+
+                return (
+                  <SelectItem key={type} value={type}>
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src={`/images/${config.image}.png`}
+                        width={32}
+                        height={32}
+                        alt={`${config.label} icon`}
+                        className="object-contain"
+                      />
+
+                      <span>{config.label}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectGroup>
+
+            <SelectGroup>
+              <SelectLabel>Blank Nodes</SelectLabel>
+
+              {blankNodeTypes.map((type) => {
+                const config = nodeTypeConfig[type];
+
+                return (
+                  <SelectItem key={type} value={type}>
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src={`/images/${config.image}.png`}
+                        width={32}
+                        height={32}
+                        alt={`${config.label} icon`}
+                        className="object-contain"
+                      />
+
+                      <span>{config.label}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -292,10 +370,8 @@ export default function NodeHandleSettings({
                   const existingHandle = handles[position]?.find(
                     (handle) => handle.id === handleId,
                   );
-                  console.log(existingHandle);
-                  console.log("Position", handleId);
                   const handleType = existingHandle?.type ?? "source";
-
+                  const isAggregated = !!existingHandle?.aggregationId;
                   return (
                     <div
                       key={handleId}
@@ -303,28 +379,108 @@ export default function NodeHandleSettings({
                     >
                       {/* Handle information */}
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium">{handleId}</div>
+                        <div className="text-xs font-medium text-gray-500">
+                          {isAggregated && (
+                            <div className="w-fit p-1 rounded-full bg-amber-200 border border-amber-400 text-[9px]">
+                              Aggregated
+                            </div>
+                          )}
+                          {handleId}
+                        </div>
 
                         {existingHandle?.interfaceName && (
-                          <div className="text-xs text-muted-foreground truncate">
-                            {existingHandle.interfaceName}-
-                            {existingHandle.nodeName}
+                          <div className="flex flex-col">
+                            <span>{existingHandle.interfaceName}</span>
+
+                            {existingHandle.nodeName && (
+                              <span className="text-xs text-muted-foreground">
+                                {existingHandle.nodeName}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
+                      {!isAggregated && handleType === "source" && (
+                        <Combobox
+                          items={interfaceItems}
+                          value={
+                            existingHandle?.interfaceId != null
+                              ? (interfaceItems.find(
+                                  (iface) =>
+                                    iface.id ===
+                                    String(existingHandle.interfaceId),
+                                )?.name ?? "")
+                              : "None"
+                          }
+                          onValueChange={(value) => {
+                            setHandles((current) => {
+                              const positionHandles = current[position] ?? [];
 
+                              return {
+                                ...current,
+                                [position]: positionHandles.map((handle) =>
+                                  handle.id === handleId
+                                    ? value === "none"
+                                      ? {
+                                          ...handle,
+                                          interfaceId: undefined,
+                                          interfaceName: "",
+                                          nodeName: undefined,
+                                        }
+                                      : (() => {
+                                          const selectedInterface =
+                                            interfaces.find(
+                                              (iface) =>
+                                                String(iface.id) === value,
+                                            );
+
+                                          return {
+                                            ...handle,
+                                            interfaceId: selectedInterface?.id,
+                                            interfaceName:
+                                              selectedInterface?.name ?? "",
+                                            nodeName:
+                                              selectedInterface?.description ??
+                                              "",
+                                          };
+                                        })()
+                                    : handle,
+                                ),
+                              };
+                            });
+                          }}
+                        >
+                          <ComboboxInput
+                            placeholder="Select interface"
+                            className="w-48"
+                          />
+
+                          <ComboboxContent>
+                            <ComboboxEmpty>No interface found.</ComboboxEmpty>
+
+                            <ComboboxList>
+                              {(iface) => (
+                                <ComboboxItem key={iface.id} value={iface.id}>
+                                  <div className="flex flex-col">
+                                    <span>{iface.name}</span>
+
+                                    {iface.description && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {iface.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                </ComboboxItem>
+                              )}
+                            </ComboboxList>
+                          </ComboboxContent>
+                        </Combobox>
+                      )}
                       {/* Source / Target */}
                       <Select
                         value={handleType}
                         onValueChange={(value) => {
                           const type = value as HandleType;
-
-                          console.log("Changing handle:", {
-                            position,
-                            handleId,
-                            type,
-                          });
-
                           setHandles((current) => {
                             const positionHandles = current[position] ?? [];
 

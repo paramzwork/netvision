@@ -1,4 +1,4 @@
-import React, {useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -66,7 +66,7 @@ export default function SettingsWeathermapTable() {
           return;
         }
 
-        setDevice(resData.data);
+        setDevice(resData.devices);
 
         toast.success("Devices loaded successfully!");
       } catch {
@@ -146,7 +146,7 @@ export default function SettingsWeathermapTable() {
     );
   });
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="w-full flex flex-col gap-6">
       {/* ============ DEVICE TABLE ============ */}
       <div className="border rounded-xl shadow-sm bg-background overflow-hidden">
         <div className="p-4 border-b bg-muted/20">
@@ -210,11 +210,21 @@ export default function SettingsWeathermapTable() {
                     <TableCell className="max-w-md">
                       <TooltipComponent value={dev.sysDescr}>
                         <div className="max-w-md truncate cursor-pointer text-sm">
-                          {dev.sysDescr}
+                          {dev.sysDescr.length > 20
+                            ? `${dev.sysDescr.slice(0, 20)}...`
+                            : dev.sysDescr}
                         </div>
                       </TooltipComponent>
                     </TableCell>
-                    <TableCell className="text-sm">{dev.sysContact}</TableCell>
+                    <TableCell className="max-w-md">
+                      <TooltipComponent value={dev.sysContact}>
+                        <div className="max-w-md truncate cursor-pointer text-sm">
+                          {dev.sysContact.length > 20
+                            ? `${dev.sysContact.slice(0, 20)}...`
+                            : dev.sysContact}
+                        </div>
+                      </TooltipComponent>
+                    </TableCell>
                     <TableCell className="text-sm">{dev.sysLocation}</TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {dev.sysObjectID}
@@ -305,8 +315,10 @@ export default function SettingsWeathermapTable() {
                     </TableCell>
                     <TableCell className="max-w-xs">
                       <TooltipComponent value={item.description}>
-                        <div className="max-w-xs truncate cursor-pointer text-sm">
-                          {item.description}
+                        <div className="max-w-md truncate cursor-pointer text-sm">
+                          {item.description.length > 20
+                            ? `${item.description.slice(0, 20)}...`
+                            : item.description}
                         </div>
                       </TooltipComponent>
                     </TableCell>
