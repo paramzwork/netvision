@@ -29,14 +29,15 @@ const AGGREGATED_COLORS = [
 interface EdgeTrafficPanelProps {
   sourceNodeName: string;
   targetNodeName: string;
-  sourceInterfaceName: string;
-  targetInterfaceName: string;
   sourceInterface: InterfaceTypes | undefined;
   interfaces: InterfaceTypes[];
   aggregatedInterfaces: AggregatedInterface[];
 
   inbound: number;
   outbound: number;
+
+  sourceDesc: string;
+  targetDesc: string;
 
   onClose: () => void;
   onDragStart?: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -63,15 +64,113 @@ type InterfaceTrafficStats = {
   maxInbound: number;
   maxOutbound: number;
 };
+interface ChartDataItem {
+  interfaceId: number | string;
+  interfaceName: string;
+  sourceNodeName?: string;
+  isAggregated?: boolean;
+}
+
+interface TrafficPayload {
+  readonly dataKey?: string | number;
+  readonly value?: number | string;
+}
+
+interface TrafficTooltipProps {
+  active?: boolean;
+  payload?: readonly TrafficPayload[];
+  label?: string | number;
+  chartData: ChartDataItem[];
+}
+
+const TrafficTooltip = ({
+  active,
+  payload,
+  label,
+  chartData,
+}: TrafficTooltipProps) => {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="min-w-60 rounded-lg border bg-white p-2 text-xs shadow-xl">
+      <div className="mb-3 border-b pb-2">
+        <div className="text-[10px] font-semibold">Traffic</div>
+
+        <div className="text-[8px] text-muted-foreground font-semibold">
+          {String(label ?? "")}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {payload.map((entry, index) => {
+          const dataKey = String(entry.dataKey ?? "");
+
+          const isInbound = dataKey.startsWith("inbound_");
+
+          const interfaceId = dataKey
+            .replace("inbound_", "")
+            .replace("outbound_", "");
+
+          const interfaceChart = chartData.find(
+            (item) => String(item.interfaceId) === interfaceId,
+          );
+
+          const value = Number(entry.value ?? 0);
+
+          return (
+            <div
+              key={`${dataKey}-${index}`}
+              className="flex items-center justify-between gap-4"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    isInbound ? "bg-green-500" : "bg-blue-500"
+                  }`}
+                />
+
+                <div className="min-w-0">
+                  <div className="text-[10px] truncate font-medium">
+                    {interfaceChart?.interfaceName ?? "Interface"}
+                  </div>
+
+                  {interfaceChart?.sourceNodeName && (
+                    <div className="truncate text-[6px] text-muted-foreground font-semibold">
+                      {interfaceChart.sourceNodeName}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={`text-end text-[10px] whitespace-nowrap font-semibold ${
+                  isInbound ? "text-green-500" : "text-blue-500"
+                }`}
+              >
+                {isInbound ? "↓" : "↑"} {formatBandwidth(value)}
+                <div className="text-[6px] text-muted-foreground">
+                  {isInbound ? "Inbound" : "Outbound"}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 export default function EdgeTrafficPanel({
   sourceNodeName,
   targetNodeName,
   aggregatedInterfaces,
-  sourceInterfaceName,
-  targetInterfaceName,
 
   inbound,
   outbound,
+
+  sourceDesc,
+  targetDesc,
 
   sourceInterface,
   interfaces,
@@ -502,7 +601,7 @@ export default function EdgeTrafficPanel({
   }, [interfaceTrafficStats, aggregatedInterfaces]);
   return (
     <div
-      className="relative w-80 rounded-lg border bg-white shadow-xl p-3 text-xs "
+      className="relative w-80 rounded-lg border bg-white shadow-xl p-3 text-xs font-lexend"
       onMouseDown={onDragStart}
     >
       {/* Header */}
@@ -514,9 +613,9 @@ export default function EdgeTrafficPanel({
           <div className="text-[10px] text-muted-foreground">
             {sourceNodeName} → {targetNodeName}
           </div>
-
-          <div className="text-[10px] text-muted-foreground">
-            {sourceInterfaceName} → {targetInterfaceName}
+          <div className="text-[8px] text-gray-400">
+            {sourceDesc !== "" ? sourceDesc : sourceNodeName} →
+            {targetDesc !== "" ? targetDesc : targetNodeName}
           </div>
         </div>
 
@@ -588,7 +687,14 @@ export default function EdgeTrafficPanel({
                 <defs>
                   {chartData.map((interfaceChart, index) => {
                     const color =
-                      AGGREGATED_COLORS[index % AGGREGATED_COLORS.length];
+                      aggregatedInterfaces.length > 0
+                        ? AGGREGATED_COLORS[index % AGGREGATED_COLORS.length]
+                        : null;
+
+                    const inboundColor = color ?? "#22c55e";
+
+                    const outboundColor = color ?? "#3b82f6";
+
                     return (
                       <React.Fragment key={interfaceChart.interfaceId}>
                         <linearGradient
@@ -600,13 +706,13 @@ export default function EdgeTrafficPanel({
                         >
                           <stop
                             offset="0%"
-                            stopColor={color}
+                            stopColor={inboundColor}
                             stopOpacity={0.35}
                           />
 
                           <stop
                             offset="100%"
-                            stopColor={color}
+                            stopColor={outboundColor}
                             stopOpacity={0.02}
                           />
                         </linearGradient>
@@ -620,13 +726,13 @@ export default function EdgeTrafficPanel({
                         >
                           <stop
                             offset="0%"
-                            stopColor={color}
+                            stopColor={inboundColor}
                             stopOpacity={0.35}
                           />
 
                           <stop
                             offset="100%"
-                            stopColor={color}
+                            stopColor={outboundColor}
                             stopOpacity={0.02}
                           />
                         </linearGradient>
@@ -654,35 +760,46 @@ export default function EdgeTrafficPanel({
                 />
 
                 <Tooltip
-                  formatter={(value, name) => {
-                    const interfaceId = String(name)
-                      .replace("inbound_", "")
-                      .replace("outbound_", "");
-
-                    const interfaceChart = chartData.find(
-                      (item) => String(item.interfaceId) === interfaceId,
-                    );
-
-                    const isInbound = String(name).startsWith("inbound_");
-
-                    return [
-                      formatBandwidth(Number(value)),
-                      `${interfaceChart?.interfaceName ?? "Interface"} ${
-                        isInbound ? "Inbound" : "Outbound"
-                      }`,
-                    ];
-                  }}
+                  content={(props) => (
+                    <TrafficTooltip
+                      active={props.active}
+                      label={
+                        typeof props.label === "string" ||
+                        typeof props.label === "number"
+                          ? props.label
+                          : undefined
+                      }
+                      payload={props.payload?.map((entry) => ({
+                        dataKey:
+                          typeof entry.dataKey === "string" ||
+                          typeof entry.dataKey === "number"
+                            ? entry.dataKey
+                            : undefined,
+                        value:
+                          typeof entry.value === "number" ||
+                          typeof entry.value === "string"
+                            ? entry.value
+                            : undefined,
+                      }))}
+                      chartData={chartData}
+                    />
+                  )}
                 />
-
                 {chartData.map((interfaceChart, index) => {
                   const color =
-                    AGGREGATED_COLORS[index % AGGREGATED_COLORS.length];
+                    aggregatedInterfaces.length > 0
+                      ? AGGREGATED_COLORS[index % AGGREGATED_COLORS.length]
+                      : null;
+
+                  const inboundColor = color ?? "#22c55e";
+
+                  const outboundColor = color ?? "#3b82f6";
                   return (
                     <React.Fragment key={interfaceChart.interfaceId}>
                       <Area
                         type="monotone"
                         dataKey={`inbound_${interfaceChart.interfaceId}`}
-                        stroke={color}
+                        stroke={inboundColor}
                         fill={`url(#inboundGradient-${interfaceChart.interfaceId})`}
                         strokeWidth={2}
                         dot={false}
@@ -692,7 +809,7 @@ export default function EdgeTrafficPanel({
                       <Area
                         type="monotone"
                         dataKey={`outbound_${interfaceChart.interfaceId}`}
-                        stroke={color}
+                        stroke={outboundColor}
                         fill={`url(#outboundGradient-${interfaceChart.interfaceId})`}
                         strokeWidth={2}
                         dot={false}
@@ -760,7 +877,7 @@ export default function EdgeTrafficPanel({
                 {stat.interfaceName}
                 {stat.sourceNodeName && (
                   <span className="ml-1 text-muted-foreground font-normal">
-                    ({stat.sourceNodeName})
+                    ({sourceDesc !== "" ? sourceDesc : stat.sourceNodeName})
                   </span>
                 )}
               </div>

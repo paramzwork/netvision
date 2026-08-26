@@ -119,6 +119,9 @@ export interface TopologyEdgeData extends Record<string, unknown> {
   sourceInterfaceId?: number | null;
   sourceInterfaceName?: string;
 
+  sourceDesc: string;
+  targetDesc: string;
+
   sourceNodeName?: string;
   sourceNodeType?: string;
 
@@ -482,7 +485,9 @@ export default function WeatherMapComponent() {
           targetNodeName: targetNode.data.nodeName ?? "Unknown",
           bandwidthMbps: 1000,
           status: "up",
-          description: "",
+          
+          sourceDesc: sourceNode.data.description ?? "",
+          targetDesc: targetNode.data.description ?? "",
 
           inbound: 0,
           outbound: 0,

@@ -26,7 +26,8 @@ type NetworkEdgeData = {
   targetInterfaceId: number;
   targetInterfaceName: string;
 
-  description: string;
+  sourceDesc: string;
+  targetDesc: string;
 
   inbound: number;
   outbound: number;
@@ -54,13 +55,13 @@ function EdgeLabel({
   transform,
   inbound,
   outbound,
-  description,
+  // description,
   onMouseDown,
 }: {
   transform: string;
   inbound?: string;
   outbound?: string;
-  description: string;
+  // description: string;
   onMouseDown?: (event: React.MouseEvent<HTMLDivElement>) => void;
 }) {
   return (
@@ -84,7 +85,7 @@ function EdgeLabel({
     >
       {outbound && (
         <div className="text-center space-y-0.2 text-[7px]">
-          {description}
+          {/* {description} */}
           <div className="font-semibold">↑ {outbound}</div>
         </div>
       )}
@@ -93,7 +94,7 @@ function EdgeLabel({
         <div className="text-center space-y-0.2 text-[7px]">
           <div className="font-semibold">↓ {inbound}</div>
 
-          <div>{description}</div>
+          {/* <div>{description}</div> */}
         </div>
       )}
     </div>
@@ -187,6 +188,9 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
               ...edge.data,
               inbound: edge.data?.inbound ?? 0,
               outbound: edge.data?.outbound ?? 0,
+
+              sourceDesc: edge.data?.sourceDesc ?? "",
+              targetDesc: edge.data?.targetDesc ?? "",
 
               sourceAdminStatus: edge.data?.sourceAdminStatus ?? 0,
               sourceOperStatus: edge.data?.sourceOperStatus ?? 0,
@@ -333,6 +337,9 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
               inbound: edge.data?.inbound ?? 0,
               outbound: edge.data?.outbound ?? 0,
 
+              sourceDesc: edge.data?.sourceDesc ?? "",
+              targetDesc: edge.data?.targetDesc ?? "",
+
               sourceAdminStatus: edge.data?.sourceAdminStatus ?? 0,
               sourceOperStatus: edge.data?.sourceOperStatus ?? 0,
               sourceStatus: edge.data?.sourceStatus ?? "",
@@ -440,7 +447,7 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
           ${inboundOffset.y}px
         )
       `}
-            description={data.description}
+            // description={data.sourceDesc}
             inbound={isUp ? formatBandwidth(Number(displayInbound ?? 0)) : "0"}
             onMouseDown={(event) => handleLabelMouseDown(event, "inbound")}
           />
@@ -455,7 +462,7 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
           ${outboundOffset.y}px
         )
       `}
-            description={data.description}
+            // description={data.targetDesc}
             outbound={
               isUp ? formatBandwidth(Number(displayOutbound ?? 0)) : "0"
             }
