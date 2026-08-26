@@ -516,6 +516,7 @@ export default function ViewWeathermapSettings() {
   };
   const onNodeDoubleClick: NodeMouseHandler<TopologyNode> = useCallback(
     (_event, node) => {
+      console.log(node)
       handleNodeSettings(node);
     },
     [],
