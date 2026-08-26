@@ -205,7 +205,7 @@
   /* border: var(--xy-node-border-default); */
   color: var(--xy-node-color, var(--xy-node-color-default));
   width: fit-content;
-  min-width: 50px;
+  min-width: 70px;
   min-height: 50px;
 }
 
