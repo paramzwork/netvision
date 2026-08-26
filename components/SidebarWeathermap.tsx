@@ -37,17 +37,17 @@ export default function SidebarWeathermap({
   //   bottom: 3,
   //   left: 3,
   // });
-  // const onDragInterface = (event: React.DragEvent, iface: InterfaceTypes) => {
-  //   setDragItem({
-  //     type: "interface",
-  //     data: {
-  //       ...iface,
-  //       handles,
-  //     },
-  //   });
+  const onDragInterface = (event: React.DragEvent, iface: InterfaceTypes) => {
+    setDragItem({
+      type: "interface",
+      data: {
+        ...iface,
+        // handles,
+      },
+    });
 
-  //   event.dataTransfer.effectAllowed = "move";
-  // };
+    event.dataTransfer.effectAllowed = "move";
+  };
   // const onDragDevice = (event: React.DragEvent, device: DeviceInfoTypes) => {
   //   setDragItem({
   //     type: "device",
@@ -103,16 +103,6 @@ export default function SidebarWeathermap({
         <h4 className="font-semibold">Handle Layout</h4>
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="fieldgroup-name">Name</FieldLabel>
-            <Input
-              id="fieldgroup-name"
-              className="w-full"
-              placeholder="Search interface..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </Field>
-          <Field>
             <FieldLabel htmlFor="fieldgroup-device">Select Device</FieldLabel>
 
             <Select
@@ -143,6 +133,14 @@ export default function SidebarWeathermap({
                 </SelectGroup>
               </SelectContent>
             </Select>
+          </Field>
+          <Field>
+            <Input
+              className="w-full"
+              placeholder="Search interface..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </Field>
         </FieldGroup>
       </div>
@@ -210,20 +208,16 @@ export default function SidebarWeathermap({
               <div
                 key={iface.id}
                 draggable
-                onDragStart={onDragBlank}
+                onDragStart={(event) => onDragInterface(event, iface)}
                 className="group flex cursor-grab items-center gap-3 rounded-lg border bg-background p-3 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-muted/40 hover:shadow-md active:cursor-grabbing active:scale-[0.98] active:shadow-sm"
               >
                 {/* Drag handle */}
-                <div
-                  className="flex shrink-0 items-center justify-center text-muted-foreground transition-colors group-hover:text-foreground"
-                >
+                <div className="flex shrink-0 items-center justify-center text-muted-foreground transition-colors group-hover:text-foreground">
                   <GripVertical className="size-5" />
                 </div>
 
                 {/* Node icon */}
-                <div
-                  className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/50 text-muted-foreground group-hover:bg-background"
-                >
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-md border bg-muted/50 text-muted-foreground group-hover:bg-background">
                   <div className="size-3 rounded-full border-2 border-muted-foreground" />
                 </div>
 
