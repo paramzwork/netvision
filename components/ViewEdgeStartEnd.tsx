@@ -26,9 +26,6 @@ type NetworkEdgeData = {
   targetInterfaceId: number;
   targetInterfaceName: string;
 
-  sourceDesc: string;
-  targetDesc: string;
-
   inbound: number;
   outbound: number;
   label: string;
@@ -56,12 +53,12 @@ function EdgeLabel({
   transform,
   inbound,
   outbound,
-  description,
+  // description,
 }: {
   transform: string;
   inbound?: string;
   outbound?: string;
-  description: string;
+  // description: string;
 }) {
   return (
     <div
@@ -81,7 +78,7 @@ function EdgeLabel({
     >
       {outbound && (
         <div className="text-center space-y-0.2 text-[7px]">
-          {description}
+          {/* {description} */}
           <div className="font-semibold">↑ {outbound}</div>
         </div>
       )}
@@ -90,7 +87,7 @@ function EdgeLabel({
         <div className="text-center space-y-0.2 text-[7px]">
           <div className="font-semibold">↓ {inbound}</div>
 
-          <div>{description}</div>
+          {/* <div>{description}</div> */}
         </div>
       )}
     </div>
@@ -361,7 +358,7 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
       ${data?.targetLabelOffset?.y ?? 0}px
     )
          `}
-            description={data.sourceDesc}
+            // description={data.sourceDesc}
             inbound={isUp ? formatBandwidth(Number(displayInbound ?? 0)) : "0"}
           />
         )}
@@ -375,7 +372,7 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
       ${data?.sourceLabelOffset?.y ?? 0}px
     )
          `}
-            description={data.targetDesc}
+            // description={data.targetDesc}
             outbound={
               isUp ? formatBandwidth(Number(displayOutbound ?? 0)) : "0"
             }
