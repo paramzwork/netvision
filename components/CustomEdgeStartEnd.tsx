@@ -26,9 +26,6 @@ type NetworkEdgeData = {
   targetInterfaceId: number;
   targetInterfaceName: string;
 
-  sourceDesc: string;
-  targetDesc: string;
-
   inbound: number;
   outbound: number;
   label: string;
