@@ -100,6 +100,7 @@ export default function ViewWeathermapSettings() {
   const edgeReconnectSuccessful = useRef<boolean>(true);
   const [swapTraffic, setSwapTraffic] = useState<boolean>(false);
   const [selectedEdge, setSelectedEdge] = useState<TopologyEdge | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<string>("");
 
   const router = useRouter();
   const hasMountedRef = useRef<boolean>(false);
@@ -1018,6 +1019,13 @@ export default function ViewWeathermapSettings() {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
   };
+
+  const filteredData = interfaces.filter((iface) => {
+    const selectedIp = selectedDevice.split("-").pop()?.trim();
+
+    return iface.deviceIp === selectedIp;
+  });
+  console.log(filteredData);
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -1154,7 +1162,7 @@ export default function ViewWeathermapSettings() {
               setHandles={setHandles}
               setAggregationMode={setAggregationMode}
               setAggregations={setAggregations}
-              interfaces={interfaces}
+              interfaces={filteredData}
               onSave={({ type, handles, aggregationMode, aggregations }) => {
                 if (!selectedNode) return;
 
@@ -1261,7 +1269,12 @@ export default function ViewWeathermapSettings() {
           </div>
         </div>
 
-        <SidebarWeathermap interfaces={interfaces} devices={device} />
+        <SidebarWeathermap
+          interfaces={interfaces}
+          devices={device}
+          selectedDevice={selectedDevice}
+          setSelectedDevice={setSelectedDevice}
+        />
       </div>
     </div>
   );

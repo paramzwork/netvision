@@ -17,11 +17,17 @@ import {
 interface Props {
   interfaces: InterfaceTypes[];
   devices: DeviceInfoTypes[];
+  selectedDevice: string;
+  setSelectedDevice: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export default function SidebarWeathermap({ interfaces, devices }: Props) {
+export default function SidebarWeathermap({
+  interfaces,
+  devices,
+  selectedDevice,
+  setSelectedDevice,
+}: Props) {
   const [search, setSearch] = useState<string>("");
-  const [selectedDevice, setSelectedDevice] = useState<string>("");
   const [, setDragItem] = useDnD();
   const [handles, setHandles] = useState({
     top: 3,
@@ -177,7 +183,7 @@ export default function SidebarWeathermap({ interfaces, devices }: Props) {
             alignItemWithTrigger={false}
           >
             <SelectGroup>
-              <SelectLabel>Presets</SelectLabel>
+              <SelectLabel>Devices</SelectLabel>
               {devices.map((p, idx) => (
                 <SelectItem key={idx} value={`${p.sysName}-${p.ipAddress}`}>
                   {p.sysName}-{p.ipAddress}
