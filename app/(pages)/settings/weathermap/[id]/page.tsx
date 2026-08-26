@@ -292,6 +292,7 @@ export default function ViewWeathermapSettings() {
 
       // const targetIsAggregated = targetIsBlank && !!targetHandle.aggregationId;
       // Normal interface validation
+
       if (!sourceIsBlank && sourceInterfaceId == null) {
         toast.warning("Please assign an interface to the source node.");
         return;
@@ -396,7 +397,15 @@ export default function ViewWeathermapSettings() {
           targetNodeName: targetNode.data.nodeName ?? "Unknown",
           bandwidthMbps: 1000,
           status: "up",
-          description: "",
+
+          sourceDesc:
+            (sourceNode.data.description === ""
+              ? sourceHandle.nodeName
+              : sourceNode.data.description) ?? "",
+          targetDesc:
+            (targetNode.data.description === ""
+              ? targetHandle.nodeName
+              : targetNode.data.description) ?? "",
 
           inbound: 0,
           outbound: 0,
@@ -506,7 +515,6 @@ export default function ViewWeathermapSettings() {
   };
   const onNodeDoubleClick: NodeMouseHandler<TopologyNode> = useCallback(
     (_event, node) => {
-      console.log(node);
       handleNodeSettings(node);
     },
     [],
@@ -975,6 +983,41 @@ export default function ViewWeathermapSettings() {
     loadTopology(topologyId);
     hasLoadedRef.current = false;
   }, [topologyId, loadTopology]);
+  const [trafficPanelOffset, setTrafficPanelOffset] = useState({
+    x: 0,
+    y: 0,
+  });
+
+  const handleTrafficPanelMouseDown = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startMouseX = event.clientX;
+    const startMouseY = event.clientY;
+
+    const startOffsetX = trafficPanelOffset.x;
+    const startOffsetY = trafficPanelOffset.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startMouseX;
+      const dy = moveEvent.clientY - startMouseY;
+
+      setTrafficPanelOffset({
+        x: startOffsetX + dx,
+        y: startOffsetY + dy,
+      });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -1187,12 +1230,12 @@ export default function ViewWeathermapSettings() {
                   style={{
                     position: "absolute",
                     transform: `
-          translate(-50%, -100%)
-          translate(
-            ${trafficEdgePosition.x}px,
-            ${trafficEdgePosition.y}px
-          )
-        `,
+                translate(-50%, -10%)
+                translate(
+                  ${trafficEdgePosition.x + trafficPanelOffset.x}px,
+                  ${trafficEdgePosition.y + trafficPanelOffset.y}px
+                )
+              `,
                     pointerEvents: "all",
                     zIndex: 1000,
                   }}
@@ -1202,18 +1245,15 @@ export default function ViewWeathermapSettings() {
                     interfaces={interfaces}
                     sourceNodeName={trafficEdge.data?.sourceNodeName ?? ""}
                     targetNodeName={trafficEdge.data?.targetNodeName ?? ""}
-                    sourceInterfaceName={
-                      trafficEdge.data?.sourceInterfaceName ?? ""
-                    }
-                    targetInterfaceName={
-                      trafficEdge.data?.targetInterfaceName ?? ""
-                    }
                     aggregatedInterfaces={
                       trafficEdge.data?.aggregatedInterfaces ?? []
                     }
+                    sourceDesc={trafficEdge.data?.sourceDesc ?? ""}
+                    targetDesc={trafficEdge.data?.targetDesc ?? ""}
                     inbound={trafficEdge.data?.inbound ?? 0}
                     outbound={trafficEdge.data?.outbound ?? 0}
                     onClose={() => setTrafficEdgeId(null)}
+                    onDragStart={handleTrafficPanelMouseDown}
                   />
                 </div>
               </EdgeLabelRenderer>

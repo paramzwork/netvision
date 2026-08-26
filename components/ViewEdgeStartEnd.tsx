@@ -26,7 +26,8 @@ type NetworkEdgeData = {
   targetInterfaceId: number;
   targetInterfaceName: string;
 
-  description: string;
+  sourceDesc: string;
+  targetDesc: string;
 
   inbound: number;
   outbound: number;
@@ -251,6 +252,9 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
               inbound: edge.data?.inbound ?? 0,
               outbound: edge.data?.outbound ?? 0,
 
+              sourceDesc: edge.data?.sourceDesc ?? "",
+              targetDesc: edge.data?.targetDesc ?? "",
+
               sourceAdminStatus: edge.data?.sourceAdminStatus ?? 0,
               sourceOperStatus: edge.data?.sourceOperStatus ?? 0,
               sourceStatus: edge.data?.sourceStatus ?? "",
@@ -357,7 +361,7 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
       ${data?.targetLabelOffset?.y ?? 0}px
     )
          `}
-            description={data.description}
+            description={data.sourceDesc}
             inbound={isUp ? formatBandwidth(Number(displayInbound ?? 0)) : "0"}
           />
         )}
@@ -371,7 +375,7 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
       ${data?.sourceLabelOffset?.y ?? 0}px
     )
          `}
-            description={data.description}
+            description={data.targetDesc}
             outbound={
               isUp ? formatBandwidth(Number(displayOutbound ?? 0)) : "0"
             }

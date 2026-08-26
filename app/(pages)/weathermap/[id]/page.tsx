@@ -373,6 +373,9 @@ export default function ViewWeathermap() {
                 inbound: Number(traffic.inbound ?? 0),
                 outbound: Number(traffic.outbound ?? 0),
 
+                sourceDesc: edge.data?.sourceDesc ?? "",
+                targetDesc: edge.data?.targetDesc ?? "",
+
                 // ----------------------------------------
                 // Traffic history
                 // ----------------------------------------
@@ -572,15 +575,14 @@ export default function ViewWeathermap() {
               interfaces={interfaces}
               sourceNodeName={trafficEdge.data?.sourceNodeName ?? ""}
               targetNodeName={trafficEdge.data?.targetNodeName ?? ""}
-              sourceInterfaceName={trafficEdge.data?.sourceInterfaceName ?? ""}
-              targetInterfaceName={trafficEdge.data?.targetInterfaceName ?? ""}
               aggregatedInterfaces={
                 trafficEdge.data?.aggregatedInterfaces ?? []
               }
 
               inbound={trafficEdge.data?.inbound ?? 0}
               outbound={trafficEdge.data?.outbound ?? 0}
-
+              sourceDesc={trafficEdge.data?.sourceDesc ?? ""}
+              targetDesc={trafficEdge.data?.targetDesc ?? ""}
               onClose={() => setTrafficEdgeId(null)}
               onDragStart={handleTrafficPanelMouseDown}
             />

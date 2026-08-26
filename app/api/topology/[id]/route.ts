@@ -123,9 +123,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     // --------------------------------------------------
 
     const isBlankNodeType = (nodeType?: string) =>
-      nodeType === "blank" ||
-      nodeType === "blank1" ||
-      nodeType === "blank2";
+      nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
 
     const isBlankNode = (nodeId: string): boolean => {
       const node = nodeById.get(nodeId);
@@ -145,9 +143,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
         return undefined;
       }
 
-      const node = topology.nodes.find(
-        (node) => node.nodeId === nodeId,
-      );
+      const node = topology.nodes.find((node) => node.nodeId === nodeId);
 
       if (!node) {
         return undefined;
@@ -162,9 +158,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       }
 
       for (const handles of Object.values(data.handles)) {
-        const handle = handles.find(
-          (handle) => handle.id === handleId,
-        );
+        const handle = handles.find((handle) => handle.id === handleId);
 
         if (handle) {
           return handle;
@@ -195,10 +189,8 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
       if (isBlankNode(edge.sourceNodeId)) {
         return (
-          getHandle(
-            edge.sourceNodeId,
-            edge.sourceHandle,
-          )?.interfaceId ?? undefined
+          getHandle(edge.sourceNodeId, edge.sourceHandle)?.interfaceId ??
+          undefined
         );
       }
 
@@ -216,10 +208,8 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
       if (isBlankNode(edge.targetNodeId)) {
         return (
-          getHandle(
-            edge.targetNodeId,
-            edge.targetHandle,
-          )?.interfaceId ?? undefined
+          getHandle(edge.targetNodeId, edge.targetHandle)?.interfaceId ??
+          undefined
         );
       }
 
@@ -323,10 +313,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // If source is a blank node with aggregation,
       // collect all interfaces from the aggregation.
       if (isBlankNode(edge.sourceNodeId)) {
-        const handle = getHandle(
-          edge.sourceNodeId,
-          edge.sourceHandle,
-        );
+        const handle = getHandle(edge.sourceNodeId, edge.sourceHandle);
 
         if (handle?.aggregationId) {
           const sourceNode = topology.nodes.find(
@@ -380,15 +367,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     // Keep latest 2 records.
     // --------------------------------------------------
 
-    const statisticsByInterface = new Map<
-      number,
-      typeof statistics
-    >();
+    const statisticsByInterface = new Map<number, typeof statistics>();
 
     for (const stat of statistics) {
-      const existing = statisticsByInterface.get(
-        stat.interfaceId,
-      );
+      const existing = statisticsByInterface.get(stat.interfaceId);
 
       if (!existing) {
         statisticsByInterface.set(stat.interfaceId, [stat]);
@@ -422,37 +404,27 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       const previous = stats[1];
 
       const elapsedSeconds =
-        (current.createdAt.getTime() -
-          previous.createdAt.getTime()) /
-        1000;
+        (current.createdAt.getTime() - previous.createdAt.getTime()) / 1000;
 
       if (elapsedSeconds <= 0) {
         return 0;
       }
 
       const currentOctets =
-        direction === "in"
-          ? current.inOctets
-          : current.outOctets;
+        direction === "in" ? current.inOctets : current.outOctets;
 
       const previousOctets =
-        direction === "in"
-          ? previous.inOctets
-          : previous.outOctets;
+        direction === "in" ? previous.inOctets : previous.outOctets;
 
       // Counter reset protection
       if (currentOctets < previousOctets) {
         return 0;
       }
 
-      const octetDifference =
-        currentOctets - previousOctets;
+      const octetDifference = currentOctets - previousOctets;
 
       // Octets -> bits -> bits/sec
-      return (
-        (Number(octetDifference) * 8) /
-        elapsedSeconds
-      );
+      return (Number(octetDifference) * 8) / elapsedSeconds;
     };
 
     // --------------------------------------------------
@@ -469,9 +441,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
         return undefined;
       }
 
-      const node = topology.nodes.find(
-        (node) => node.nodeId === nodeId,
-      );
+      const node = topology.nodes.find((node) => node.nodeId === nodeId);
 
       if (!node) {
         return undefined;
@@ -482,8 +452,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       };
 
       return data.aggregations?.find(
-        (aggregation) =>
-          aggregation.id === handle.aggregationId,
+        (aggregation) => aggregation.id === handle.aggregationId,
       );
     };
 
@@ -497,27 +466,18 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       inbound: number;
       outbound: number;
     } => {
-      const sourceIsBlank = isBlankNode(
-        edge.sourceNodeId,
-      );
+      const sourceIsBlank = isBlankNode(edge.sourceNodeId);
 
       // ==================================================
       // NORMAL NODE
       // ==================================================
 
       if (!sourceIsBlank) {
-        const sourceInterfaceId =
-          getSourceInterfaceId(edge);
+        const sourceInterfaceId = getSourceInterfaceId(edge);
 
         return {
-          inbound: calculateTraffic(
-            sourceInterfaceId,
-            "in",
-          ),
-          outbound: calculateTraffic(
-            sourceInterfaceId,
-            "out",
-          ),
+          inbound: calculateTraffic(sourceInterfaceId, "in"),
+          outbound: calculateTraffic(sourceInterfaceId, "out"),
         };
       }
 
@@ -525,10 +485,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // BLANK NODE
       // ==================================================
 
-      const sourceHandle = getHandle(
-        edge.sourceNodeId,
-        edge.sourceHandle,
-      );
+      const sourceHandle = getHandle(edge.sourceNodeId, edge.sourceHandle);
 
       // --------------------------------------------------
       // BLANK NODE + AGGREGATION
@@ -537,11 +494,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // --------------------------------------------------
 
       if (sourceHandle?.aggregationId) {
-        const aggregation =
-          getHandleAggregation(
-            edge.sourceNodeId,
-            edge.sourceHandle,
-          );
+        const aggregation = getHandleAggregation(
+          edge.sourceNodeId,
+          edge.sourceHandle,
+        );
 
         if (!aggregation) {
           return {
@@ -554,21 +510,13 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
         let outbound = 0;
 
         for (const iface of aggregation.interfaces) {
-          if (
-            typeof iface.interfaceId !== "number"
-          ) {
+          if (typeof iface.interfaceId !== "number") {
             continue;
           }
 
-          inbound += calculateTraffic(
-            iface.interfaceId,
-            "in",
-          );
+          inbound += calculateTraffic(iface.interfaceId, "in");
 
-          outbound += calculateTraffic(
-            iface.interfaceId,
-            "out",
-          );
+          outbound += calculateTraffic(iface.interfaceId, "out");
         }
 
         return {
@@ -581,19 +529,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // BLANK NODE + DIRECT HANDLE INTERFACE
       // --------------------------------------------------
 
-      if (
-        typeof sourceHandle?.interfaceId ===
-        "number"
-      ) {
+      if (typeof sourceHandle?.interfaceId === "number") {
         return {
-          inbound: calculateTraffic(
-            sourceHandle.interfaceId,
-            "in",
-          ),
-          outbound: calculateTraffic(
-            sourceHandle.interfaceId,
-            "out",
-          ),
+          inbound: calculateTraffic(sourceHandle.interfaceId, "in"),
+          outbound: calculateTraffic(sourceHandle.interfaceId, "out"),
         };
       }
 
@@ -608,32 +547,19 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       let outbound = 0;
 
       for (const incomingEdge of topology.edges) {
-        if (
-          incomingEdge.targetNodeId !==
-          edge.sourceNodeId
-        ) {
+        if (incomingEdge.targetNodeId !== edge.sourceNodeId) {
           continue;
         }
 
-        const incomingInterfaceId =
-          getSourceInterfaceId(incomingEdge);
+        const incomingInterfaceId = getSourceInterfaceId(incomingEdge);
 
-        if (
-          typeof incomingInterfaceId !==
-          "number"
-        ) {
+        if (typeof incomingInterfaceId !== "number") {
           continue;
         }
 
-        inbound += calculateTraffic(
-          incomingInterfaceId,
-          "in",
-        );
+        inbound += calculateTraffic(incomingInterfaceId, "in");
 
-        outbound += calculateTraffic(
-          incomingInterfaceId,
-          "out",
-        );
+        outbound += calculateTraffic(incomingInterfaceId, "out");
       }
 
       return {
@@ -675,11 +601,9 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // For blank nodes these come from handles.
       // ------------------------------------------------
 
-      const sourceInterfaceId =
-        getSourceInterfaceId(edge);
+      const sourceInterfaceId = getSourceInterfaceId(edge);
 
-      const targetInterfaceId =
-        getTargetInterfaceId(edge);
+      const targetInterfaceId = getTargetInterfaceId(edge);
 
       const sourceInterface =
         typeof sourceInterfaceId === "number"
@@ -695,14 +619,11 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // Traffic
       // ------------------------------------------------
 
-      const traffic =
-        calculateEdgeTraffic(edge);
+      const traffic = calculateEdgeTraffic(edge);
 
-      const sourceNodeData =
-        nodeById.get(edge.sourceNodeId);
+      const sourceNodeData = nodeById.get(edge.sourceNodeId);
 
-      const targetNodeData =
-        nodeById.get(edge.targetNodeId);
+      const targetNodeData = nodeById.get(edge.targetNodeId);
 
       return {
         id: edge.edgeId,
@@ -722,14 +643,12 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
           // Node names
           // --------------------------------------------
 
-          sourceNodeName:
-            sourceNodeData?.nodeName ??
-            "Unknown",
+          sourceNodeName: sourceNodeData?.nodeName ?? "Unknown",
 
-          targetNodeName:
-            targetNodeData?.nodeName ??
-            "Unknown",
+          targetNodeName: targetNodeData?.nodeName ?? "Unknown",
 
+          sourceDesc: data.sourceDesc,
+          targetDesc: data.targetDesc,
           // --------------------------------------------
           // Actual interface IDs
           //
@@ -750,27 +669,21 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
           // Source status
           // --------------------------------------------
 
-          sourceAdminStatus:
-            sourceInterface?.adminStatus ?? 0,
+          sourceAdminStatus: sourceInterface?.adminStatus ?? 0,
 
-          sourceOperStatus:
-            sourceInterface?.operStatus ?? 0,
+          sourceOperStatus: sourceInterface?.operStatus ?? 0,
 
-          sourceStatus:
-            sourceInterface?.status ?? "",
+          sourceStatus: sourceInterface?.status ?? "",
 
           // --------------------------------------------
           // Target status
           // --------------------------------------------
 
-          targetAdminStatus:
-            targetInterface?.adminStatus ?? 0,
+          targetAdminStatus: targetInterface?.adminStatus ?? 0,
 
-          targetOperStatus:
-            targetInterface?.operStatus ?? 0,
+          targetOperStatus: targetInterface?.operStatus ?? 0,
 
-          targetStatus:
-            targetInterface?.status ?? "",
+          targetStatus: targetInterface?.status ?? "",
         },
       };
     });
@@ -792,10 +705,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       },
     });
   } catch (error) {
-    console.error(
-      "LOAD TOPOLOGY ERROR:",
-      error,
-    );
+    console.error("LOAD TOPOLOGY ERROR:", error);
 
     return NextResponse.json(
       {

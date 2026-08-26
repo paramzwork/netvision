@@ -37,6 +37,9 @@ export default function EdgeSettings({
       targetInterfaceId: edge.data?.targetInterfaceId ?? 0,
       targetInterfaceName: edge.data?.targetInterfaceName ?? "",
 
+      sourceDesc: edge.data?.sourceDesc ?? "",
+      targetDesc: edge.data?.targetDesc ?? "",
+
       inbound: edge.data?.inbound ?? 0,
       outbound: edge.data?.outbound ?? 0,
 
@@ -88,10 +91,7 @@ export default function EdgeSettings({
               </p>
             </div>
 
-            <Switch
-              checked={swapTraffic}
-              onCheckedChange={setSwapTraffic}
-            />
+            <Switch checked={swapTraffic} onCheckedChange={setSwapTraffic} />
           </div>
           {/* Bandwidth */}
           {/* <div>
