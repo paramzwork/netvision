@@ -284,6 +284,7 @@ export default function NodeHandleSettings({
                 <Input
                   id="fieldgroup-name"
                   value={nodeName}
+                  className="w-full"
                   placeholder="Enter node name"
                   onChange={(e) => setNodeName(e.target.value)}
                 />
