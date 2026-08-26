@@ -179,6 +179,10 @@ export default function EdgeTrafficPanel({
 }: EdgeTrafficPanelProps) {
   const [isGraphFullscreen, setIsGraphFullscreen] = useState<boolean>(false);
   const chartData = useMemo<InterfaceChartData[]>(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayStartTimestamp = todayStart.getTime();
     // ==================================================
     // AGGREGATED LINK
     // ==================================================
@@ -194,10 +198,16 @@ export default function EdgeTrafficPanel({
             return null;
           }
 
-          const statistics = [...iface.statistics].sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          );
+          const statistics = [...iface.statistics]
+            .filter(
+              (stat) =>
+                new Date(stat.createdAt).getTime() >= todayStartTimestamp,
+            )
+            .sort(
+              (a, b) =>
+                new Date(a.createdAt).getTime() -
+                new Date(b.createdAt).getTime(),
+            );
 
           if (statistics.length < 2) {
             return {
@@ -266,10 +276,14 @@ export default function EdgeTrafficPanel({
       return [];
     }
 
-    const statistics = [...sourceInterface.statistics].sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+    const statistics = [...sourceInterface.statistics]
+      .filter(
+        (stat) => new Date(stat.createdAt).getTime() >= todayStartTimestamp,
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
 
     if (statistics.length < 2) {
       return [

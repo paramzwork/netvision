@@ -200,6 +200,8 @@ export default function WeatherMapComponent() {
   const hasFetchedInterfacesRef = useRef<boolean>(false);
   const [topologyName, setTopologyName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [selectedDevice, setSelectedDevice] = useState<string>("");
+
   // React Flow
   const { screenToFlowPosition } = useReactFlow();
   const [dragItem] = useDnD();
@@ -485,7 +487,7 @@ export default function WeatherMapComponent() {
           targetNodeName: targetNode.data.nodeName ?? "Unknown",
           bandwidthMbps: 1000,
           status: "up",
-          
+
           sourceDesc: sourceNode.data.description ?? "",
           targetDesc: targetNode.data.description ?? "",
 
@@ -985,7 +987,12 @@ export default function WeatherMapComponent() {
             }}
           />
         </div>
-        <SidebarWeathermap interfaces={interfaces} devices={device} />
+        <SidebarWeathermap
+          interfaces={interfaces}
+          devices={device}
+          selectedDevice={selectedDevice}
+          setSelectedDevice={setSelectedDevice}
+        />
       </div>
     </div>
   );
