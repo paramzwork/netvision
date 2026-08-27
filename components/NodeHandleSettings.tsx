@@ -15,6 +15,7 @@ import {
   HandleLayout,
   HandleType,
   NodeHandle,
+  TopologyEdge,
   TopologyNode,
 } from "./WeatherMapComponent";
 import { Label } from "./ui/label";
@@ -32,8 +33,8 @@ import Image from "next/image";
 import { Switch } from "./ui/switch";
 import { AggregationGroup, AggregationMode } from "./DnDContext";
 import { Trash2, X } from "lucide-react";
-import { useEffect } from "react";
-import { InterfaceTypes } from "@/lib/types";
+import { useCallback, useEffect, useState } from "react";
+import { DeviceInfoTypes, InterfaceTypes } from "@/lib/types";
 import {
   Combobox,
   ComboboxContent,
@@ -64,7 +65,9 @@ interface NodeHandleSettingsProps {
   setAggregations: React.Dispatch<React.SetStateAction<AggregationGroup[]>>;
 
   interfaces: InterfaceTypes[];
+  devices: DeviceInfoTypes[];
 
+  setEdges: React.Dispatch<React.SetStateAction<TopologyEdge[]>>;
   onSave: (settings: {
     nodeName: string;
     type: string;
@@ -95,15 +98,15 @@ const nodeTypeConfig = {
   },
   blank: {
     image: "cloud",
-    label: "Blank Cloud",
+    label: "Cloud",
   },
   blank1: {
     image: "router",
-    label: "Blank Router",
+    label: "Router",
   },
   blank2: {
     image: "server",
-    label: "Blank Server",
+    label: "Server",
   },
 } as const;
 
@@ -124,12 +127,16 @@ export default function NodeHandleSettings({
   setAggregations,
 
   interfaces,
+  devices,
 
   setCounts,
   setNodeType,
   setNodeName,
+  setEdges,
   onSave,
 }: NodeHandleSettingsProps) {
+  const [selectedDevice, setSelectedDevice] = useState<string>("");
+
   const build = (
     prefix: string,
     count: number,
@@ -179,18 +186,7 @@ export default function NodeHandleSettings({
       ),
     }));
   };
-  const interfaceItems = [
-    {
-      id: "none",
-      name: "None",
-      description: "",
-    },
-    ...interfaces.map((iface) => ({
-      id: String(iface.id),
-      name: iface.name,
-      description: iface.description,
-    })),
-  ];
+
   const handleClose = () => {
     setNodeType("router");
     setNodeName("");
@@ -226,6 +222,20 @@ export default function NodeHandleSettings({
 
     onClose();
   };
+  const clearHandleConnections = useCallback(
+    (nodeId: string, handleId: string) => {
+      setEdges((currentEdges) =>
+        currentEdges.filter(
+          (edge) =>
+            !(
+              (edge.source === nodeId && edge.sourceHandle === handleId) ||
+              (edge.target === nodeId && edge.targetHandle === handleId)
+            ),
+        ),
+      );
+    },
+    [setEdges],
+  );
   useEffect(() => {
     setHandles((current) => {
       const updated: HandleLayout = {
@@ -265,6 +275,24 @@ export default function NodeHandleSettings({
       return updated;
     });
   }, [counts, setHandles]);
+
+  const filteredData = interfaces.filter((iface) => {
+    const selectedIp = selectedDevice.split("-").pop()?.trim();
+
+    return iface.deviceIp === selectedIp;
+  });
+  const interfaceItems = [
+    {
+      id: "none",
+      name: "None",
+      description: "",
+    },
+    ...filteredData.map((iface) => ({
+      id: String(iface.id),
+      name: iface.name,
+      description: iface.description,
+    })),
+  ];
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="min-w-150 overflow-hidden p-0">
@@ -279,6 +307,43 @@ export default function NodeHandleSettings({
         <form onSubmit={handleSave}>
           <div className="max-h-125 overflow-y-auto overflow-x-hidden p-5">
             <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="fieldgroup-device">
+                  Select Device
+                </FieldLabel>
+
+                <Select
+                  id="fieldgroup-device"
+                  value={selectedDevice}
+                  onValueChange={(v) => setSelectedDevice(v as string)}
+                >
+                  <SelectTrigger
+                    className="h-9! w-full text-sm"
+                    aria-label="Select a preset time range"
+                  >
+                    <SelectValue placeholder="Select device">
+                      {selectedDevice}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent
+                    side="bottom"
+                    align="start"
+                    alignItemWithTrigger={false}
+                  >
+                    <SelectGroup>
+                      <SelectLabel>Devices</SelectLabel>
+                      {devices.map((p, idx) => (
+                        <SelectItem
+                          key={idx}
+                          value={`${p.sysName}-${p.ipAddress}`}
+                        >
+                          {p.sysName}-{p.ipAddress}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field>
                 <FieldLabel htmlFor="fieldgroup-name">Name</FieldLabel>
                 <Input
@@ -322,53 +387,63 @@ export default function NodeHandleSettings({
                     align="start"
                     alignItemWithTrigger={false}
                   >
-                    <SelectGroup>
-                      <SelectLabel>Normal Nodes</SelectLabel>
+                    {/* Normal Nodes */}
+                    {normalNodeTypes.includes(
+                      nodeType as (typeof normalNodeTypes)[number],
+                    ) && (
+                      <SelectGroup>
+                        <SelectLabel>Normal Nodes</SelectLabel>
 
-                      {normalNodeTypes.map((type) => {
-                        const config = nodeTypeConfig[type];
+                        {normalNodeTypes.map((type) => {
+                          const config = nodeTypeConfig[type];
 
-                        return (
-                          <SelectItem key={type} value={type}>
-                            <div className="flex items-center gap-2">
-                              <Image
-                                src={`/images/${config.image}.png`}
-                                width={32}
-                                height={32}
-                                alt={`${config.label} icon`}
-                                className="object-contain"
-                              />
+                          return (
+                            <SelectItem key={type} value={type}>
+                              <div className="flex items-center gap-2">
+                                <Image
+                                  src={`/images/${config.image}.png`}
+                                  width={32}
+                                  height={32}
+                                  alt={`${config.label} icon`}
+                                  className="object-contain"
+                                />
 
-                              <span>{config.label}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
+                                <span>{config.label}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectGroup>
+                    )}
 
-                    <SelectGroup>
-                      <SelectLabel>Blank Nodes</SelectLabel>
+                    {/* Blank Nodes */}
+                    {blankNodeTypes.includes(
+                      nodeType as (typeof blankNodeTypes)[number],
+                    ) && (
+                      <SelectGroup>
+                        <SelectLabel>Blank Nodes</SelectLabel>
 
-                      {blankNodeTypes.map((type) => {
-                        const config = nodeTypeConfig[type];
+                        {blankNodeTypes.map((type) => {
+                          const config = nodeTypeConfig[type];
 
-                        return (
-                          <SelectItem key={type} value={type}>
-                            <div className="flex items-center gap-2">
-                              <Image
-                                src={`/images/${config.image}.png`}
-                                width={32}
-                                height={32}
-                                alt={`${config.label} icon`}
-                                className="object-contain"
-                              />
+                          return (
+                            <SelectItem key={type} value={type}>
+                              <div className="flex items-center gap-2">
+                                <Image
+                                  src={`/images/${config.image}.png`}
+                                  width={32}
+                                  height={32}
+                                  alt={`${config.label} icon`}
+                                  className="object-contain"
+                                />
 
-                              <span>{config.label}</span>
-                            </div>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectGroup>
+                                <span>{config.label}</span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectGroup>
+                    )}
                   </SelectContent>
                 </Select>
               </Field>
@@ -525,6 +600,12 @@ export default function NodeHandleSettings({
                             value={handleType}
                             onValueChange={(value) => {
                               const type = value as HandleType;
+
+                              if (!node) return;
+
+                              if (type !== handleType) {
+                                clearHandleConnections(node.id, handleId);
+                              }
                               setHandles((current) => {
                                 const positionHandles = current[position] ?? [];
 
@@ -535,6 +616,14 @@ export default function NodeHandleSettings({
                                       ? {
                                           ...handle,
                                           type,
+
+                                          // Clear connection information
+                                          interfaceId: undefined,
+                                          interfaceName: "",
+                                          nodeName: undefined,
+                                          aggregationId: undefined,
+                                          inbound: 0,
+                                          outbound: 0,
                                         }
                                       : handle,
                                   ),
@@ -591,8 +680,8 @@ export default function NodeHandleSettings({
                     <div className="font-medium">Manual Aggregation</div>
 
                     <div className="text-xs text-muted-foreground">
-                      Create aggregation groups from interfaces connected to
-                      this blank node.
+                      Create aggregation groups from interfaces and connected
+                      aggregations.
                     </div>
                   </div>
 
@@ -606,6 +695,7 @@ export default function NodeHandleSettings({
                           id: `agg-${Date.now()}`,
                           name: "",
                           interfaces: [],
+                          connectedAggregations: [],
                         },
                       ]);
                     }}
@@ -614,22 +704,21 @@ export default function NodeHandleSettings({
                   </Button>
                 </div>
 
-                {/* Groups */}
+                {/* ========================================================== */}
+                {/* GROUPS                                                     */}
+                {/* ========================================================== */}
+
                 <div className="space-y-3">
                   {aggregations.map((aggregation) => {
-                    const usedInterfaceIds = new Set(
-                      aggregations
-                        .filter((group) => group.id !== aggregation.id)
-                        .flatMap((group) =>
-                          group.interfaces.map((iface) => iface.id),
-                        ),
-                    );
                     return (
                       <div
                         key={aggregation.id}
                         className="space-y-3 rounded-lg border p-3"
                       >
-                        {/* Group header */}
+                        {/* ====================================================== */}
+                        {/* GROUP HEADER                                            */}
+                        {/* ====================================================== */}
+
                         <div className="flex items-center gap-2">
                           <Input
                             value={aggregation.name}
@@ -664,15 +753,77 @@ export default function NodeHandleSettings({
                           </Button>
                         </div>
 
-                        {/* Interfaces */}
-                        <div className="space-y-2">
-                          <Label className="text-xs">Interfaces</Label>
+                        {/* ====================================================== */}
+                        {/* SELECTED ITEMS                                         */}
+                        {/* ====================================================== */}
 
-                          {aggregation.interfaces.length === 0 ? (
-                            <div className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
-                              No interfaces selected
+                        <div className="space-y-2">
+                          <Label className="text-xs">
+                            Interfaces / Aggregations
+                          </Label>
+
+                          {/* ==================================================== */}
+                          {/* CONNECTED AGGREGATIONS                                */}
+                          {/* ==================================================== */}
+
+                          {(aggregation.connectedAggregations?.length ?? 0) >
+                            0 && (
+                            <div className="space-y-2">
+                              {aggregation.connectedAggregations!.map(
+                                (connectedAggregation) => (
+                                  <div
+                                    key={connectedAggregation.id}
+                                    className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-medium">
+                                        {connectedAggregation.name ||
+                                          "Unnamed Aggregation"}
+                                      </span>
+
+                                      <span className="text-[11px] text-muted-foreground">
+                                        {connectedAggregation.id}
+                                      </span>
+                                    </div>
+
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={() => {
+                                        setAggregations((prev) =>
+                                          prev.map((item) =>
+                                            item.id === aggregation.id
+                                              ? {
+                                                  ...item,
+                                                  connectedAggregations: (
+                                                    item.connectedAggregations ??
+                                                    []
+                                                  ).filter(
+                                                    (existing) =>
+                                                      existing.id !==
+                                                      connectedAggregation.id,
+                                                  ),
+                                                }
+                                              : item,
+                                          ),
+                                        );
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3 text-red-500" />
+                                    </Button>
+                                  </div>
+                                ),
+                              )}
                             </div>
-                          ) : (
+                          )}
+
+                          {/* ==================================================== */}
+                          {/* DIRECT INTERFACES                                    */}
+                          {/* ==================================================== */}
+
+                          {aggregation.interfaces.length > 0 && (
                             <div className="space-y-2">
                               {aggregation.interfaces.map((iface) => (
                                 <div
@@ -720,21 +871,66 @@ export default function NodeHandleSettings({
                             </div>
                           )}
 
-                          {/* Add interface */}
-                          <Select
-                            value=""
-                            onValueChange={(interfaceId) => {
-                              const interfaceToAdd = Object.values(
+                          {/* ==================================================== */}
+                          {/* EMPTY STATE                                          */}
+                          {/* ==================================================== */}
+
+                          {aggregation.interfaces.length === 0 &&
+                            (aggregation.connectedAggregations?.length ?? 0) ===
+                              0 && (
+                              <div className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
+                                No interfaces or aggregations selected
+                              </div>
+                            )}
+                        </div>
+
+                        {/* ====================================================== */}
+                        {/* ADD INTERFACE / AGGREGATION                            */}
+                        {/* ====================================================== */}
+
+                        <Select
+                          value=""
+                          onValueChange={(value) => {
+                            if (!value) {
+                              return;
+                            }
+
+                            // ====================================================
+                            // ADD CONNECTED AGGREGATION
+                            // ====================================================
+
+                            if (value.startsWith("connected-aggregation:")) {
+                              const aggregationId = value.replace(
+                                "connected-aggregation:",
+                                "",
+                              );
+
+                              // Find the handle that currently references
+                              // this aggregation.
+                              const aggregationHandle = Object.values(
                                 node?.data?.handles ?? {},
                               )
                                 .flat()
                                 .find(
-                                  (iface) =>
-                                    iface.interfaceId?.toString() ===
-                                    interfaceId,
+                                  (handle) =>
+                                    handle.aggregationId === aggregationId,
                                 );
 
-                              if (!interfaceToAdd) return;
+                              if (!aggregationHandle) {
+                                return;
+                              }
+
+                              // Find name from an existing aggregation
+                              // definition if available.
+                              const aggregationData =
+                                node?.data?.aggregations?.find(
+                                  (agg) => agg.id === aggregationId,
+                                );
+
+                              const aggregationName =
+                                aggregationData?.name ??
+                                aggregationHandle.nodeName ??
+                                aggregationId;
 
                               setAggregations((prev) =>
                                 prev.map((item) => {
@@ -742,8 +938,12 @@ export default function NodeHandleSettings({
                                     return item;
                                   }
 
-                                  const alreadyExists = item.interfaces.some(
-                                    (iface) => iface.id === interfaceToAdd.id,
+                                  const existing =
+                                    item.connectedAggregations ?? [];
+
+                                  // Prevent duplicate aggregation
+                                  const alreadyExists = existing.some(
+                                    (agg) => agg.id === aggregationId,
                                   );
 
                                   if (alreadyExists) {
@@ -752,53 +952,188 @@ export default function NodeHandleSettings({
 
                                   return {
                                     ...item,
-                                    interfaces: [
-                                      ...item.interfaces,
-                                      interfaceToAdd,
+
+                                    connectedAggregations: [
+                                      ...existing,
+                                      {
+                                        id: aggregationId,
+                                        name: aggregationName,
+                                      },
                                     ],
                                   };
                                 }),
                               );
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Add connected interface..." />
-                            </SelectTrigger>
 
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectLabel>Connected Interfaces</SelectLabel>
+                              return;
+                            }
 
-                                {Object.values(node?.data?.handles ?? {})
-                                  .flat()
-                                  .filter(
+                            // ====================================================
+                            // ADD DIRECT INTERFACE
+                            // ====================================================
+
+                            if (value.startsWith("interface:")) {
+                              const interfaceId = Number(
+                                value.replace("interface:", ""),
+                              );
+
+                              if (!Number.isInteger(interfaceId)) {
+                                return;
+                              }
+
+                              const interfaceToAdd = Object.values(
+                                node?.data?.handles ?? {},
+                              )
+                                .flat()
+                                .find(
+                                  (handle) =>
+                                    handle.interfaceId === interfaceId,
+                                );
+
+                              if (!interfaceToAdd) {
+                                return;
+                              }
+
+                              setAggregations((prev) =>
+                                prev.map((item) => {
+                                  if (item.id !== aggregation.id) {
+                                    return item;
+                                  }
+
+                                  const alreadyExists = item.interfaces.some(
                                     (iface) =>
-                                      iface.interfaceId != null &&
-                                      iface.interfaceName.trim() !== "" &&
-                                      !usedInterfaceIds.has(iface.id),
-                                  )
-                                  .map((iface) => (
-                                    <SelectItem
-                                      key={iface.id}
-                                      value={iface.interfaceId!.toString()}
-                                    >
-                                      <div>
-                                        <div className="text-sm">
-                                          {iface.interfaceName}
-                                        </div>
+                                      iface.interfaceId === interfaceId,
+                                  );
 
-                                        {iface.nodeName && (
-                                          <div className="text-xs text-muted-foreground">
-                                            {iface.nodeName}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                        </div>
+                                  if (alreadyExists) {
+                                    return item;
+                                  }
+
+                                  return {
+                                    ...item,
+
+                                    interfaces: [
+                                      ...item.interfaces,
+                                      {
+                                        ...interfaceToAdd,
+                                      },
+                                    ],
+                                  };
+                                }),
+                              );
+
+                              return;
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Add connected interface or aggregation..." />
+                          </SelectTrigger>
+
+                          <SelectContent>
+                            {/* ================================================== */}
+                            {/* CONNECTED INTERFACES                               */}
+                            {/* ================================================== */}
+
+                            <SelectGroup>
+                              <SelectLabel>Connected Interfaces</SelectLabel>
+
+                              {Object.values(node?.data?.handles ?? {})
+                                .flat()
+                                .filter(
+                                  (handle) =>
+                                    typeof handle.interfaceId === "number" &&
+                                    !!handle.interfaceName?.trim(),
+                                )
+                                .map((handle) => (
+                                  <SelectItem
+                                    key={`interface-${handle.id}`}
+                                    value={`interface:${handle.interfaceId}`}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="text-sm">
+                                        {handle.interfaceName}
+                                      </span>
+
+                                      {handle.nodeName && (
+                                        <span className="text-xs text-muted-foreground">
+                                          {handle.nodeName}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                            </SelectGroup>
+
+                            {/* ================================================== */}
+                            {/* CONNECTED AGGREGATIONS                             */}
+                            {/* ================================================== */}
+
+                            <SelectGroup>
+                              <SelectLabel>Connected Aggregations</SelectLabel>
+
+                              {Array.from(
+                                new Map(
+                                  Object.values(node?.data?.handles ?? {})
+                                    .flat()
+                                    .filter((handle) => !!handle.aggregationId)
+                                    .map((handle) => [
+                                      handle.aggregationId!,
+                                      handle,
+                                    ]),
+                                ).values(),
+                              ).map((handle) => {
+                                const aggregationId = handle.aggregationId!;
+
+                                const aggregationData =
+                                  node?.data?.aggregations?.find(
+                                    (agg) => agg.id === aggregationId,
+                                  );
+
+                                const aggregationName =
+                                  aggregationData?.name ??
+                                  handle.nodeName ??
+                                  aggregationId;
+
+                                return (
+                                  <SelectItem
+                                    key={`connected-aggregation-${aggregationId}`}
+                                    value={`connected-aggregation:${aggregationId}`}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-medium">
+                                        {aggregationName}
+                                      </span>
+
+                                      <span className="text-xs text-muted-foreground">
+                                        {aggregationId}
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectGroup>
+
+                            {/* ================================================== */}
+                            {/* EMPTY STATE                                        */}
+                            {/* ================================================== */}
+
+                            {Object.values(node?.data?.handles ?? {})
+                              .flat()
+                              .filter(
+                                (handle) =>
+                                  typeof handle.interfaceId === "number",
+                              ).length === 0 &&
+                              Object.values(node?.data?.handles ?? {})
+                                .flat()
+                                .filter((handle) => !!handle.aggregationId)
+                                .length === 0 && (
+                                <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                                  No connected interfaces or aggregations
+                                  available.
+                                </div>
+                              )}
+                          </SelectContent>
+                        </Select>
                       </div>
                     );
                   })}

@@ -7,6 +7,11 @@ export interface AggregationGroup {
   id: string;
   name: string;
   interfaces: NodeHandle[];
+
+  connectedAggregations?: {
+    id: string;
+    name: string;
+  }[];
 }
 export type AggregationMode = "automatic" | "manual";
 export type BlankNodeData = {
