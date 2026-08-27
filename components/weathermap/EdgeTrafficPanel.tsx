@@ -15,17 +15,29 @@ import React, { useMemo, useState } from "react";
 import { Maximize2, Minimize2, X } from "lucide-react";
 import { AggregatedInterface } from "@/app/(pages)/settings/weathermap/[id]/page";
 
+const AGGREGATED_COLORS = [
+  "#22c55e", // green
+  "#f97316", // orange
+  "#a855f7", // purple
+  "#06b6d4", // cyan
+  "#eab308", // yellow
+  "#ec4899", // pink
+  "#14b8a6", // teal
+  "#ef4444", // red
+];
+
 interface EdgeTrafficPanelProps {
   sourceNodeName: string;
   targetNodeName: string;
-  sourceInterfaceName: string;
-  targetInterfaceName: string;
   sourceInterface: InterfaceTypes | undefined;
   interfaces: InterfaceTypes[];
   aggregatedInterfaces: AggregatedInterface[];
 
   inbound: number;
   outbound: number;
+
+  sourceDesc: string;
+  targetDesc: string;
 
   onClose: () => void;
   onDragStart?: (event: React.MouseEvent<HTMLDivElement>) => void;
@@ -52,15 +64,113 @@ type InterfaceTrafficStats = {
   maxInbound: number;
   maxOutbound: number;
 };
+interface ChartDataItem {
+  interfaceId: number | string;
+  interfaceName: string;
+  sourceNodeName?: string;
+  isAggregated?: boolean;
+}
+
+interface TrafficPayload {
+  readonly dataKey?: string | number;
+  readonly value?: number | string;
+}
+
+interface TrafficTooltipProps {
+  active?: boolean;
+  payload?: readonly TrafficPayload[];
+  label?: string | number;
+  chartData: ChartDataItem[];
+}
+
+const TrafficTooltip = ({
+  active,
+  payload,
+  label,
+  chartData,
+}: TrafficTooltipProps) => {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="min-w-60 rounded-lg border bg-white p-2 text-xs shadow-xl">
+      <div className="mb-3 border-b pb-2">
+        <div className="text-[10px] font-semibold">Traffic</div>
+
+        <div className="text-[8px] text-muted-foreground font-semibold">
+          {String(label ?? "")}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {payload.map((entry, index) => {
+          const dataKey = String(entry.dataKey ?? "");
+
+          const isInbound = dataKey.startsWith("inbound_");
+
+          const interfaceId = dataKey
+            .replace("inbound_", "")
+            .replace("outbound_", "");
+
+          const interfaceChart = chartData.find(
+            (item) => String(item.interfaceId) === interfaceId,
+          );
+
+          const value = Number(entry.value ?? 0);
+
+          return (
+            <div
+              key={`${dataKey}-${index}`}
+              className="flex items-center justify-between gap-4"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    isInbound ? "bg-green-500" : "bg-blue-500"
+                  }`}
+                />
+
+                <div className="min-w-0">
+                  <div className="text-[10px] truncate font-medium">
+                    {interfaceChart?.interfaceName ?? "Interface"}
+                  </div>
+
+                  {interfaceChart?.sourceNodeName && (
+                    <div className="truncate text-[6px] text-muted-foreground font-semibold">
+                      {interfaceChart.sourceNodeName}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={`text-end text-[10px] whitespace-nowrap font-semibold ${
+                  isInbound ? "text-green-500" : "text-blue-500"
+                }`}
+              >
+                {isInbound ? "↓" : "↑"} {formatBandwidth(value)}
+                <div className="text-[6px] text-muted-foreground">
+                  {isInbound ? "Inbound" : "Outbound"}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 export default function EdgeTrafficPanel({
   sourceNodeName,
   targetNodeName,
   aggregatedInterfaces,
-  sourceInterfaceName,
-  targetInterfaceName,
 
   inbound,
   outbound,
+
+  sourceDesc,
+  targetDesc,
 
   sourceInterface,
   interfaces,
@@ -69,6 +179,10 @@ export default function EdgeTrafficPanel({
 }: EdgeTrafficPanelProps) {
   const [isGraphFullscreen, setIsGraphFullscreen] = useState<boolean>(false);
   const chartData = useMemo<InterfaceChartData[]>(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayStartTimestamp = todayStart.getTime();
     // ==================================================
     // AGGREGATED LINK
     // ==================================================
@@ -84,10 +198,16 @@ export default function EdgeTrafficPanel({
             return null;
           }
 
-          const statistics = [...iface.statistics].sort(
-            (a, b) =>
-              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-          );
+          const statistics = [...iface.statistics]
+            .filter(
+              (stat) =>
+                new Date(stat.createdAt).getTime() >= todayStartTimestamp,
+            )
+            .sort(
+              (a, b) =>
+                new Date(a.createdAt).getTime() -
+                new Date(b.createdAt).getTime(),
+            );
 
           if (statistics.length < 2) {
             return {
@@ -156,10 +276,14 @@ export default function EdgeTrafficPanel({
       return [];
     }
 
-    const statistics = [...sourceInterface.statistics].sort(
-      (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-    );
+    const statistics = [...sourceInterface.statistics]
+      .filter(
+        (stat) => new Date(stat.createdAt).getTime() >= todayStartTimestamp,
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
 
     if (statistics.length < 2) {
       return [
@@ -462,36 +586,36 @@ export default function EdgeTrafficPanel({
     inbound,
     outbound,
   ]);
-const trafficLegendTotals = useMemo(() => {
-  const isAggregated = aggregatedInterfaces.length > 0;
+  const trafficLegendTotals = useMemo(() => {
+    const isAggregated = aggregatedInterfaces.length > 0;
 
-  if (!isAggregated) {
-    const stat = interfaceTrafficStats[0];
+    if (!isAggregated) {
+      const stat = interfaceTrafficStats[0];
+
+      return {
+        inbound: stat?.currentInbound ?? 0,
+        outbound: stat?.currentOutbound ?? 0,
+        aggregated: false,
+      };
+    }
 
     return {
-      inbound: stat?.currentInbound ?? 0,
-      outbound: stat?.currentOutbound ?? 0,
-      aggregated: false,
+      inbound: interfaceTrafficStats.reduce(
+        (total, stat) => total + stat.currentInbound,
+        0,
+      ),
+
+      outbound: interfaceTrafficStats.reduce(
+        (total, stat) => total + stat.currentOutbound,
+        0,
+      ),
+
+      aggregated: true,
     };
-  }
-
-  return {
-    inbound: interfaceTrafficStats.reduce(
-      (total, stat) => total + stat.currentInbound,
-      0,
-    ),
-
-    outbound: interfaceTrafficStats.reduce(
-      (total, stat) => total + stat.currentOutbound,
-      0,
-    ),
-
-    aggregated: true,
-  };
-}, [interfaceTrafficStats, aggregatedInterfaces]);
+  }, [interfaceTrafficStats, aggregatedInterfaces]);
   return (
     <div
-      className="relative w-80 rounded-lg border bg-white shadow-xl p-3 text-xs "
+      className="relative w-80 rounded-lg border bg-white shadow-xl p-3 text-xs font-lexend"
       onMouseDown={onDragStart}
     >
       {/* Header */}
@@ -503,9 +627,9 @@ const trafficLegendTotals = useMemo(() => {
           <div className="text-[10px] text-muted-foreground">
             {sourceNodeName} → {targetNodeName}
           </div>
-
-          <div className="text-[10px] text-muted-foreground">
-            {sourceInterfaceName} → {targetInterfaceName}
+          <div className="text-[8px] text-gray-400">
+            {sourceDesc !== "" ? sourceDesc : sourceNodeName} →
+            {targetDesc !== "" ? targetDesc : targetNodeName}
           </div>
         </div>
 
@@ -575,49 +699,60 @@ const trafficLegendTotals = useMemo(() => {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={combinedChartData}>
                 <defs>
-                  {chartData.map((interfaceChart) => (
-                    <React.Fragment key={interfaceChart.interfaceId}>
-                      <linearGradient
-                        id={`inboundGradient-${interfaceChart.interfaceId}`}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#22c55e"
-                          stopOpacity={0.35}
-                        />
+                  {chartData.map((interfaceChart, index) => {
+                    const color =
+                      aggregatedInterfaces.length > 0
+                        ? AGGREGATED_COLORS[index % AGGREGATED_COLORS.length]
+                        : null;
 
-                        <stop
-                          offset="100%"
-                          stopColor="#22c55e"
-                          stopOpacity={0.02}
-                        />
-                      </linearGradient>
+                    const inboundColor = color ?? "#22c55e";
 
-                      <linearGradient
-                        id={`outboundGradient-${interfaceChart.interfaceId}`}
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#3b82f6"
-                          stopOpacity={0.35}
-                        />
+                    const outboundColor = color ?? "#3b82f6";
 
-                        <stop
-                          offset="100%"
-                          stopColor="#3b82f6"
-                          stopOpacity={0.02}
-                        />
-                      </linearGradient>
-                    </React.Fragment>
-                  ))}
+                    return (
+                      <React.Fragment key={interfaceChart.interfaceId}>
+                        <linearGradient
+                          id={`inboundGradient-${interfaceChart.interfaceId}`}
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={inboundColor}
+                            stopOpacity={0.35}
+                          />
+
+                          <stop
+                            offset="100%"
+                            stopColor={outboundColor}
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+
+                        <linearGradient
+                          id={`outboundGradient-${interfaceChart.interfaceId}`}
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
+                          <stop
+                            offset="0%"
+                            stopColor={inboundColor}
+                            stopOpacity={0.35}
+                          />
+
+                          <stop
+                            offset="100%"
+                            stopColor={outboundColor}
+                            stopOpacity={0.02}
+                          />
+                        </linearGradient>
+                      </React.Fragment>
+                    );
+                  })}
                 </defs>
 
                 <XAxis
@@ -639,49 +774,64 @@ const trafficLegendTotals = useMemo(() => {
                 />
 
                 <Tooltip
-                  formatter={(value, name) => {
-                    const interfaceId = String(name)
-                      .replace("inbound_", "")
-                      .replace("outbound_", "");
-
-                    const interfaceChart = chartData.find(
-                      (item) => String(item.interfaceId) === interfaceId,
-                    );
-
-                    const isInbound = String(name).startsWith("inbound_");
-
-                    return [
-                      formatBandwidth(Number(value)),
-                      `${interfaceChart?.interfaceName ?? "Interface"} ${
-                        isInbound ? "Inbound" : "Outbound"
-                      }`,
-                    ];
-                  }}
+                  content={(props) => (
+                    <TrafficTooltip
+                      active={props.active}
+                      label={
+                        typeof props.label === "string" ||
+                        typeof props.label === "number"
+                          ? props.label
+                          : undefined
+                      }
+                      payload={props.payload?.map((entry) => ({
+                        dataKey:
+                          typeof entry.dataKey === "string" ||
+                          typeof entry.dataKey === "number"
+                            ? entry.dataKey
+                            : undefined,
+                        value:
+                          typeof entry.value === "number" ||
+                          typeof entry.value === "string"
+                            ? entry.value
+                            : undefined,
+                      }))}
+                      chartData={chartData}
+                    />
+                  )}
                 />
+                {chartData.map((interfaceChart, index) => {
+                  const color =
+                    aggregatedInterfaces.length > 0
+                      ? AGGREGATED_COLORS[index % AGGREGATED_COLORS.length]
+                      : null;
 
-                {chartData.map((interfaceChart) => (
-                  <React.Fragment key={interfaceChart.interfaceId}>
-                    <Area
-                      type="monotone"
-                      dataKey={`inbound_${interfaceChart.interfaceId}`}
-                      stroke="#22c55e"
-                      fill={`url(#inboundGradient-${interfaceChart.interfaceId})`}
-                      strokeWidth={2}
-                      dot={false}
-                      isAnimationActive={false}
-                    />
+                  const inboundColor = color ?? "#22c55e";
 
-                    <Area
-                      type="monotone"
-                      dataKey={`outbound_${interfaceChart.interfaceId}`}
-                      stroke="#3b82f6"
-                      fill={`url(#outboundGradient-${interfaceChart.interfaceId})`}
-                      strokeWidth={2}
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  </React.Fragment>
-                ))}
+                  const outboundColor = color ?? "#3b82f6";
+                  return (
+                    <React.Fragment key={interfaceChart.interfaceId}>
+                      <Area
+                        type="monotone"
+                        dataKey={`inbound_${interfaceChart.interfaceId}`}
+                        stroke={inboundColor}
+                        fill={`url(#inboundGradient-${interfaceChart.interfaceId})`}
+                        strokeWidth={2}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+
+                      <Area
+                        type="monotone"
+                        dataKey={`outbound_${interfaceChart.interfaceId}`}
+                        stroke={outboundColor}
+                        fill={`url(#outboundGradient-${interfaceChart.interfaceId})`}
+                        strokeWidth={2}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    </React.Fragment>
+                  );
+                })}
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -741,7 +891,7 @@ const trafficLegendTotals = useMemo(() => {
                 {stat.interfaceName}
                 {stat.sourceNodeName && (
                   <span className="ml-1 text-muted-foreground font-normal">
-                    ({stat.sourceNodeName})
+                    ({sourceDesc !== "" ? sourceDesc : stat.sourceNodeName})
                   </span>
                 )}
               </div>

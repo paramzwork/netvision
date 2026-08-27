@@ -36,7 +36,7 @@ import {
   AggregationMode,
   useDnD,
 } from "@/components/DnDContext";
-import NodeHandleSettings from "@/components/NodeHandleSettings";
+import NodeHandleSettings, { NodeType } from "@/components/NodeHandleSettings";
 import EdgeSettings from "@/components/EdgeSettings";
 import { Button } from "@/components/ui/button";
 import SidebarWeathermap from "@/components/SidebarWeathermap";
@@ -55,12 +55,15 @@ import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Input } from "@/components/ui/input";
 import RouterNodeSettings from "@/components/weathermap/nodes/RouterNode";
+import { Maximize2, Minimize2 } from "lucide-react";
 const nodeTypes = {
   router: RouterNodeSettings,
   switch: SwitchNode,
   cloud: CloudNode,
   server: ServerNode,
   blank: CloudNode,
+  blank1: RouterNodeSettings,
+  blank2: ServerNode,
 };
 
 export interface AggregatedInterface {
@@ -76,7 +79,7 @@ export default function ViewWeathermapSettings() {
   // Node
   const [nodes, setNodes] = useNodesState<TopologyNode>([]);
   const [nodeName, setNodeName] = useState<string>("");
-  const [nodeType, setNodeType] = useState<string>("");
+  const [nodeType, setNodeType] = useState<NodeType>("router");
   const [selectedNode, setSelectedNode] = useState<TopologyNode | null>(null);
   const [handles, setHandles] = useState<HandleLayout>({
     top: [],
@@ -97,6 +100,7 @@ export default function ViewWeathermapSettings() {
   const edgeReconnectSuccessful = useRef<boolean>(true);
   const [swapTraffic, setSwapTraffic] = useState<boolean>(false);
   const [selectedEdge, setSelectedEdge] = useState<TopologyEdge | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<string>("");
 
   const router = useRouter();
   const hasMountedRef = useRef<boolean>(false);
@@ -107,6 +111,7 @@ export default function ViewWeathermapSettings() {
     bottom: 0,
     left: 0,
   });
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // React Flow
   const { screenToFlowPosition } = useReactFlow();
@@ -224,18 +229,6 @@ export default function ViewWeathermapSettings() {
       ) {
         return;
       }
-      console.log("========== ON CONNECT ==========");
-      console.log("params:", params);
-
-      console.log("source:", {
-        nodeId: params.source,
-        handleId: params.sourceHandle,
-      });
-
-      console.log("target:", {
-        nodeId: params.target,
-        handleId: params.targetHandle,
-      });
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
 
@@ -259,10 +252,11 @@ export default function ViewWeathermapSettings() {
       // ---------------------------------------------
       // Determine logical node purpose
       // ---------------------------------------------
+      const isBlankNode = (nodeType?: string) =>
+        nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
 
-      const sourceIsBlank = sourceNode.data.nodeType === "blank";
-
-      const targetIsBlank = targetNode.data.nodeType === "blank";
+      const sourceIsBlank = isBlankNode(sourceNode.data.nodeType);
+      const targetIsBlank = isBlankNode(targetNode.data.nodeType);
 
       // ---------------------------------------------
       // Normal nodes MUST have interfaces
@@ -287,13 +281,26 @@ export default function ViewWeathermapSettings() {
           sourceNode.data.nodeName ?? "Unknown",
         );
       }
-      if (!sourceIsBlank && sourceNode.data.interfaceId == null) {
-        toast.warning("Please assign an interface to the source handle.");
+      const sourceInterfaceId = sourceIsBlank
+        ? sourceHandle.interfaceId
+        : sourceNode.data.interfaceId;
+
+      const targetInterfaceId = targetIsBlank
+        ? targetHandle.interfaceId
+        : targetNode.data.interfaceId;
+
+      // const sourceIsAggregated = sourceIsBlank && !!sourceHandle.aggregationId;
+
+      // const targetIsAggregated = targetIsBlank && !!targetHandle.aggregationId;
+      // Normal interface validation
+
+      if (!sourceIsBlank && sourceInterfaceId == null) {
+        toast.warning("Please assign an interface to the source node.");
         return;
       }
 
-      if (!targetIsBlank && targetNode.data.interfaceId == null) {
-        toast.warning("Please assign an interface to the target handle.");
+      if (!targetIsBlank && targetInterfaceId == null) {
+        toast.warning("Please assign an interface to the target node.");
         return;
       }
 
@@ -302,7 +309,6 @@ export default function ViewWeathermapSettings() {
       let aggregation: AggregationGroup | undefined;
       let aggregatedInbound = 0;
       let aggregatedOutbound = 0;
-
       if (
         sourceIsBlank &&
         sourceNode.data.aggregationMode === "manual" &&
@@ -380,32 +386,27 @@ export default function ViewWeathermapSettings() {
         type: "start-end",
 
         data: {
-          ...(sourceIsBlank
-            ? {
-                sourceInterfaceName: sourceHandle.interfaceName ?? "Blank Node",
-                sourceNodeType: sourceNode.type,
-              }
-            : {
-                sourceInterfaceId: sourceNode.data.interfaceId,
-                sourceInterfaceName: sourceHandle.interfaceName ?? "",
-                sourceNodeType: sourceNode.type ?? "",
-              }),
+          sourceInterfaceId,
+          sourceInterfaceName: sourceHandle.interfaceName ?? "",
+          sourceNodeType: sourceNode.type ?? "",
 
-          ...(targetIsBlank
-            ? {
-                targetInterfaceName: targetHandle.interfaceName ?? "Blank Node",
-                targetNodeType: targetNode.type,
-              }
-            : {
-                targetInterfaceId: targetNode.data.interfaceId,
-                targetInterfaceName: targetHandle.interfaceName ?? "",
-                targetNodeType: targetNode.type ?? "",
-              }),
+          targetInterfaceId,
+          targetInterfaceName: targetHandle.interfaceName ?? "",
+          targetNodeType: targetNode.type ?? "",
+
           sourceNodeName: sourceNode.data.nodeName ?? "Unknown",
           targetNodeName: targetNode.data.nodeName ?? "Unknown",
           bandwidthMbps: 1000,
           status: "up",
-          description: "",
+
+          sourceDesc:
+            (sourceNode.data.description === ""
+              ? sourceHandle.nodeName
+              : sourceNode.data.description) ?? "",
+          targetDesc:
+            (targetNode.data.description === ""
+              ? targetHandle.nodeName
+              : targetNode.data.description) ?? "",
 
           inbound: 0,
           outbound: 0,
@@ -446,7 +447,6 @@ export default function ViewWeathermapSettings() {
             : {}),
         },
       };
-
       setEdges((eds) => [...eds, edge]);
     },
     [edges, nodes, setEdges, updateHandle, updateHandleTraffic],
@@ -501,7 +501,7 @@ export default function ViewWeathermapSettings() {
     setNodeName(
       node.data.nodeName === "" ? node.data.description : node.data.nodeName,
     );
-    setNodeType(node.type ?? "");
+    setNodeType((node.type ?? "router") as NodeType);
 
     setCounts({
       top: node.data.handles.top.length,
@@ -516,7 +516,7 @@ export default function ViewWeathermapSettings() {
   };
   const onNodeDoubleClick: NodeMouseHandler<TopologyNode> = useCallback(
     (_event, node) => {
-      console.log(node);
+      console.log(node)
       handleNodeSettings(node);
     },
     [],
@@ -985,6 +985,48 @@ export default function ViewWeathermapSettings() {
     loadTopology(topologyId);
     hasLoadedRef.current = false;
   }, [topologyId, loadTopology]);
+  const [trafficPanelOffset, setTrafficPanelOffset] = useState({
+    x: 0,
+    y: 0,
+  });
+
+  const handleTrafficPanelMouseDown = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startMouseX = event.clientX;
+    const startMouseY = event.clientY;
+
+    const startOffsetX = trafficPanelOffset.x;
+    const startOffsetY = trafficPanelOffset.y;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const dx = moveEvent.clientX - startMouseX;
+      const dy = moveEvent.clientY - startMouseY;
+
+      setTrafficPanelOffset({
+        x: startOffsetX + dx,
+        y: startOffsetY + dy,
+      });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const filteredData = interfaces.filter((iface) => {
+    const selectedIp = selectedDevice.split("-").pop()?.trim();
+
+    return iface.deviceIp === selectedIp;
+  });
+  console.log(filteredData);
   return (
     <div className="space-y-5">
       <div className="space-y-2">
@@ -1029,7 +1071,13 @@ export default function ViewWeathermapSettings() {
         </Button>
       </div>
       <div className="flex flex-row gap-2">
-        <div className="w-full h-174 flex flex-col items-start justify-center border rounded-md overflow-hidden">
+        <div
+          className={
+            isFullscreen
+              ? "fixed inset-0 z-9999"
+              : "w-full h-174 flex flex-col items-start justify-center border rounded-md overflow-hidden"
+          }
+        >
           <div className="w-full h-full">
             <ReactFlow<TopologyNode, TopologyEdge>
               nodes={nodes}
@@ -1053,7 +1101,51 @@ export default function ViewWeathermapSettings() {
               colorMode="system"
             >
               <Background />
-              <MiniMap />
+              <MiniMap />{" "}
+              <div className="absolute top-3 right-3 z-50">
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen((prev) => !prev)}
+                  className="flex items-center justify-center w-9 h-9 rounded-md border bg-background/90 hover:bg-background shadow-sm"
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="w-4 h-4" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              <div className="absolute top-3 left-3 z-50">
+                <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
+                  <div className="mb-2 text-xs font-semibold">Traffic Load</div>
+
+                  <div className="space-y-1">
+                    {[
+                      { color: "#ff0000", label: "0–0%" },
+                      { color: "#bdbdbd", label: "0–1%" },
+                      { color: "#f3f4f6", label: "1–10%" },
+                      { color: "#8b00ff", label: "10–25%" },
+                      { color: "#6a00ff", label: "25–40%" },
+                      { color: "#00bfff", label: "40–55%" },
+                      { color: "#ffff00", label: "55–70%" },
+                      { color: "#ffa500", label: "70–85%" },
+                      { color: "#00e600", label: "85–100%" },
+                    ].map((item) => (
+                      <div key={item.label} className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-6 rounded-sm border"
+                          style={{
+                            backgroundColor: item.color,
+                          }}
+                        />
+
+                        <span className="text-[10px]">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </ReactFlow>
             <NodeHandleSettings
               open={!!selectedNode}
@@ -1071,6 +1163,7 @@ export default function ViewWeathermapSettings() {
               setHandles={setHandles}
               setAggregationMode={setAggregationMode}
               setAggregations={setAggregations}
+              interfaces={filteredData}
               onSave={({ type, handles, aggregationMode, aggregations }) => {
                 if (!selectedNode) return;
 
@@ -1097,7 +1190,7 @@ export default function ViewWeathermapSettings() {
                   ),
                 );
 
-                setNodeType("");
+                setNodeType("router");
 
                 setCounts({
                   top: 0,
@@ -1146,12 +1239,12 @@ export default function ViewWeathermapSettings() {
                   style={{
                     position: "absolute",
                     transform: `
-          translate(-50%, -100%)
-          translate(
-            ${trafficEdgePosition.x}px,
-            ${trafficEdgePosition.y}px
-          )
-        `,
+                translate(-50%, -10%)
+                translate(
+                  ${trafficEdgePosition.x + trafficPanelOffset.x}px,
+                  ${trafficEdgePosition.y + trafficPanelOffset.y}px
+                )
+              `,
                     pointerEvents: "all",
                     zIndex: 1000,
                   }}
@@ -1161,18 +1254,15 @@ export default function ViewWeathermapSettings() {
                     interfaces={interfaces}
                     sourceNodeName={trafficEdge.data?.sourceNodeName ?? ""}
                     targetNodeName={trafficEdge.data?.targetNodeName ?? ""}
-                    sourceInterfaceName={
-                      trafficEdge.data?.sourceInterfaceName ?? ""
-                    }
-                    targetInterfaceName={
-                      trafficEdge.data?.targetInterfaceName ?? ""
-                    }
                     aggregatedInterfaces={
                       trafficEdge.data?.aggregatedInterfaces ?? []
                     }
+                    sourceDesc={trafficEdge.data?.sourceDesc ?? ""}
+                    targetDesc={trafficEdge.data?.targetDesc ?? ""}
                     inbound={trafficEdge.data?.inbound ?? 0}
                     outbound={trafficEdge.data?.outbound ?? 0}
                     onClose={() => setTrafficEdgeId(null)}
+                    onDragStart={handleTrafficPanelMouseDown}
                   />
                 </div>
               </EdgeLabelRenderer>
@@ -1180,7 +1270,12 @@ export default function ViewWeathermapSettings() {
           </div>
         </div>
 
-        <SidebarWeathermap interfaces={interfaces} devices={device} />
+        <SidebarWeathermap
+          interfaces={interfaces}
+          devices={device}
+          selectedDevice={selectedDevice}
+          setSelectedDevice={setSelectedDevice}
+        />
       </div>
     </div>
   );

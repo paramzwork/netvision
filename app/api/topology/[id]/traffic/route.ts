@@ -134,14 +134,14 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     // --------------------------------------------------
 
     const nodeById = new Map(
-      nodes.map((node) => [
-        node.nodeId,
-        node.data as NodeData,
-      ]),
+      nodes.map((node) => [node.nodeId, node.data as NodeData]),
     );
 
+    const isBlankNodeType = (nodeType?: string) =>
+      nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
+
     const isBlankNode = (nodeId: string) => {
-      return nodeById.get(nodeId)?.nodeType === "blank";
+      return isBlankNodeType(nodeById.get(nodeId)?.nodeType);
     };
 
     // --------------------------------------------------
@@ -250,25 +250,15 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       const previous = samples[1];
 
       const elapsedSeconds =
-        (current.createdAt.getTime() -
-          previous.createdAt.getTime()) /
-        1000;
+        (current.createdAt.getTime() - previous.createdAt.getTime()) / 1000;
 
       if (elapsedSeconds <= 0) {
         return 0;
       }
 
       return direction === "in"
-        ? calculateRate(
-            current.inOctets,
-            previous.inOctets,
-            elapsedSeconds,
-          )
-        : calculateRate(
-            current.outOctets,
-            previous.outOctets,
-            elapsedSeconds,
-          );
+        ? calculateRate(current.inOctets, previous.inOctets, elapsedSeconds)
+        : calculateRate(current.outOctets, previous.outOctets, elapsedSeconds);
     };
 
     // --------------------------------------------------
@@ -308,9 +298,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       }
 
       for (const handles of Object.values(nodeData.handles ?? {})) {
-        const handle = handles?.find(
-          (item) => item.id === handleId,
-        );
+        const handle = handles?.find((item) => item.id === handleId);
 
         if (handle) {
           return handle.aggregationId;
@@ -354,15 +342,9 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // ------------------------------------------------
 
       if (!sourceIsBlank && !targetIsBlank) {
-        const inbound = getRate(
-          data.sourceInterfaceId,
-          "in",
-        );
+        const inbound = getRate(data.sourceInterfaceId, "in");
 
-        const outbound = getRate(
-          data.sourceInterfaceId,
-          "out",
-        );
+        const outbound = getRate(data.sourceInterfaceId, "out");
 
         return {
           inbound,
@@ -373,8 +355,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
               ? [
                   {
                     interfaceId: data.sourceInterfaceId,
-                    interfaceName:
-                      data.sourceInterfaceName ?? "",
+                    interfaceName: data.sourceInterfaceName ?? "",
                     inbound,
                     outbound,
                   },
@@ -391,15 +372,9 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // ------------------------------------------------
 
       if (!sourceIsBlank && targetIsBlank) {
-        const inbound = getRate(
-          data.sourceInterfaceId,
-          "in",
-        );
+        const inbound = getRate(data.sourceInterfaceId, "in");
 
-        const outbound = getRate(
-          data.sourceInterfaceId,
-          "out",
-        );
+        const outbound = getRate(data.sourceInterfaceId, "out");
 
         return {
           inbound,
@@ -410,8 +385,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
               ? [
                   {
                     interfaceId: data.sourceInterfaceId,
-                    interfaceName:
-                      data.sourceInterfaceName ?? "",
+                    interfaceName: data.sourceInterfaceName ?? "",
                     inbound,
                     outbound,
                   },
@@ -430,68 +404,46 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // ------------------------------------------------
 
       if (sourceIsBlank && !targetIsBlank) {
-        const sourceNode = nodeById.get(
-          edge.sourceNodeId,
-        );
+        const sourceNode = nodeById.get(edge.sourceNodeId);
 
-        const aggregationMode =
-          sourceNode?.aggregationMode;
+        const aggregationMode = sourceNode?.aggregationMode;
 
         const aggregationId =
           aggregationMode === "manual"
-            ? getHandleAggregationId(
-                edge.sourceNodeId,
-                edge.sourceHandle,
-              )
+            ? getHandleAggregationId(edge.sourceNodeId, edge.sourceHandle)
             : undefined;
 
-        const incoming =
-          incomingEdges.get(edge.sourceNodeId) ?? [];
+        const incoming = incomingEdges.get(edge.sourceNodeId) ?? [];
 
         let inbound = 0;
         let outbound = 0;
 
-        const aggregatedInterfaces: AggregatedInterfaceTraffic[] =
-          [];
+        const aggregatedInterfaces: AggregatedInterfaceTraffic[] = [];
 
         // ------------------------------------------------
         // MANUAL AGGREGATION
         // ------------------------------------------------
 
-        if (
-          aggregationMode === "manual" &&
-          aggregationId
-        ) {
-          const aggregation =
-            sourceNode?.aggregations?.find(
-              (agg) => agg.id === aggregationId,
-            );
+        if (aggregationMode === "manual" && aggregationId) {
+          const aggregation = sourceNode?.aggregations?.find(
+            (agg) => agg.id === aggregationId,
+          );
 
           if (aggregation) {
-            const allowedInterfaceIds =
-              new Set<number>();
+            const allowedInterfaceIds = new Set<number>();
 
             for (const iface of aggregation.interfaces) {
-              if (
-                typeof iface.interfaceId ===
-                "number"
-              ) {
-                allowedInterfaceIds.add(
-                  iface.interfaceId,
-                );
+              if (typeof iface.interfaceId === "number") {
+                allowedInterfaceIds.add(iface.interfaceId);
               }
             }
 
             for (const incomingEdge of incoming) {
-              const incomingData =
-                incomingEdge.data as TopologyEdgeData;
+              const incomingData = incomingEdge.data as TopologyEdgeData;
 
-              const interfaceId =
-                incomingData.sourceInterfaceId;
+              const interfaceId = incomingData.sourceInterfaceId;
 
-              if (
-                typeof interfaceId !== "number"
-              ) {
+              if (typeof interfaceId !== "number") {
                 continue;
               }
 
@@ -499,38 +451,26 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
               // THIS IS THE IMPORTANT FILTER
               // ------------------------------------------
 
-              if (
-                !allowedInterfaceIds.has(interfaceId)
-              ) {
+              if (!allowedInterfaceIds.has(interfaceId)) {
                 continue;
               }
 
-              const interfaceInbound = getRate(
-                interfaceId,
-                "in",
-              );
+              const interfaceInbound = getRate(interfaceId, "in");
 
-              const interfaceOutbound = getRate(
-                interfaceId,
-                "out",
-              );
+              const interfaceOutbound = getRate(interfaceId, "out");
 
               inbound += interfaceInbound;
               outbound += interfaceOutbound;
 
-              const aggregationInterface =
-                aggregation.interfaces.find(
-                  (iface) =>
-                    iface.interfaceId ===
-                    interfaceId,
-                );
+              const aggregationInterface = aggregation.interfaces.find(
+                (iface) => iface.interfaceId === interfaceId,
+              );
 
               aggregatedInterfaces.push({
                 interfaceId,
 
                 interfaceName:
-                  aggregationInterface
-                    ?.interfaceName ??
+                  aggregationInterface?.interfaceName ??
                   incomingData.sourceInterfaceName ??
                   "",
 
@@ -544,21 +484,14 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
         // ------------------------------------------------
         // AUTOMATIC AGGREGATION
         // ------------------------------------------------
-
         else {
           for (const incomingEdge of incoming) {
-            const traffic =
-              calculateEdgeTraffic(
-                incomingEdge,
-                nextVisited,
-              );
+            const traffic = calculateEdgeTraffic(incomingEdge, nextVisited);
 
             inbound += traffic.inbound;
             outbound += traffic.outbound;
 
-            aggregatedInterfaces.push(
-              ...traffic.aggregatedInterfaces,
-            );
+            aggregatedInterfaces.push(...traffic.aggregatedInterfaces);
           }
         }
 
@@ -577,28 +510,20 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       // ------------------------------------------------
 
       if (sourceIsBlank && targetIsBlank) {
-        const incoming =
-          incomingEdges.get(edge.sourceNodeId) ?? [];
+        const incoming = incomingEdges.get(edge.sourceNodeId) ?? [];
 
         let inbound = 0;
         let outbound = 0;
 
-        const aggregatedInterfaces: AggregatedInterfaceTraffic[] =
-          [];
+        const aggregatedInterfaces: AggregatedInterfaceTraffic[] = [];
 
         for (const incomingEdge of incoming) {
-          const traffic =
-            calculateEdgeTraffic(
-              incomingEdge,
-              nextVisited,
-            );
+          const traffic = calculateEdgeTraffic(incomingEdge, nextVisited);
 
           inbound += traffic.inbound;
           outbound += traffic.outbound;
 
-          aggregatedInterfaces.push(
-            ...traffic.aggregatedInterfaces,
-          );
+          aggregatedInterfaces.push(...traffic.aggregatedInterfaces);
         }
 
         return {
@@ -629,8 +554,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     > = {};
 
     for (const edge of edges) {
-      traffic[edge.edgeId] =
-        calculateEdgeTraffic(edge);
+      traffic[edge.edgeId] = calculateEdgeTraffic(edge);
     }
 
     // --------------------------------------------------
@@ -642,10 +566,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       data: traffic,
     });
   } catch (error) {
-    console.error(
-      "TOPOLOGY TRAFFIC ERROR:",
-      error,
-    );
+    console.error("TOPOLOGY TRAFFIC ERROR:", error);
 
     return NextResponse.json(
       {

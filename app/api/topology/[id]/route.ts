@@ -1,4 +1,5 @@
-import { TopologyEdgeData } from "@/components/WeatherMapComponent";
+import { AggregationGroup } from "@/components/DnDContext";
+import { NodeHandle, TopologyEdgeData } from "@/components/WeatherMapComponent";
 import { getCurrentUser } from "@/lib/auth";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -48,8 +49,11 @@ interface RouteContext {
 export async function GET(_request: NextRequest, { params }: RouteContext) {
   try {
     const { id } = await params;
-
     const topologyId = Number(id);
+
+    // --------------------------------------------------
+    // Validate ID
+    // --------------------------------------------------
 
     if (!Number.isInteger(topologyId)) {
       return NextResponse.json(
@@ -57,9 +61,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
           success: false,
           message: "Invalid topology ID",
         },
-        {
-          status: 400,
-        },
+        { status: 400 },
       );
     }
 
@@ -91,58 +93,195 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
           success: false,
           message: "Topology not found",
         },
-        {
-          status: 404,
-        },
+        { status: 404 },
       );
     }
 
     // --------------------------------------------------
-    // Collect interface IDs
+    // Node lookup
+    // --------------------------------------------------
+
+    const nodeById = new Map(
+      topology.nodes.map((node) => {
+        const data = node.data as {
+          nodeName?: string;
+          nodeType?: string;
+        };
+
+        return [node.nodeId, data];
+      }),
+    );
+
+    // --------------------------------------------------
+    // Blank node check
     //
-    // We need both source and target IDs for STATUS.
-    // But traffic statistics will ONLY use source IDs.
+    // blank   = cloud
+    // blank1  = router
+    // blank2  = server
+    //
+    // All three are logically blank nodes.
+    // --------------------------------------------------
+
+    const isBlankNodeType = (nodeType?: string) =>
+      nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
+
+    const isBlankNode = (nodeId: string): boolean => {
+      const node = nodeById.get(nodeId);
+
+      return isBlankNodeType(node?.nodeType);
+    };
+
+    // --------------------------------------------------
+    // Get handle
+    // --------------------------------------------------
+
+    const getHandle = (
+      nodeId: string,
+      handleId: string | null,
+    ): NodeHandle | undefined => {
+      if (!handleId) {
+        return undefined;
+      }
+
+      const node = topology.nodes.find((node) => node.nodeId === nodeId);
+
+      if (!node) {
+        return undefined;
+      }
+
+      const data = node.data as {
+        handles?: Record<string, NodeHandle[]>;
+      };
+
+      if (!data.handles) {
+        return undefined;
+      }
+
+      for (const handles of Object.values(data.handles)) {
+        const handle = handles.find((handle) => handle.id === handleId);
+
+        if (handle) {
+          return handle;
+        }
+      }
+
+      return undefined;
+    };
+
+    // --------------------------------------------------
+    // Get source interface
+    //
+    // Normal node:
+    //   edge.data.sourceInterfaceId
+    //
+    // Blank node:
+    //   source handle.interfaceId
+    //
+    // NOTE:
+    // This function ONLY returns a direct interface.
+    // Aggregation is handled separately.
+    // --------------------------------------------------
+
+    const getSourceInterfaceId = (
+      edge: (typeof topology.edges)[number],
+    ): number | undefined => {
+      const data = edge.data as TopologyEdgeData;
+
+      if (isBlankNode(edge.sourceNodeId)) {
+        return (
+          getHandle(edge.sourceNodeId, edge.sourceHandle)?.interfaceId ??
+          undefined
+        );
+      }
+
+      return data.sourceInterfaceId ?? undefined;
+    };
+
+    // --------------------------------------------------
+    // Get target interface
+    // --------------------------------------------------
+
+    const getTargetInterfaceId = (
+      edge: (typeof topology.edges)[number],
+    ): number | undefined => {
+      const data = edge.data as TopologyEdgeData;
+
+      if (isBlankNode(edge.targetNodeId)) {
+        return (
+          getHandle(edge.targetNodeId, edge.targetHandle)?.interfaceId ??
+          undefined
+        );
+      }
+
+      return data.targetInterfaceId ?? undefined;
+    };
+
+    // --------------------------------------------------
+    // Collect ALL interface IDs
+    //
+    // Includes:
+    // - normal source interfaces
+    // - normal target interfaces
+    // - blank handle interfaces
+    // - aggregation interfaces
     // --------------------------------------------------
 
     const interfaceIds = new Set<number>();
 
-    topology.edges.forEach((edge) => {
-      const data = edge.data as {
-        sourceInterfaceId?: number;
-        targetInterfaceId?: number;
+    for (const edge of topology.edges) {
+      const sourceInterfaceId = getSourceInterfaceId(edge);
+      const targetInterfaceId = getTargetInterfaceId(edge);
+
+      if (typeof sourceInterfaceId === "number") {
+        interfaceIds.add(sourceInterfaceId);
+      }
+
+      if (typeof targetInterfaceId === "number") {
+        interfaceIds.add(targetInterfaceId);
+      }
+    }
+
+    // --------------------------------------------------
+    // Also collect interfaces inside aggregations
+    // --------------------------------------------------
+
+    for (const node of topology.nodes) {
+      const data = node.data as {
+        aggregations?: AggregationGroup[];
       };
 
-      if (typeof data.sourceInterfaceId === "number") {
-        interfaceIds.add(data.sourceInterfaceId);
+      for (const aggregation of data.aggregations ?? []) {
+        for (const iface of aggregation.interfaces) {
+          if (typeof iface.interfaceId === "number") {
+            interfaceIds.add(iface.interfaceId);
+          }
+        }
       }
-
-      if (typeof data.targetInterfaceId === "number") {
-        interfaceIds.add(data.targetInterfaceId);
-      }
-    });
-
-    const interfaceIdList = Array.from(interfaceIds);
+    }
 
     // --------------------------------------------------
     // Load interface status
-    //
-    // Used for both source and target interfaces.
     // --------------------------------------------------
 
-    const interfaceRecords = await prisma.interfaces.findMany({
-      where: {
-        id: {
-          in: interfaceIdList,
-        },
-      },
+    const interfaceIdList = Array.from(interfaceIds);
 
-      select: {
-        id: true,
-        adminStatus: true,
-        operStatus: true,
-        status: true,
-      },
-    });
+    const interfaceRecords =
+      interfaceIdList.length > 0
+        ? await prisma.interfaces.findMany({
+            where: {
+              id: {
+                in: interfaceIdList,
+              },
+            },
+
+            select: {
+              id: true,
+              adminStatus: true,
+              operStatus: true,
+              status: true,
+            },
+          })
+        : [];
 
     const interfaceById = new Map(
       interfaceRecords.map((iface) => [
@@ -156,47 +295,76 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     );
 
     // --------------------------------------------------
-    // Load statistics
+    // Source interfaces used for traffic
     //
-    // IMPORTANT:
-    // Traffic is calculated ONLY from source interfaces.
+    // Only direct source interfaces are collected here.
+    // Aggregated interfaces are added separately below.
     // --------------------------------------------------
 
-    const sourceInterfaceIds = Array.from(
-      new Set(
-        topology.edges
-          .map((edge) => {
-            const data = edge.data as {
-              sourceInterfaceId?: number;
-            };
+    const sourceInterfaceIds = new Set<number>();
 
-            return data.sourceInterfaceId;
+    for (const edge of topology.edges) {
+      const sourceInterfaceId = getSourceInterfaceId(edge);
+
+      if (typeof sourceInterfaceId === "number") {
+        sourceInterfaceIds.add(sourceInterfaceId);
+      }
+
+      // If source is a blank node with aggregation,
+      // collect all interfaces from the aggregation.
+      if (isBlankNode(edge.sourceNodeId)) {
+        const handle = getHandle(edge.sourceNodeId, edge.sourceHandle);
+
+        if (handle?.aggregationId) {
+          const sourceNode = topology.nodes.find(
+            (node) => node.nodeId === edge.sourceNodeId,
+          );
+
+          const nodeData = sourceNode?.data as {
+            aggregations?: AggregationGroup[];
+          };
+
+          const aggregation = nodeData?.aggregations?.find(
+            (agg) => agg.id === handle.aggregationId,
+          );
+
+          for (const iface of aggregation?.interfaces ?? []) {
+            if (typeof iface.interfaceId === "number") {
+              sourceInterfaceIds.add(iface.interfaceId);
+            }
+          }
+        }
+      }
+    }
+
+    // --------------------------------------------------
+    // Load statistics
+    // --------------------------------------------------
+
+    const statistics =
+      sourceInterfaceIds.size > 0
+        ? await prisma.interface_statistics.findMany({
+            where: {
+              interfaceId: {
+                in: Array.from(sourceInterfaceIds),
+              },
+            },
+
+            orderBy: [
+              {
+                interfaceId: "asc",
+              },
+              {
+                createdAt: "desc",
+              },
+            ],
           })
-          .filter((id): id is number => typeof id === "number"),
-      ),
-    );
-
-    const statistics = await prisma.interface_statistics.findMany({
-      where: {
-        interfaceId: {
-          in: sourceInterfaceIds,
-        },
-      },
-
-      orderBy: [
-        {
-          interfaceId: "asc",
-        },
-        {
-          createdAt: "desc",
-        },
-      ],
-    });
+        : [];
 
     // --------------------------------------------------
     // Group statistics by interface
     //
-    // Only keep the latest 2 records.
+    // Keep latest 2 records.
     // --------------------------------------------------
 
     const statisticsByInterface = new Map<number, typeof statistics>();
@@ -255,90 +423,100 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
       const octetDifference = currentOctets - previousOctets;
 
-      // Octets → bits → bits/sec
+      // Octets -> bits -> bits/sec
       return (Number(octetDifference) * 8) / elapsedSeconds;
     };
 
-    const nodeById = new Map(
-      topology.nodes.map((node) => {
-        const nodeData = node.data as {
-          nodeName?: string;
-          nodeType?: string;
-        };
+    // --------------------------------------------------
+    // Find aggregation for a blank node handle
+    // --------------------------------------------------
 
-        return [node.nodeId, nodeData];
-      }),
-    );
-    const isBlankNode = (nodeId: string): boolean => {
-      const node = nodeById.get(nodeId);
+    const getHandleAggregation = (
+      nodeId: string,
+      handleId: string | null,
+    ): AggregationGroup | undefined => {
+      const handle = getHandle(nodeId, handleId);
+
+      if (!handle?.aggregationId) {
+        return undefined;
+      }
+
+      const node = topology.nodes.find((node) => node.nodeId === nodeId);
 
       if (!node) {
-        return false;
+        return undefined;
       }
 
-      return node.nodeType === "blank";
+      const data = node.data as {
+        aggregations?: AggregationGroup[];
+      };
+
+      return data.aggregations?.find(
+        (aggregation) => aggregation.id === handle.aggregationId,
+      );
     };
+
+    // --------------------------------------------------
+    // Calculate edge traffic
+    // --------------------------------------------------
+
     const calculateEdgeTraffic = (
       edge: (typeof topology.edges)[number],
-    ): { inbound: number; outbound: number } => {
-      const data = edge.data as TopologyEdgeData;
+    ): {
+      inbound: number;
+      outbound: number;
+    } => {
       const sourceIsBlank = isBlankNode(edge.sourceNodeId);
-      const targetIsBlank = isBlankNode(edge.targetNodeId);
-      if (!sourceIsBlank && !targetIsBlank) {
+
+      // ==================================================
+      // NORMAL NODE
+      // ==================================================
+
+      if (!sourceIsBlank) {
+        const sourceInterfaceId = getSourceInterfaceId(edge);
+
         return {
-          inbound: calculateTraffic(data.sourceInterfaceId, "in"),
-          outbound: calculateTraffic(data.sourceInterfaceId, "out"),
+          inbound: calculateTraffic(sourceInterfaceId, "in"),
+          outbound: calculateTraffic(sourceInterfaceId, "out"),
         };
       }
-      if (!sourceIsBlank && targetIsBlank) {
-        return {
-          inbound: calculateTraffic(data.sourceInterfaceId, "in"),
-          outbound: calculateTraffic(data.sourceInterfaceId, "out"),
-        };
-      }
-      if (sourceIsBlank && !targetIsBlank) {
-        let inbound = 0;
-        let outbound = 0;
 
-        // ---------------------------------------------
-        // MANUAL AGGREGATION
-        // ---------------------------------------------
+      // ==================================================
+      // BLANK NODE
+      // ==================================================
 
-        if (data.aggregationId && Array.isArray(data.aggregatedInterfaces)) {
-          for (const iface of data.aggregatedInterfaces) {
-            if (typeof iface.interfaceId !== "number") {
-              continue;
-            }
+      const sourceHandle = getHandle(edge.sourceNodeId, edge.sourceHandle);
 
-            inbound += calculateTraffic(iface.interfaceId, "in");
+      // --------------------------------------------------
+      // BLANK NODE + AGGREGATION
+      //
+      // aggregationId has priority over interfaceId.
+      // --------------------------------------------------
 
-            outbound += calculateTraffic(iface.interfaceId, "out");
-          }
+      if (sourceHandle?.aggregationId) {
+        const aggregation = getHandleAggregation(
+          edge.sourceNodeId,
+          edge.sourceHandle,
+        );
 
+        if (!aggregation) {
           return {
-            inbound,
-            outbound,
+            inbound: 0,
+            outbound: 0,
           };
         }
 
-        // ---------------------------------------------
-        // AUTOMATIC AGGREGATION
-        // ---------------------------------------------
+        let inbound = 0;
+        let outbound = 0;
 
-        for (const incomingEdge of topology.edges) {
-          if (incomingEdge.targetNodeId !== edge.sourceNodeId) {
+        for (const iface of aggregation.interfaces) {
+          if (typeof iface.interfaceId !== "number") {
             continue;
           }
 
-          const incomingData = incomingEdge.data as TopologyEdgeData;
+          inbound += calculateTraffic(iface.interfaceId, "in");
 
-          if (typeof incomingData.sourceInterfaceId !== "number") {
-            continue;
-          }
-
-          inbound += calculateTraffic(incomingData.sourceInterfaceId, "in");
-
-          outbound += calculateTraffic(incomingData.sourceInterfaceId, "out");
+          outbound += calculateTraffic(iface.interfaceId, "out");
         }
 
         return {
@@ -346,21 +524,50 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
           outbound,
         };
       }
-      if (sourceIsBlank && targetIsBlank) {
-        let inbound = 0;
-        let outbound = 0;
-        for (const incomingEdge of topology.edges) {
-          if (incomingEdge.targetNodeId !== edge.sourceNodeId) {
-            continue;
-          }
-          const incomingTraffic = calculateEdgeTraffic(incomingEdge);
-          inbound += incomingTraffic.inbound;
-          outbound += incomingTraffic.outbound;
-        }
-        return { inbound, outbound };
+
+      // --------------------------------------------------
+      // BLANK NODE + DIRECT HANDLE INTERFACE
+      // --------------------------------------------------
+
+      if (typeof sourceHandle?.interfaceId === "number") {
+        return {
+          inbound: calculateTraffic(sourceHandle.interfaceId, "in"),
+          outbound: calculateTraffic(sourceHandle.interfaceId, "out"),
+        };
       }
-      return { inbound: 0, outbound: 0 };
+
+      // --------------------------------------------------
+      // OLD AUTOMATIC AGGREGATION
+      //
+      // Only used when blank source has no interface
+      // and no aggregation assigned.
+      // --------------------------------------------------
+
+      let inbound = 0;
+      let outbound = 0;
+
+      for (const incomingEdge of topology.edges) {
+        if (incomingEdge.targetNodeId !== edge.sourceNodeId) {
+          continue;
+        }
+
+        const incomingInterfaceId = getSourceInterfaceId(incomingEdge);
+
+        if (typeof incomingInterfaceId !== "number") {
+          continue;
+        }
+
+        inbound += calculateTraffic(incomingInterfaceId, "in");
+
+        outbound += calculateTraffic(incomingInterfaceId, "out");
+      }
+
+      return {
+        inbound,
+        outbound,
+      };
     };
+
     // --------------------------------------------------
     // Nodes
     // --------------------------------------------------
@@ -384,38 +591,98 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     // --------------------------------------------------
     // Edges
     // --------------------------------------------------
+
     const edges = topology.edges.map((edge) => {
       const data = edge.data as TopologyEdgeData;
+
+      // ------------------------------------------------
+      // Resolve actual interfaces
+      //
+      // For blank nodes these come from handles.
+      // ------------------------------------------------
+
+      const sourceInterfaceId = getSourceInterfaceId(edge);
+
+      const targetInterfaceId = getTargetInterfaceId(edge);
+
       const sourceInterface =
-        typeof data.sourceInterfaceId === "number"
-          ? interfaceById.get(data.sourceInterfaceId)
+        typeof sourceInterfaceId === "number"
+          ? interfaceById.get(sourceInterfaceId)
           : undefined;
+
       const targetInterface =
-        typeof data.targetInterfaceId === "number"
-          ? interfaceById.get(data.targetInterfaceId)
+        typeof targetInterfaceId === "number"
+          ? interfaceById.get(targetInterfaceId)
           : undefined;
+
+      // ------------------------------------------------
+      // Traffic
+      // ------------------------------------------------
+
       const traffic = calculateEdgeTraffic(edge);
 
       const sourceNodeData = nodeById.get(edge.sourceNodeId);
+
       const targetNodeData = nodeById.get(edge.targetNodeId);
+
       return {
         id: edge.edgeId,
+
         source: edge.sourceNodeId,
         target: edge.targetNodeId,
+
         sourceHandle: edge.sourceHandle,
         targetHandle: edge.targetHandle,
+
         type: edge.type ?? undefined,
+
         data: {
           ...data,
+
+          // --------------------------------------------
+          // Node names
+          // --------------------------------------------
+
           sourceNodeName: sourceNodeData?.nodeName ?? "Unknown",
+
           targetNodeName: targetNodeData?.nodeName ?? "Unknown",
+
+          sourceDesc: data.sourceDesc,
+          targetDesc: data.targetDesc,
+          // --------------------------------------------
+          // Actual interface IDs
+          //
+          // This is especially important for blank nodes.
+          // --------------------------------------------
+
+          sourceInterfaceId,
+          targetInterfaceId,
+
+          // --------------------------------------------
+          // Traffic
+          // --------------------------------------------
+
           inbound: traffic.inbound,
           outbound: traffic.outbound,
+
+          // --------------------------------------------
+          // Source status
+          // --------------------------------------------
+
           sourceAdminStatus: sourceInterface?.adminStatus ?? 0,
+
           sourceOperStatus: sourceInterface?.operStatus ?? 0,
+
           sourceStatus: sourceInterface?.status ?? "",
+
+          // --------------------------------------------
+          // Target status
+          // --------------------------------------------
+
           targetAdminStatus: targetInterface?.adminStatus ?? 0,
+
           targetOperStatus: targetInterface?.operStatus ?? 0,
+
           targetStatus: targetInterface?.status ?? "",
         },
       };
@@ -424,10 +691,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     // --------------------------------------------------
     // Response
     // --------------------------------------------------
-    console.log(nodes);
 
     return NextResponse.json({
       success: true,
+
       data: {
         id: topology.id,
         name: topology.name,
