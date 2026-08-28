@@ -5,7 +5,7 @@ import WeatherMapComponent from "@/components/WeatherMapComponent";
 
 export default function WeatherMapCreate() {
   return (
-    <div className="space-y-5">
+    <div className="w-full h-full flex flex-col gap-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -27,7 +27,7 @@ export default function WeatherMapCreate() {
         </div>
       </div>
 
-      <div className="w-full">
+      <div className="w-full h-full min-h-0">
         <WeatherMapComponent />
       </div>
     </div>
