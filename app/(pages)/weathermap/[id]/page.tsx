@@ -36,6 +36,8 @@ import { useDevicesStore, useInterfacesWeathermap } from "@/store/device-store";
 import { toast } from "sonner";
 import { InterfaceTypes } from "@/lib/types";
 import ViewEdgeStartEnd from "@/components/ViewEdgeStartEnd";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 const nodeTypes = {
   router: ViewRouterNode,
@@ -465,8 +467,44 @@ export default function ViewWeathermap() {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
   };
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // F = fullscreen
+      if (
+        event.key.toLowerCase() === "f" &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey
+      ) {
+        // Don't trigger while typing in an input
+        const target = event.target as HTMLElement;
+
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        setIsFullscreen(true);
+      }
+
+      // Escape = exit fullscreen
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   return (
-    <div className="space-y-5">
+    <div className="w-full h-full flex flex-col gap-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -490,11 +528,18 @@ export default function ViewWeathermap() {
           </Link>
         </div>
       </div>
-      <div
+      <motion.div
+        layout
+        transition={{
+          layout: {
+            duration: 0.4,
+            ease: [0.4, 0, 0.2, 1],
+          },
+        }}
         className={
           isFullscreen
-            ? "fixed inset-0 z-9999 bg-[#2b2a2a]"
-            : "w-full h-185 bg-[#2b2a2a] border rounded-md overflow-hidden"
+            ? "fixed inset-0 z-9999 bg-white overflow-hidden"
+            : "relative w-full flex-1 min-h-0 border rounded-md overflow-hidden bg-white"
         }
       >
         <ReactFlow<TopologyNode, TopologyEdge>
@@ -507,20 +552,19 @@ export default function ViewWeathermap() {
           colorMode="system"
         >
           <MiniMap />
-          {/* Fullscreen button */}
           <div className="absolute top-3 right-3 z-50">
-            <button
+            <Button
               type="button"
               onClick={() => setIsFullscreen((prev) => !prev)}
-              className="flex items-center justify-center w-9 h-9 rounded-md border bg-background/90 hover:bg-background shadow-sm"
-              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+              className="flex items-center justify-center w-7 h-7 rounded-md border bg-background/90 hover:bg-background shadow-sm cursor-pointer"
+              title={isFullscreen ? "Exit fullscreen (Esc)" : "Fullscreen (F)"}
             >
               {isFullscreen ? (
-                <Minimize2 className="w-4 h-4" />
+                <Minimize2 className="shrink-0 text-black w-4 h-4" />
               ) : (
-                <Maximize2 className="w-4 h-4" />
+                <Maximize2 className="shrink-0 text-black w-4 h-4" />
               )}
-            </button>
+            </Button>
           </div>
           <div className="absolute top-3 left-3 z-50">
             <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
@@ -553,7 +597,7 @@ export default function ViewWeathermap() {
             </div>
           </div>
         </ReactFlow>
-      </div>
+      </motion.div>
       {trafficEdge && trafficEdgePosition && (
         <EdgeLabelRenderer>
           <div
@@ -578,7 +622,6 @@ export default function ViewWeathermap() {
               aggregatedInterfaces={
                 trafficEdge.data?.aggregatedInterfaces ?? []
               }
-
               inbound={trafficEdge.data?.inbound ?? 0}
               outbound={trafficEdge.data?.outbound ?? 0}
               sourceDesc={trafficEdge.data?.sourceDesc ?? ""}

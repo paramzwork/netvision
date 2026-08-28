@@ -56,6 +56,8 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import { Input } from "@/components/ui/input";
 import RouterNodeSettings from "@/components/weathermap/nodes/RouterNode";
 import { Maximize2, Minimize2 } from "lucide-react";
+import { motion } from "framer-motion";
+
 const nodeTypes = {
   router: RouterNodeSettings,
   switch: SwitchNode,
@@ -1198,9 +1200,44 @@ export default function ViewWeathermapSettings() {
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
   };
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // F = fullscreen
+      if (
+        event.key.toLowerCase() === "f" &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey
+      ) {
+        // Don't trigger while typing in an input
+        const target = event.target as HTMLElement;
 
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        setIsFullscreen(true);
+      }
+
+      // Escape = exit fullscreen
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   return (
-    <div className="space-y-5">
+    <div className="w-full h-full flex flex-col gap-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -1242,207 +1279,214 @@ export default function ViewWeathermapSettings() {
           Update Topology
         </Button>
       </div>
-      <div className="flex flex-row gap-2">
-        <div
+      <div className="w-full h-full flex flex-row gap-2">
+        <motion.div
+          layout
+          transition={{
+            layout: {
+              duration: 0.4,
+              ease: [0.4, 0, 0.2, 1],
+            },
+          }}
           className={
             isFullscreen
-              ? "fixed inset-0 z-9999"
-              : "w-full h-174 flex flex-col items-start justify-center border rounded-md overflow-hidden"
+              ? "fixed inset-0 z-9999 bg-white overflow-hidden"
+              : "relative w-full flex-1 min-h-0 border rounded-md overflow-hidden bg-white"
           }
         >
-          <div className="w-full h-full">
-            <ReactFlow<TopologyNode, TopologyEdge>
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              onDragOver={onDragOver}
-              onDrop={onDrop}
-              onNodesChange={onNodesChange}
-              onNodeDragStop={onNodeDragStop}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onReconnect={onReconnect}
-              onReconnectStart={onReconnectStart}
-              onReconnectEnd={onReconnectEnd}
-              onNodesDelete={onNodesDelete}
-              onNodeDoubleClick={onNodeDoubleClick}
-              onEdgeContextMenu={onEdgeContextMenu}
-              onEdgeDoubleClick={onEdgeDoubleClick}
-              fitView
-              colorMode="system"
-            >
-              <Background />
-              <MiniMap />{" "}
-              <div className="absolute top-3 right-3 z-50">
-                <button
-                  type="button"
-                  onClick={() => setIsFullscreen((prev) => !prev)}
-                  className="flex items-center justify-center w-9 h-9 rounded-md border bg-background/90 hover:bg-background shadow-sm"
-                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="w-4 h-4" />
-                  ) : (
-                    <Maximize2 className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-              <div className="absolute top-3 left-3 z-50">
-                <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
-                  <div className="mb-2 text-xs font-semibold">Traffic Load</div>
+          <ReactFlow<TopologyNode, TopologyEdge>
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            onNodesChange={onNodesChange}
+            onNodeDragStop={onNodeDragStop}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onReconnect={onReconnect}
+            onReconnectStart={onReconnectStart}
+            onReconnectEnd={onReconnectEnd}
+            onNodesDelete={onNodesDelete}
+            onNodeDoubleClick={onNodeDoubleClick}
+            onEdgeContextMenu={onEdgeContextMenu}
+            onEdgeDoubleClick={onEdgeDoubleClick}
+            fitView
+            colorMode="system"
+          >
+            <Background />
+            <MiniMap />
+            <div className="absolute top-3 right-3 z-50">
+              <Button
+                type="button"
+                onClick={() => setIsFullscreen((prev) => !prev)}
+                className="flex items-center justify-center w-7 h-7 rounded-md border bg-background/90 hover:bg-background shadow-sm cursor-pointer"
+                title={
+                  isFullscreen ? "Exit fullscreen (Esc)" : "Fullscreen (F)"
+                }
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="shrink-0 text-black w-4 h-4" />
+                ) : (
+                  <Maximize2 className="shrink-0 text-black w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            <div className="absolute top-3 left-3 z-50">
+              <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
+                <div className="mb-2 text-xs font-semibold">Traffic Load</div>
 
-                  <div className="space-y-1">
-                    {[
-                      { color: "#ff0000", label: "0–0%" },
-                      { color: "#bdbdbd", label: "0–1%" },
-                      { color: "#f3f4f6", label: "1–10%" },
-                      { color: "#8b00ff", label: "10–25%" },
-                      { color: "#6a00ff", label: "25–40%" },
-                      { color: "#00bfff", label: "40–55%" },
-                      { color: "#ffff00", label: "55–70%" },
-                      { color: "#ffa500", label: "70–85%" },
-                      { color: "#00e600", label: "85–100%" },
-                    ].map((item) => (
-                      <div key={item.label} className="flex items-center gap-2">
-                        <span
-                          className="h-3 w-6 rounded-sm border"
-                          style={{
-                            backgroundColor: item.color,
-                          }}
-                        />
+                <div className="space-y-1">
+                  {[
+                    { color: "#ff0000", label: "0–0%" },
+                    { color: "#bdbdbd", label: "0–1%" },
+                    { color: "#f3f4f6", label: "1–10%" },
+                    { color: "#8b00ff", label: "10–25%" },
+                    { color: "#2020ff", label: "25–40%" },
+                    { color: "#00bfff", label: "40–55%" },
+                    { color: "#ffff00", label: "55–70%" },
+                    { color: "#ffa500", label: "70–85%" },
+                    { color: "#00e600", label: "85–100%" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-2">
+                      <span
+                        className="h-3 w-6 rounded-sm border"
+                        style={{
+                          backgroundColor: item.color,
+                        }}
+                      />
 
-                        <span className="text-[10px]">{item.label}</span>
-                      </div>
-                    ))}
-                  </div>
+                      <span className="text-[10px]">{item.label}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </ReactFlow>
-            <NodeHandleSettings
-              open={!!selectedNode}
-              node={selectedNode}
-              onClose={() => setSelectedNode(null)}
-              nodeType={nodeType}
-              counts={counts}
-              nodeName={nodeName}
-              setNodeType={setNodeType}
-              setNodeName={setNodeName}
-              setCounts={setCounts}
-              handles={handles}
-              aggregationMode={aggregationMode}
-              aggregations={aggregations}
-              setHandles={setHandles}
-              setAggregationMode={setAggregationMode}
-              setAggregations={setAggregations}
-              interfaces={interfaces}
-              devices={device}
-              setEdges={setEdges}
-              onSave={({ type, handles, aggregationMode, aggregations }) => {
-                if (!selectedNode) return;
+            </div>
+          </ReactFlow>
+          <NodeHandleSettings
+            open={!!selectedNode}
+            node={selectedNode}
+            onClose={() => setSelectedNode(null)}
+            nodeType={nodeType}
+            counts={counts}
+            nodeName={nodeName}
+            setNodeType={setNodeType}
+            setNodeName={setNodeName}
+            setCounts={setCounts}
+            handles={handles}
+            aggregationMode={aggregationMode}
+            aggregations={aggregations}
+            setHandles={setHandles}
+            setAggregationMode={setAggregationMode}
+            setAggregations={setAggregations}
+            interfaces={interfaces}
+            devices={device}
+            setEdges={setEdges}
+            onSave={({ type, handles, aggregationMode, aggregations }) => {
+              if (!selectedNode) return;
 
-                setNodes((nds) =>
-                  nds.map((n) =>
-                    n.id === selectedNode.id
-                      ? {
-                          ...n,
-                          type,
-                          data: {
-                            ...n.data,
+              setNodes((nds) =>
+                nds.map((n) =>
+                  n.id === selectedNode.id
+                    ? {
+                        ...n,
+                        type,
+                        data: {
+                          ...n.data,
 
-                            nodeName,
-                            nodeType: type,
+                          nodeName,
+                          nodeType: type,
 
-                            handles,
+                          handles,
 
-                            // ADD THESE
-                            aggregationMode,
-                            aggregations,
-                          },
-                        }
-                      : n,
-                  ),
-                );
+                          // ADD THESE
+                          aggregationMode,
+                          aggregations,
+                        },
+                      }
+                    : n,
+                ),
+              );
 
-                setNodeType("router");
+              setNodeType("router");
 
-                setCounts({
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                  left: 0,
-                });
+              setCounts({
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+              });
 
-                requestAnimationFrame(() => {
-                  updateNodeInternals(selectedNode.id);
-                });
+              requestAnimationFrame(() => {
+                updateNodeInternals(selectedNode.id);
+              });
 
-                setSelectedNode(null);
-              }}
-            />
-            <EdgeSettings
-              open={edgeSettingsOpen}
-              edge={selectedEdge}
-              swapTraffic={swapTraffic}
-              setSwapTraffic={setSwapTraffic}
-              onClose={() => setSelectedEdge(null)}
-              onSave={(data) => {
-                if (!selectedEdge) return;
-                setEdges((currentEdges) =>
-                  currentEdges.map((edge): TopologyEdge => {
-                    if (edge.id !== selectedEdge.id) {
-                      return edge;
-                    }
+              setSelectedNode(null);
+            }}
+          />
+          <EdgeSettings
+            open={edgeSettingsOpen}
+            edge={selectedEdge}
+            swapTraffic={swapTraffic}
+            setSwapTraffic={setSwapTraffic}
+            onClose={() => setSelectedEdge(null)}
+            onSave={(data) => {
+              if (!selectedEdge) return;
+              setEdges((currentEdges) =>
+                currentEdges.map((edge): TopologyEdge => {
+                  if (edge.id !== selectedEdge.id) {
+                    return edge;
+                  }
 
-                    return {
-                      ...edge,
-                      data: {
-                        ...edge.data,
-                        ...data,
-                      },
-                    };
-                  }),
-                );
+                  return {
+                    ...edge,
+                    data: {
+                      ...edge.data,
+                      ...data,
+                    },
+                  };
+                }),
+              );
 
-                setSelectedEdge(null);
-              }}
-            />
-            {trafficEdge && trafficEdgePosition && (
-              <EdgeLabelRenderer>
-                <div
-                  style={{
-                    position: "absolute",
-                    transform: `
+              setSelectedEdge(null);
+            }}
+          />
+          {trafficEdge && trafficEdgePosition && (
+            <EdgeLabelRenderer>
+              <div
+                style={{
+                  position: "absolute",
+                  transform: `
                 translate(-50%, -10%)
                 translate(
                   ${trafficEdgePosition.x + trafficPanelOffset.x}px,
                   ${trafficEdgePosition.y + trafficPanelOffset.y}px
                 )
               `,
-                    pointerEvents: "all",
-                    zIndex: 1000,
-                  }}
-                >
-                  <EdgeTrafficPanel
-                    sourceInterface={sourceInterface}
-                    interfaces={interfaces}
-                    sourceNodeName={trafficEdge.data?.sourceNodeName ?? ""}
-                    targetNodeName={trafficEdge.data?.targetNodeName ?? ""}
-                    aggregatedInterfaces={
-                      trafficEdge.data?.aggregatedInterfaces ?? []
-                    }
-                    sourceDesc={trafficEdge.data?.sourceDesc ?? ""}
-                    targetDesc={trafficEdge.data?.targetDesc ?? ""}
-                    inbound={trafficEdge.data?.inbound ?? 0}
-                    outbound={trafficEdge.data?.outbound ?? 0}
-                    onClose={() => setTrafficEdgeId(null)}
-                    onDragStart={handleTrafficPanelMouseDown}
-                  />
-                </div>
-              </EdgeLabelRenderer>
-            )}
-          </div>
-        </div>
+                  pointerEvents: "all",
+                  zIndex: 1000,
+                }}
+              >
+                <EdgeTrafficPanel
+                  sourceInterface={sourceInterface}
+                  interfaces={interfaces}
+                  sourceNodeName={trafficEdge.data?.sourceNodeName ?? ""}
+                  targetNodeName={trafficEdge.data?.targetNodeName ?? ""}
+                  aggregatedInterfaces={
+                    trafficEdge.data?.aggregatedInterfaces ?? []
+                  }
+                  sourceDesc={trafficEdge.data?.sourceDesc ?? ""}
+                  targetDesc={trafficEdge.data?.targetDesc ?? ""}
+                  inbound={trafficEdge.data?.inbound ?? 0}
+                  outbound={trafficEdge.data?.outbound ?? 0}
+                  onClose={() => setTrafficEdgeId(null)}
+                  onDragStart={handleTrafficPanelMouseDown}
+                />
+              </div>
+            </EdgeLabelRenderer>
+          )}
+        </motion.div>
 
         <SidebarWeathermap
           interfaces={interfaces}
