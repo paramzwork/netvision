@@ -301,38 +301,49 @@ const ViewEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
     : "#ef4444";
   return (
     <>
-      <defs>
-        <linearGradient
-          id={`traffic-gradient-${id}`}
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="0%"
-        >
-          {/* Left 50% */}
-          <stop offset="0%" stopColor={outboundColor} />
-          <stop offset="50%" stopColor={outboundColor} />
+      {/* ==========================================================
+    EDGE BORDER
+========================================================== */}
 
-          {/* Right 50% */}
-          <stop offset="50%" stopColor={inboundColor} />
-          <stop offset="100%" stopColor={inboundColor} />
-        </linearGradient>
-      </defs>
       <BaseEdge
         id={`${id}-border`}
         path={edgePath}
+        pathLength={100}
         style={{
           stroke: "#000000",
           strokeWidth: 3,
         }}
       />
+
+      {/* ==========================================================
+    OUTBOUND - FIRST HALF OF ACTUAL PATH
+========================================================== */}
+
       <BaseEdge
-        id={id}
+        id={`${id}-outbound`}
         path={edgePath}
+        pathLength={100}
         style={{
-          stroke: `url(#traffic-gradient-${id})`,
+          stroke: outboundColor,
           strokeWidth: 2,
-          cursor: "pointer",
+          strokeDasharray: "50 50",
+          strokeDashoffset: 0,
+        }}
+      />
+
+      {/* ==========================================================
+    INBOUND - SECOND HALF OF ACTUAL PATH
+========================================================== */}
+
+      <BaseEdge
+        id={`${id}-inbound`}
+        path={edgePath}
+        pathLength={100}
+        style={{
+          stroke: inboundColor,
+          strokeWidth: 2,
+          strokeDasharray: "50 50",
+          strokeDashoffset: 50,
         }}
       />
 

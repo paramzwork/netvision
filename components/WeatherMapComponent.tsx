@@ -40,6 +40,9 @@ import { Input } from "./ui/input";
 import ServerNode from "./weathermap/nodes/ServerNode";
 import { AggregatedInterface } from "@/app/(pages)/settings/weathermap/[id]/page";
 import RouterNodeSettings from "./weathermap/nodes/RouterNode";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { motion } from "framer-motion";
+
 const nodeTypes = {
   router: RouterNodeSettings,
   switch: SwitchNode,
@@ -147,7 +150,7 @@ export interface TopologyEdgeData extends Record<string, unknown> {
 
   aggregatedInterfaces?: AggregatedInterface[];
   targetAggregationId?: string;
-  
+
   edgePosition?: EdgePosition;
 
   targetLabelOffset?: {
@@ -206,6 +209,7 @@ export default function WeatherMapComponent() {
   // React Flow
   const { screenToFlowPosition } = useReactFlow();
   const [dragItem] = useDnD();
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<TopologyNode>[]) => {
@@ -1063,9 +1067,44 @@ export default function WeatherMapComponent() {
       console.error("SAVE TOPOLOGY ERROR:", error);
     }
   }, [topologyName, description, nodes, edges, router]);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // F = fullscreen
+      if (
+        event.key.toLowerCase() === "f" &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey
+      ) {
+        // Don't trigger while typing in an input
+        const target = event.target as HTMLElement;
 
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        setIsFullscreen(true);
+      }
+
+      // Escape = exit fullscreen
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   return (
-    <div className="space-y-5">
+    <div className="w-full h-full flex flex-col gap-5">
       <div className="flex flex-row items-center gap-3">
         <Input
           value={topologyName}
@@ -1088,8 +1127,21 @@ export default function WeatherMapComponent() {
           Save Topology
         </Button>
       </div>
-      <div className="flex flex-row items-start gap-2">
-        <div className="w-full h-174 border">
+      <div className="w-full h-full flex flex-row gap-2">
+        <motion.div
+          layout
+          transition={{
+            layout: {
+              duration: 0.4,
+              ease: [0.4, 0, 0.2, 1],
+            },
+          }}
+          className={
+            isFullscreen
+              ? "fixed inset-0 z-9999 bg-white overflow-hidden"
+              : "relative w-full flex-1 min-h-0 border rounded-md overflow-hidden bg-white"
+          }
+        >
           <ReactFlow<TopologyNode, TopologyEdge>
             nodes={nodes}
             edges={edges}
@@ -1112,6 +1164,22 @@ export default function WeatherMapComponent() {
           >
             <Background />
             <MiniMap />
+            <div className="absolute top-3 right-3 z-50">
+              <Button
+                type="button"
+                onClick={() => setIsFullscreen((prev) => !prev)}
+                className="flex items-center justify-center w-7 h-7 rounded-md border bg-background/90 hover:bg-background shadow-sm cursor-pointer"
+                title={
+                  isFullscreen ? "Exit fullscreen (Esc)" : "Fullscreen (F)"
+                }
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="shrink-0 text-black w-4 h-4" />
+                ) : (
+                  <Maximize2 className="shrink-0 text-black w-4 h-4" />
+                )}
+              </Button>
+            </div>
           </ReactFlow>
           <NodeHandleSettings
             open={!!selectedNode}
@@ -1174,7 +1242,7 @@ export default function WeatherMapComponent() {
               setSelectedNode(null);
             }}
           />
-        </div>
+        </motion.div>
         <SidebarWeathermap
           interfaces={interfaces}
           devices={device}
