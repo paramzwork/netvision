@@ -7,6 +7,7 @@ import {
   Tooltip,
   AreaChart,
   Area,
+  ReferenceLine,
 } from "recharts";
 
 import { formatBandwidth } from "@/lib/utils";
@@ -25,7 +26,16 @@ const AGGREGATED_COLORS = [
   "#14b8a6", // teal
   "#ef4444", // red
 ];
-
+const AGGREGATED_OUTBOUND_COLORS = [
+  "#15803d", // dark green
+  "#c2410c", // dark orange
+  "#7e22ce", // dark purple
+  "#0e7490", // dark cyan
+  "#a16207", // dark yellow
+  "#be185d", // dark pink
+  "#0f766e", // dark teal
+  "#b91c1c", // dark red
+];
 interface EdgeTrafficPanelProps {
   sourceNodeName: string;
   targetNodeName: string;
@@ -94,9 +104,9 @@ const TrafficTooltip = ({
   }
 
   return (
-    <div className="min-w-60 rounded-lg border bg-white p-2 text-xs shadow-xl">
+    <div className="min-w-20 rounded-lg border bg-white p-2 text-xs shadow-xl">
       <div className="mb-3 border-b pb-2">
-        <div className="text-[10px] font-semibold">Traffic</div>
+        <div className="text-[8px] font-semibold">Traffic</div>
 
         <div className="text-[8px] text-muted-foreground font-semibold">
           {String(label ?? "")}
@@ -117,27 +127,37 @@ const TrafficTooltip = ({
             (item) => String(item.interfaceId) === interfaceId,
           );
 
-          const value = Number(entry.value ?? 0);
+          const rawValue = Number(entry.value ?? 0);
 
+          const value = Math.abs(rawValue);
+          const interfaceIndex = chartData.findIndex(
+            (item) => String(item.interfaceId) === interfaceId,
+          );
+
+          const interfaceColor =
+            chartData.length > 1
+              ? AGGREGATED_COLORS[interfaceIndex % AGGREGATED_COLORS.length]
+              : "#22c55e";
           return (
             <div
               key={`${dataKey}-${index}`}
               className="flex items-center justify-between gap-4"
             >
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 items-center gap-1">
                 <span
-                  className={`h-2 w-2 shrink-0 rounded-full ${
-                    isInbound ? "bg-green-500" : "bg-blue-500"
-                  }`}
+                  className="h-1 w-1 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor: interfaceColor,
+                  }}
                 />
 
                 <div className="min-w-0">
-                  <div className="text-[10px] truncate font-medium">
+                  <div className="text-[6px] truncate font-medium">
                     {interfaceChart?.interfaceName ?? "Interface"}
                   </div>
 
                   {interfaceChart?.sourceNodeName && (
-                    <div className="truncate text-[6px] text-muted-foreground font-semibold">
+                    <div className="truncate text-[4px] text-muted-foreground font-semibold">
                       {interfaceChart.sourceNodeName}
                     </div>
                   )}
@@ -145,12 +165,12 @@ const TrafficTooltip = ({
               </div>
 
               <div
-                className={`text-end text-[10px] whitespace-nowrap font-semibold ${
+                className={`text-end text-[6px] whitespace-nowrap font-semibold ${
                   isInbound ? "text-green-500" : "text-blue-500"
                 }`}
               >
-                {isInbound ? "↓" : "↑"} {formatBandwidth(value)}
-                <div className="text-[6px] text-muted-foreground">
+                {isInbound ? "↓" : "↑"} {formatBandwidth(Math.abs(value))}
+                <div className="text-[4px] text-muted-foreground">
                   {isInbound ? "Inbound" : "Outbound"}
                 </div>
               </div>
@@ -348,32 +368,38 @@ export default function EdgeTrafficPanel({
       return [];
     }
 
-    const points = new Map<number, Record<string, string | number>>();
+    const timestamps = new Set<number>();
 
     for (const interfaceChart of chartData) {
       for (const point of interfaceChart.data) {
-        const existing = points.get(point.timestamp);
-
-        if (existing) {
-          existing[`inbound_${interfaceChart.interfaceId}`] = point.inbound;
-
-          existing[`outbound_${interfaceChart.interfaceId}`] = point.outbound;
-        } else {
-          points.set(point.timestamp, {
-            timestamp: point.timestamp,
-            time: point.time,
-
-            [`inbound_${interfaceChart.interfaceId}`]: point.inbound,
-
-            [`outbound_${interfaceChart.interfaceId}`]: point.outbound,
-          });
-        }
+        timestamps.add(point.timestamp);
       }
     }
 
-    return Array.from(points.values()).sort(
-      (a, b) => Number(a.timestamp) - Number(b.timestamp),
-    );
+    return Array.from(timestamps)
+      .sort((a, b) => a - b)
+      .map((timestamp) => {
+        const row: Record<string, string | number> = {
+          timestamp,
+          time: new Date(timestamp).toLocaleTimeString(),
+        };
+
+        for (const interfaceChart of chartData) {
+          const point = interfaceChart.data.find(
+            (item) => item.timestamp === timestamp,
+          );
+
+          const interfaceId = interfaceChart.interfaceId;
+
+          // Inbound = positive
+          row[`inbound_${interfaceId}`] = point?.inbound ?? 0;
+
+          // Outbound = negative
+          row[`outbound_${interfaceId}`] = -(point?.outbound ?? 0);
+        }
+
+        return row;
+      });
   }, [chartData]);
   const interfaceTrafficStats = useMemo<InterfaceTrafficStats[]>(() => {
     // ==================================================
@@ -698,63 +724,6 @@ export default function EdgeTrafficPanel({
           {combinedChartData.length > 1 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={combinedChartData}>
-                <defs>
-                  {chartData.map((interfaceChart, index) => {
-                    const color =
-                      aggregatedInterfaces.length > 0
-                        ? AGGREGATED_COLORS[index % AGGREGATED_COLORS.length]
-                        : null;
-
-                    const inboundColor = color ?? "#22c55e";
-
-                    const outboundColor = color ?? "#3b82f6";
-
-                    return (
-                      <React.Fragment key={interfaceChart.interfaceId}>
-                        <linearGradient
-                          id={`inboundGradient-${interfaceChart.interfaceId}`}
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor={inboundColor}
-                            stopOpacity={0.35}
-                          />
-
-                          <stop
-                            offset="100%"
-                            stopColor={outboundColor}
-                            stopOpacity={0.02}
-                          />
-                        </linearGradient>
-
-                        <linearGradient
-                          id={`outboundGradient-${interfaceChart.interfaceId}`}
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor={inboundColor}
-                            stopOpacity={0.35}
-                          />
-
-                          <stop
-                            offset="100%"
-                            stopColor={outboundColor}
-                            stopOpacity={0.02}
-                          />
-                        </linearGradient>
-                      </React.Fragment>
-                    );
-                  })}
-                </defs>
-
                 <XAxis
                   dataKey="time"
                   tick={{
@@ -770,9 +739,16 @@ export default function EdgeTrafficPanel({
                   }}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => formatBandwidth(Number(value))}
+                  tickFormatter={(value) =>
+                    formatBandwidth(Math.abs(Number(value)))
+                  }
                 />
-
+                <ReferenceLine
+                  y={0}
+                  stroke="#9CA3AF"
+                  strokeWidth={1}
+                  ifOverflow="extendDomain"
+                />
                 <Tooltip
                   content={(props) => (
                     <TrafficTooltip
@@ -789,6 +765,7 @@ export default function EdgeTrafficPanel({
                           typeof entry.dataKey === "number"
                             ? entry.dataKey
                             : undefined,
+
                         value:
                           typeof entry.value === "number" ||
                           typeof entry.value === "string"
@@ -799,35 +776,53 @@ export default function EdgeTrafficPanel({
                     />
                   )}
                 />
+
                 {chartData.map((interfaceChart, index) => {
                   const color =
                     aggregatedInterfaces.length > 0
                       ? AGGREGATED_COLORS[index % AGGREGATED_COLORS.length]
-                      : null;
+                      : "#22c55e";
+                  const colorOutbound =
+                    aggregatedInterfaces.length > 0
+                      ? AGGREGATED_OUTBOUND_COLORS[
+                          index % AGGREGATED_OUTBOUND_COLORS.length
+                        ]
+                      : "#22c55e";
 
-                  const inboundColor = color ?? "#22c55e";
-
-                  const outboundColor = color ?? "#3b82f6";
                   return (
                     <React.Fragment key={interfaceChart.interfaceId}>
+                      {/* ================================================== */}
+                      {/* INBOUND — POSITIVE STACK */}
+                      {/* ================================================== */}
+
                       <Area
                         type="monotone"
                         dataKey={`inbound_${interfaceChart.interfaceId}`}
-                        stroke={inboundColor}
-                        fill={`url(#inboundGradient-${interfaceChart.interfaceId})`}
-                        strokeWidth={2}
+                        stackId="inbound"
+                        stroke={color}
+                        fill={color}
+                        fillOpacity={0.45}
+                        strokeWidth={1}
                         dot={false}
                         isAnimationActive={false}
+                        connectNulls
                       />
+
+                      {/* ================================================== */}
+                      {/* OUTBOUND — NEGATIVE STACK */}
+                      {/* ================================================== */}
 
                       <Area
                         type="monotone"
                         dataKey={`outbound_${interfaceChart.interfaceId}`}
-                        stroke={outboundColor}
-                        fill={`url(#outboundGradient-${interfaceChart.interfaceId})`}
-                        strokeWidth={2}
+                        stackId="outbound"
+                        stroke={colorOutbound}
+                        fill={colorOutbound}
+                        fillOpacity={0.45}
+                        strokeWidth={1}
                         dot={false}
                         isAnimationActive={false}
+                        connectNulls
                       />
                     </React.Fragment>
                   );

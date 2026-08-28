@@ -91,23 +91,10 @@ export async function POST(req: NextRequest) {
       body: form.toString(),
       redirect: "manual",
     });
-    // if (
-    //   cactiRes.status !== 302 ||
-    //   !cactiRes.headers.get("location")?.includes("graph_view")
-    // ) {
-    //   return NextResponse.json(
-    //     { error: "Cacti login failed" },
-    //     { status: 401 },
-    //   );
-    // }
 
     const setCookie = cactiRes.headers.get("set-cookie");
     const cactiMatches = [...(setCookie?.matchAll(/Cacti=([^;]+)/g) ?? [])];
     const cactiCookie = cactiMatches.at(-1)?.[1];
-    const rememberCookie = setCookie?.match(/cacti_remembers=([^;]+)/)?.[1];
-    console.log("SET COOKIE", setCookie);
-    console.log("CACTI COOKIE", cactiCookie);
-    console.log("REMEMBER COOKIE", rememberCookie);
 
     const dir = path.join(process.cwd(), "public/data/logs/logins");
     fs.mkdirSync(dir, { recursive: true });
@@ -132,58 +119,6 @@ export async function POST(req: NextRequest) {
         path: "/",
       });
     }
-
-    // if (!csrf) {
-    //   return NextResponse.json(
-    //     { error: "Unable to retrieve Cacti CSRF token" },
-    //     { status: 500 },
-    //   );
-    // }
-    // const form = new URLSearchParams();
-
-    // form.append("__csrf_magic", csrf);
-    // form.append("action", "login");
-    // form.append("login_username", "admin_nichole");
-    // form.append("login_password", "Admin@101");
-    // form.append("remember_me", "on");
-
-    // const cactiRes = await fetch(targetUrl, {
-    //   method: "POST",
-    //   headers: {
-    //     "Content-Type": "application/x-www-form-urlencoded",
-    //     Cookie: initialCookie ?? "",
-    //   },
-    //   body: form.toString(),
-    //   redirect: "manual",
-    // });
-
-    // const setCookie = cactiRes.headers.get("set-cookie");
-    // const cactiMatches = [...(setCookie?.matchAll(/Cacti=([^;]+)/g) ?? [])];
-    // const cactiCookie = cactiMatches.at(-1)?.[1];
-    // const rememberCookie = setCookie?.match(/cacti_remembers=([^;]+)/)?.[1];
-    // console.log("SET COOKIE", setCookie);
-    // console.log("CACTI COOKIE", cactiCookie);
-    // console.log("REMEMBER COOKIE", rememberCookie);
-
-    // if (cactiCookie) {
-    //   response.cookies.set("Cacti", cactiCookie, {
-    //     httpOnly: true,
-    //     secure: process.env.NODE_ENV === "production",
-    //     sameSite: "strict",
-    //     path: "/",
-    //     maxAge: 60 * 60,
-    //   });
-    // }
-
-    // if (rememberCookie) {
-    //   response.cookies.set("cacti_remembers", rememberCookie, {
-    //     httpOnly: true,
-    //     secure: process.env.NODE_ENV === "production",
-    //     sameSite: "strict",
-    //     path: "/",
-    //     maxAge: 60 * 60,
-    //   });
-    // }
 
     return response;
   } else if (reqType === "sign-out") {
