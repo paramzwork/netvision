@@ -1,7 +1,7 @@
 "use client";
 
 import { HandleLayout, NodeHandle } from "@/components/WeatherMapComponent";
-import { Handle, Position, NodeProps, NodeResizer, Node } from "@xyflow/react";
+import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 
 import Image from "next/image";
 
@@ -19,7 +19,7 @@ export interface RouterNodeData extends Record<string, unknown> {
   handles: HandleLayout;
 }
 export type RouterNode = Node<RouterNodeData>;
-export default function CloudNode({ data, selected }: NodeProps<RouterNode>) {
+export default function CloudNode({ data }: NodeProps<RouterNode>) {
   const createHandles = (handles: NodeHandle[] | undefined, side: Position) => {
     if (!handles || handles.length === 0) return null;
     return handles.map((handle, index) => (
@@ -42,9 +42,42 @@ export default function CloudNode({ data, selected }: NodeProps<RouterNode>) {
   };
 
   return (
-    <div className="@container relative w-full h-full min-h-13 rounded-sm border bg-white overflow-visible">
-      <NodeResizer isVisible={selected} />
-
+    <div className="@container relative w-full h-full min-h-13 rounded-sm border bg-white hover:border-blue-400 hover:shadow-sm cursor-default duration-200 overflow-visible">
+      {/* <div
+  className="
+    group relative
+    @container w-full h-full min-h-13 
+    rounded-sm bg-white
+    hover:cursor-default
+  "
+>
+  <svg
+    className="
+      pointer-events-none
+      absolute inset-0
+      w-full h-full
+      overflow-visible
+    "
+  >
+    <rect
+      x="1"
+      y="1"
+      width="calc(100% - 2px)"
+      height="calc(100% - 2px)"
+      rx="3"
+      fill="none"
+      stroke="#60a5fa"
+      strokeWidth="1.5"
+      pathLength="100"
+      strokeDasharray="100"
+      strokeDashoffset="100"
+      className="
+        transition-[stroke-dashoffset]
+        duration-700
+        group-hover:[stroke-dashoffset:0]
+      "
+    />
+  </svg> */}
       <Image
         src="/images/cloud.png"
         fill
