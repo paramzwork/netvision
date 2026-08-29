@@ -370,7 +370,7 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
     if (traffic <= 1_000_000) return "#bdbdbd"; // 0–1 Mbps
     if (traffic <= 10_000_000) return "#8000ff"; // 1–10 Mbps
     if (traffic <= 25_000_000) return "#7c00ff"; // 10–25 Mbps
-    if (traffic <= 40_000_000) return "#0066ff"; // 25–40 Mbps
+    if (traffic <= 40_000_000) return "#2020ff"; // 25–40 Mbps
     if (traffic <= 55_000_000) return "#00bfff"; // 40–55 Mbps
     if (traffic <= 70_000_000) return "#ffff00"; // 55–70 Mbps
     if (traffic <= 85_000_000) return "#ff9900"; // 70–85 Mbps
@@ -387,38 +387,49 @@ const CustomEdgeStartEnd: FC<EdgeProps<Edge<NetworkEdgeData>>> = ({
 
   return (
     <>
-      <defs>
-        <linearGradient
-          id={`traffic-gradient-${id}`}
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="0%"
-        >
-          {/* Left 50% */}
-          <stop offset="0%" stopColor={outboundColor} />
-          <stop offset="50%" stopColor={outboundColor} />
+      {/* ==========================================================
+    EDGE BORDER
+========================================================== */}
 
-          {/* Right 50% */}
-          <stop offset="50%" stopColor={inboundColor} />
-          <stop offset="100%" stopColor={inboundColor} />
-        </linearGradient>
-      </defs>
       <BaseEdge
         id={`${id}-border`}
         path={edgePath}
+        pathLength={100}
         style={{
           stroke: "#000000",
           strokeWidth: 3,
         }}
       />
+
+      {/* ==========================================================
+    OUTBOUND - FIRST HALF OF ACTUAL PATH
+========================================================== */}
+
       <BaseEdge
-        id={id}
+        id={`${id}-outbound`}
         path={edgePath}
+        pathLength={100}
         style={{
-          stroke: `url(#traffic-gradient-${id})`,
+          stroke: outboundColor,
           strokeWidth: 2,
-          cursor: "pointer",
+          strokeDasharray: "50 50",
+          strokeDashoffset: 0,
+        }}
+      />
+
+      {/* ==========================================================
+    INBOUND - SECOND HALF OF ACTUAL PATH
+========================================================== */}
+
+      <BaseEdge
+        id={`${id}-inbound`}
+        path={edgePath}
+        pathLength={100}
+        style={{
+          stroke: inboundColor,
+          strokeWidth: 2,
+          strokeDasharray: "50 50",
+          strokeDashoffset: 50,
         }}
       />
 

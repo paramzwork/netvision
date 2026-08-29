@@ -1,7 +1,7 @@
 "use client";
 
 import { HandleLayout, NodeHandle } from "@/components/WeatherMapComponent";
-import { Handle, Position, NodeProps, NodeResizer, Node } from "@xyflow/react";
+import { Handle, Position, NodeProps, Node } from "@xyflow/react";
 
 import Image from "next/image";
 
@@ -19,7 +19,7 @@ export interface RouterNodeData extends Record<string, unknown> {
   handles: HandleLayout;
 }
 export type RouterNode = Node<RouterNodeData>;
-export default function ServerNode({ data, selected }: NodeProps<RouterNode>) {
+export default function ServerNode({ data }: NodeProps<RouterNode>) {
   const createHandles = (handles: NodeHandle[] | undefined, side: Position) => {
     if (!handles || handles.length === 0) return null;
     return handles.map((handle, index) => (
@@ -42,9 +42,7 @@ export default function ServerNode({ data, selected }: NodeProps<RouterNode>) {
   };
 
   return (
-    <div className="@container relative w-full h-full rounded-sm border bg-white">
-      <NodeResizer isVisible={selected} />
-
+    <div className="@container relative w-full h-full rounded-sm border hover:border-blue-400 hover:shadow-sm cursor-default duration-200 bg-white">
       <div className="h-full flex flex-col items-center justify-center p-2">
         <div className="relative w-[20cqw] h-[20cqw] max-w-20 max-h-20 min-w-9 min-h-9">
           <Image

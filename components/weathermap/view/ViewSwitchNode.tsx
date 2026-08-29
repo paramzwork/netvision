@@ -42,7 +42,7 @@ export default function ViewSwitchNode({ data }: NodeProps<RouterNode>) {
   };
 
   return (
-    <div className="@container relative w-full h-full rounded-sm border bg-white cursor-default">
+    <div className="@container relative w-full h-full rounded-sm border bg-white hover:border-blue-400 hover:shadow-sm duration-200 cursor-default">
       <div className="h-full flex flex-col items-center justify-center p-2">
         <div className="relative w-[20cqw] h-[20cqw] max-w-20 max-h-20 min-w-14 min-h-14">
           <Image

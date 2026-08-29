@@ -40,6 +40,9 @@ import { Input } from "./ui/input";
 import ServerNode from "./weathermap/nodes/ServerNode";
 import { AggregatedInterface } from "@/app/(pages)/settings/weathermap/[id]/page";
 import RouterNodeSettings from "./weathermap/nodes/RouterNode";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { motion } from "framer-motion";
+
 const nodeTypes = {
   router: RouterNodeSettings,
   switch: SwitchNode,
@@ -146,6 +149,7 @@ export interface TopologyEdgeData extends Record<string, unknown> {
   targetStatus: string;
 
   aggregatedInterfaces?: AggregatedInterface[];
+  targetAggregationId?: string;
 
   edgePosition?: EdgePosition;
 
@@ -205,6 +209,7 @@ export default function WeatherMapComponent() {
   // React Flow
   const { screenToFlowPosition } = useReactFlow();
   const [dragItem] = useDnD();
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<TopologyNode>[]) => {
@@ -233,9 +238,10 @@ export default function WeatherMapComponent() {
     (
       nodeId: string,
       handleId: string,
-      interfaceId: number,
+      interfaceId: number | undefined,
       interfaceName: string,
       nodeName: string,
+      aggregationId: string | undefined,
     ) => {
       setNodes((nodes) =>
         nodes.map((node) => {
@@ -247,14 +253,17 @@ export default function WeatherMapComponent() {
 
           const updatedHandles = {
             ...node.data.handles,
-
             [position]: node.data.handles[position].map((handle) =>
               handle.id === handleId
                 ? {
                     ...handle,
+
                     interfaceId,
                     interfaceName,
                     nodeName,
+
+                    // Only one of these should exist
+                    aggregationId,
                   }
                 : handle,
             ),
@@ -318,10 +327,13 @@ export default function WeatherMapComponent() {
       ) {
         return;
       }
+
       const sourceNode = nodes.find((n) => n.id === params.source);
       const targetNode = nodes.find((n) => n.id === params.target);
 
-      if (!sourceNode || !targetNode) return;
+      if (!sourceNode || !targetNode) {
+        return;
+      }
 
       const sourceHandle = findHandle(
         sourceNode.data.handles,
@@ -338,130 +350,361 @@ export default function WeatherMapComponent() {
         return;
       }
 
-      // ---------------------------------------------
-      // Determine logical node purpose
-      // ---------------------------------------------
+      // --------------------------------------------------
+      // NODE TYPE
+      // --------------------------------------------------
+
       const isBlankNode = (nodeType?: string) =>
         nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
 
       const sourceIsBlank = isBlankNode(sourceNode.data.nodeType);
       const targetIsBlank = isBlankNode(targetNode.data.nodeType);
 
-      // ---------------------------------------------
-      // Normal nodes MUST have interfaces
-      // Blank nodes don't need interfaces
-      // ---------------------------------------------
-      if (sourceIsBlank && !targetIsBlank) {
-        updateHandle(
-          sourceNode.id,
-          params.sourceHandle!,
-          targetNode.data.interfaceId!,
-          targetNode.data.label ?? "",
-          targetNode.data.nodeName ?? "Unknown",
-        );
-      }
-
-      if (!sourceIsBlank && targetIsBlank) {
-        updateHandle(
-          targetNode.id,
-          params.targetHandle!,
-          sourceNode.data.interfaceId!,
-          sourceNode.data.label ?? "",
-          sourceNode.data.nodeName ?? "Unknown",
-        );
-      }
-      const sourceInterfaceId = sourceIsBlank
-        ? sourceHandle.interfaceId
-        : sourceNode.data.interfaceId;
-
-      const targetInterfaceId = targetIsBlank
-        ? targetHandle.interfaceId
-        : targetNode.data.interfaceId;
+      // --------------------------------------------------
+      // SOURCE CONNECTION
+      //
+      // IMPORTANT:
+      // Always read the CURRENT source handle.
+      // Do not use old edge data here.
+      // --------------------------------------------------
 
       const sourceIsAggregated = sourceIsBlank && !!sourceHandle.aggregationId;
 
-      const targetIsAggregated = targetIsBlank && !!targetHandle.aggregationId;
+      const sourceInterfaceId = sourceIsBlank
+        ? sourceIsAggregated
+          ? undefined
+          : sourceHandle.interfaceId
+        : sourceNode.data.interfaceId;
 
-      // Normal interface validation
-      if (sourceInterfaceId == null && !sourceIsAggregated) {
-        toast.warning("Please assign an interface to the source handle.");
+      // --------------------------------------------------
+      // TARGET CONNECTION
+      // --------------------------------------------------
+
+      let targetInterfaceId = targetIsBlank
+        ? targetHandle.interfaceId
+        : targetNode.data.interfaceId;
+
+      let targetAggregationId = targetIsBlank
+        ? targetHandle.aggregationId
+        : undefined;
+
+      // --------------------------------------------------
+      // TARGET BLANK NODE
+      // --------------------------------------------------
+
+      if (targetIsBlank) {
+        // ----------------------------------------------
+        // SOURCE IS AGGREGATED
+        // ----------------------------------------------
+
+        if (sourceIsAggregated) {
+          targetInterfaceId = undefined;
+          targetAggregationId = sourceHandle.aggregationId;
+
+          updateHandle(
+            targetNode.id,
+            params.targetHandle,
+            undefined,
+            "",
+            sourceNode.data.nodeName ?? "Unknown",
+            sourceHandle.aggregationId,
+          );
+        }
+
+        // ----------------------------------------------
+        // SOURCE IS DIRECT INTERFACE
+        // ----------------------------------------------
+        else if (typeof sourceInterfaceId === "number") {
+          targetInterfaceId = sourceInterfaceId;
+          targetAggregationId = undefined;
+
+          updateHandle(
+            targetNode.id,
+            params.targetHandle,
+            sourceInterfaceId,
+            sourceHandle.interfaceName ?? "",
+            sourceHandle.nodeName ?? sourceNode.data.nodeName ?? "Unknown",
+            undefined,
+          );
+        }
+
+        // ----------------------------------------------
+        // SOURCE HAS NOTHING
+        // ----------------------------------------------
+        else {
+          targetInterfaceId = undefined;
+          targetAggregationId = undefined;
+        }
+      }
+
+      // --------------------------------------------------
+      // VALIDATE NORMAL NODES
+      // --------------------------------------------------
+
+      if (!sourceIsBlank && sourceInterfaceId == null) {
+        toast.warning("Please assign an interface to the source node.");
         return;
       }
 
-      if (targetInterfaceId == null && !targetIsAggregated) {
-        toast.warning("Please assign an interface to the target handle.");
+      if (!targetIsBlank && targetInterfaceId == null) {
+        toast.warning("Please assign an interface to the target node.");
         return;
       }
+
+      // --------------------------------------------------
+      // MANUAL AGGREGATION
+      // --------------------------------------------------
 
       let aggregatedInterfaces: AggregatedInterface[] = [];
       let aggregationId: string | undefined;
       let aggregation: AggregationGroup | undefined;
-      let aggregatedInbound = 0;
-      let aggregatedOutbound = 0;
-      if (
-        sourceIsBlank &&
-        sourceNode.data.aggregationMode === "manual" &&
-        sourceHandle?.aggregationId
-      ) {
+
+      if (sourceIsAggregated && sourceNode.data.aggregationMode === "manual") {
         aggregationId = sourceHandle.aggregationId;
+
         aggregation = sourceNode.data.aggregations?.find(
-          (agg) => agg.id === sourceHandle.aggregationId,
+          (agg) => agg.id === aggregationId,
         );
 
         if (aggregation) {
-          aggregatedInbound = aggregation.interfaces.reduce(
+          const aggregatedInbound = aggregation.interfaces.reduce(
             (total, iface) => total + Number(iface.inbound ?? 0),
             0,
           );
 
-          aggregatedOutbound = aggregation.interfaces.reduce(
+          const aggregatedOutbound = aggregation.interfaces.reduce(
             (total, iface) => total + Number(iface.outbound ?? 0),
             0,
           );
 
-          // Update the handle with the aggregation traffic
           updateHandleTraffic(
             sourceNode.id,
             params.sourceHandle,
             aggregatedInbound,
             aggregatedOutbound,
           );
+
+          aggregatedInterfaces = aggregation.interfaces
+            .filter((iface) => typeof iface.interfaceId === "number")
+            .map((iface) => ({
+              interfaceId: iface.interfaceId!,
+              interfaceName: iface.interfaceName ?? "",
+              sourceNodeName: iface.nodeName ?? "",
+            }));
         }
       }
+
+      // --------------------------------------------------
+      // AUTOMATIC AGGREGATION
+      // --------------------------------------------------
 
       const shouldAggregate =
         sourceNode.data.aggregationMode === "automatic" &&
         targetNode.data.aggregationMode === "automatic";
-      if (shouldAggregate) {
-        aggregatedInterfaces = sourceIsBlank
-          ? Array.from(
-              new Map(
-                edges
-                  .filter(
-                    (existingEdge) => existingEdge.target === sourceNode.id,
-                  )
-                  .flatMap((existingEdge) => {
-                    const existingData = existingEdge.data as TopologyEdgeData;
 
-                    if (existingData.sourceInterfaceId == null) {
-                      return [];
-                    }
+      if (shouldAggregate && sourceIsBlank) {
+        const aggregatedMap = new Map<number, AggregatedInterface>();
 
-                    return [
-                      [
-                        existingData.sourceInterfaceId,
-                        {
-                          interfaceId: existingData.sourceInterfaceId,
-                          interfaceName: existingData.sourceInterfaceName ?? "",
-                          sourceNodeName: existingData.sourceNodeName ?? "",
-                        },
-                      ] as const,
-                    ];
-                  }),
-              ).values(),
-            )
-          : [];
+        // ----------------------------------------------
+        // Existing connections into source blank node
+        // ----------------------------------------------
+
+        edges
+          .filter((existingEdge) => existingEdge.target === sourceNode.id)
+          .forEach((existingEdge) => {
+            const existingSourceNode = nodes.find(
+              (node) => node.id === existingEdge.source,
+            );
+
+            if (!existingSourceNode) {
+              return;
+            }
+
+            if (!existingEdge.sourceHandle) {
+              return;
+            }
+
+            const existingSourceHandle = findHandle(
+              existingSourceNode.data.handles,
+              existingEdge.sourceHandle,
+            );
+
+            if (!existingSourceHandle) {
+              return;
+            }
+
+            // --------------------------------------------
+            // Existing source is aggregated
+            // --------------------------------------------
+
+            if (existingSourceHandle.aggregationId) {
+              const existingAggregation =
+                existingSourceNode.data.aggregations?.find(
+                  (agg) => agg.id === existingSourceHandle.aggregationId,
+                );
+
+              for (const iface of existingAggregation?.interfaces ?? []) {
+                if (typeof iface.interfaceId !== "number") {
+                  continue;
+                }
+
+                aggregatedMap.set(iface.interfaceId, {
+                  interfaceId: iface.interfaceId,
+                  interfaceName: iface.interfaceName ?? "",
+                  sourceNodeName:
+                    iface.nodeName ?? existingSourceNode.data.nodeName ?? "",
+                });
+              }
+
+              return;
+            }
+
+            // --------------------------------------------
+            // Existing source is DIRECT
+            //
+            // IMPORTANT:
+            // Read the CURRENT handle.
+            // --------------------------------------------
+
+            if (typeof existingSourceHandle.interfaceId === "number") {
+              aggregatedMap.set(existingSourceHandle.interfaceId, {
+                interfaceId: existingSourceHandle.interfaceId,
+
+                interfaceName: existingSourceHandle.interfaceName ?? "",
+
+                sourceNodeName:
+                  existingSourceHandle.nodeName ??
+                  existingSourceNode.data.nodeName ??
+                  "",
+              });
+            }
+          });
+
+        // ----------------------------------------------
+        // Add CURRENT connection
+        // ----------------------------------------------
+
+        if (sourceIsAggregated) {
+          const currentAggregation = sourceNode.data.aggregations?.find(
+            (agg) => agg.id === sourceHandle.aggregationId,
+          );
+
+          for (const iface of currentAggregation?.interfaces ?? []) {
+            if (typeof iface.interfaceId !== "number") {
+              continue;
+            }
+
+            aggregatedMap.set(iface.interfaceId, {
+              interfaceId: iface.interfaceId,
+              interfaceName: iface.interfaceName ?? "",
+              sourceNodeName: iface.nodeName ?? sourceNode.data.nodeName ?? "",
+            });
+          }
+        } else if (typeof sourceInterfaceId === "number") {
+          // --------------------------------------------
+          // CURRENT DIRECT INTERFACE
+          // --------------------------------------------
+
+          aggregatedMap.set(sourceInterfaceId, {
+            interfaceId: sourceInterfaceId,
+
+            interfaceName: sourceHandle.interfaceName ?? "",
+
+            sourceNodeName:
+              sourceHandle.nodeName ?? sourceNode.data.nodeName ?? "",
+          });
+        }
+
+        aggregatedInterfaces = Array.from(aggregatedMap.values());
       }
+
+      // --------------------------------------------------
+      // CREATE EDGE DATA
+      //
+      // IMPORTANT:
+      // Only put aggregation fields when CURRENT source
+      // is actually aggregated.
+      // --------------------------------------------------
+
+      const edgeData: TopologyEdgeData = {
+        sourceInterfaceId,
+        sourceInterfaceName: sourceHandle.interfaceName ?? "",
+
+        sourceNodeType: sourceNode.type ?? "",
+
+        targetInterfaceId,
+        targetInterfaceName: targetHandle.interfaceName ?? "",
+
+        targetNodeType: targetNode.type ?? "",
+
+        sourceNodeName: sourceNode.data.nodeName ?? "Unknown",
+
+        targetNodeName: targetNode.data.nodeName ?? "Unknown",
+
+        bandwidthMbps: 1000,
+
+        status: "up",
+
+        sourceDesc:
+          (sourceNode.data.description === ""
+            ? sourceHandle.nodeName
+            : sourceNode.data.description) ?? "",
+
+        targetDesc:
+          (targetNode.data.description === ""
+            ? targetHandle.nodeName
+            : targetNode.data.description) ?? "",
+
+        inbound: 0,
+        outbound: 0,
+
+        sourceAdminStatus: 0,
+        sourceOperStatus: 0,
+        sourceStatus: "",
+
+        targetAdminStatus: 0,
+        targetOperStatus: 0,
+        targetStatus: "",
+
+        sourceLabelOffset: {
+          x: 0,
+          y: 0,
+        },
+
+        targetLabelOffset: {
+          x: 0,
+          y: 0,
+        },
+
+        swapTraffic: false,
+
+        // ----------------------------------------------
+        // ONLY CURRENT AGGREGATION
+        // ----------------------------------------------
+
+        ...(sourceIsAggregated && aggregatedInterfaces.length > 0
+          ? {
+              aggregatedInterfaces,
+            }
+          : {}),
+
+        ...(sourceIsAggregated && aggregationId && aggregation
+          ? {
+              aggregationId,
+              aggregationName: aggregation.name,
+            }
+          : {}),
+
+        ...(targetAggregationId
+          ? {
+              targetAggregationId,
+            }
+          : {}),
+      };
+
+      // --------------------------------------------------
+      // CREATE EDGE
+      // --------------------------------------------------
 
       const edge: TopologyEdge = {
         id: `edge-${Date.now()}-${Math.random()}`,
@@ -474,62 +717,9 @@ export default function WeatherMapComponent() {
 
         type: "start-end",
 
-        data: {
-          sourceInterfaceId,
-          sourceInterfaceName: sourceHandle.interfaceName ?? "",
-          sourceNodeType: sourceNode.type ?? "",
-
-          targetInterfaceId,
-          targetInterfaceName: targetHandle.interfaceName ?? "",
-          targetNodeType: targetNode.type ?? "",
-
-          sourceNodeName: sourceNode.data.nodeName ?? "Unknown",
-          targetNodeName: targetNode.data.nodeName ?? "Unknown",
-          bandwidthMbps: 1000,
-          status: "up",
-
-          sourceDesc: sourceNode.data.description ?? "",
-          targetDesc: targetNode.data.description ?? "",
-
-          inbound: 0,
-          outbound: 0,
-
-          sourceAdminStatus: 0,
-          sourceOperStatus: 0,
-          sourceStatus: "",
-
-          targetAdminStatus: 0,
-          targetOperStatus: 0,
-          targetStatus: "",
-
-          sourceLabelOffset: {
-            x: 0,
-            y: 0,
-          },
-
-          targetLabelOffset: {
-            x: 0,
-            y: 0,
-          },
-
-          swapTraffic: false,
-
-          ...(shouldAggregate ? { aggregatedInterfaces } : {}),
-          ...(aggregationId && aggregation
-            ? {
-                aggregationId,
-                aggregationName: aggregation.name,
-                aggregatedInterfaces: aggregation.interfaces
-                  .filter((iface) => iface.interfaceId != null)
-                  .map((iface) => ({
-                    interfaceId: iface.interfaceId!,
-                    interfaceName: iface.interfaceName,
-                    sourceNodeName: iface.nodeName!,
-                  })),
-              }
-            : {}),
-        },
+        data: edgeData,
       };
+
       setEdges((eds) => [...eds, edge]);
     },
     [edges, nodes, setEdges, updateHandle, updateHandleTraffic],
@@ -629,7 +819,7 @@ export default function WeatherMapComponent() {
       if (dragItem.type === "blank") {
         const newNode: TopologyNode = {
           id: `blank-${Date.now()}`,
-          type: nodeType, // or your desired default
+          type: "blank1", // or your desired default
           position,
           data: {
             nodeName: dragItem.data.nodeName,
@@ -877,9 +1067,44 @@ export default function WeatherMapComponent() {
       console.error("SAVE TOPOLOGY ERROR:", error);
     }
   }, [topologyName, description, nodes, edges, router]);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // F = fullscreen
+      if (
+        event.key.toLowerCase() === "f" &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey
+      ) {
+        // Don't trigger while typing in an input
+        const target = event.target as HTMLElement;
 
+        if (
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        setIsFullscreen(true);
+      }
+
+      // Escape = exit fullscreen
+      if (event.key === "Escape") {
+        setIsFullscreen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   return (
-    <div className="space-y-5">
+    <div className="w-full h-full flex flex-col gap-5">
       <div className="flex flex-row items-center gap-3">
         <Input
           value={topologyName}
@@ -902,8 +1127,21 @@ export default function WeatherMapComponent() {
           Save Topology
         </Button>
       </div>
-      <div className="flex flex-row items-start gap-2">
-        <div className="w-full h-174 border">
+      <div className="w-full h-full flex flex-row gap-2">
+        <motion.div
+          layout
+          transition={{
+            layout: {
+              duration: 0.4,
+              ease: [0.4, 0, 0.2, 1],
+            },
+          }}
+          className={
+            isFullscreen
+              ? "fixed inset-0 z-9999 bg-white overflow-hidden"
+              : "relative w-full flex-1 min-h-0 border rounded-md overflow-hidden bg-white"
+          }
+        >
           <ReactFlow<TopologyNode, TopologyEdge>
             nodes={nodes}
             edges={edges}
@@ -926,6 +1164,22 @@ export default function WeatherMapComponent() {
           >
             <Background />
             <MiniMap />
+            <div className="absolute top-3 right-3 z-50">
+              <Button
+                type="button"
+                onClick={() => setIsFullscreen((prev) => !prev)}
+                className="flex items-center justify-center w-7 h-7 rounded-md border bg-background/90 hover:bg-background shadow-sm cursor-pointer"
+                title={
+                  isFullscreen ? "Exit fullscreen (Esc)" : "Fullscreen (F)"
+                }
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="shrink-0 text-black w-4 h-4" />
+                ) : (
+                  <Maximize2 className="shrink-0 text-black w-4 h-4" />
+                )}
+              </Button>
+            </div>
           </ReactFlow>
           <NodeHandleSettings
             open={!!selectedNode}
@@ -944,6 +1198,8 @@ export default function WeatherMapComponent() {
             setAggregationMode={setAggregationMode}
             setAggregations={setAggregations}
             interfaces={interfaces}
+            devices={device}
+            setEdges={setEdges}
             onSave={({ type, handles, aggregationMode, aggregations }) => {
               if (!selectedNode) return;
 
@@ -986,7 +1242,7 @@ export default function WeatherMapComponent() {
               setSelectedNode(null);
             }}
           />
-        </div>
+        </motion.div>
         <SidebarWeathermap
           interfaces={interfaces}
           devices={device}

@@ -15,42 +15,59 @@ type InterfaceSample = {
   createdAt: Date;
 };
 
-type NodeData = {
-  nodeType?: string;
+type TopologyHandle = {
+  id: string;
+  interfaceId?: number;
+  interfaceName?: string;
   nodeName?: string;
+  aggregationId?: string;
+};
+interface TrafficHandle {
+  id: string;
+  interfaceId?: number;
+  interfaceName?: string;
+  nodeName?: string;
+  aggregationId?: string;
+}
 
-  aggregationMode?: "automatic" | "manual";
-
-  aggregations?: Array<{
+interface TrafficAggregation {
+  id: string;
+  name: string;
+  interfaces: TrafficHandle[];
+  connectedAggregations?: {
     id: string;
     name: string;
-    interfaces: Array<{
-      id: string;
-      interfaceId?: number;
-      interfaceName?: string;
-      nodeName?: string;
-    }>;
-  }>;
+  }[];
+}
 
-  handles?: Record<
-    string,
-    Array<{
-      id: string;
-      interfaceId?: number;
-      interfaceName?: string;
-      nodeName?: string;
-      aggregationId?: string;
-    }>
-  >;
-};
-
+interface TrafficNodeData {
+  nodeType?: string;
+  aggregationMode?: string;
+  handles?: Record<string, TrafficHandle[]>;
+  aggregations?: TrafficAggregation[];
+}
 interface AggregatedInterfaceTraffic {
   interfaceId: number;
   interfaceName: string;
   inbound: number;
   outbound: number;
 }
+interface TopologyAggregation {
+  id: string;
+  name: string;
+  interfaces: TopologyHandle[];
+  connectedAggregations?: {
+    id: string;
+    name: string;
+  }[];
+}
 
+interface NodeData {
+  nodeType?: string;
+  aggregationMode?: string;
+  handles?: Record<string, TopologyHandle[]>;
+  aggregations?: TopologyAggregation[];
+}
 /**
  * Calculate bits per second from two SNMP counter samples.
  */
@@ -80,6 +97,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
     const topologyId = Number(id);
 
+    // --------------------------------------------------
+    // 1. VALIDATE ID
+    // --------------------------------------------------
+
     if (!Number.isInteger(topologyId)) {
       return NextResponse.json(
         {
@@ -91,7 +112,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
 
     // --------------------------------------------------
-    // 1. Get topology nodes
+    // 2. GET TOPOLOGY NODES
     // --------------------------------------------------
 
     const nodes = await prisma.topology_nodes.findMany({
@@ -105,7 +126,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     });
 
     // --------------------------------------------------
-    // 2. Get topology edges
+    // 3. GET TOPOLOGY EDGES
     // --------------------------------------------------
 
     const edges = await prisma.topology_edges.findMany({
@@ -130,28 +151,240 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
 
     // --------------------------------------------------
-    // 3. Node lookup
+    // 4. NODE LOOKUP
     // --------------------------------------------------
 
-    const nodeById = new Map(
-      nodes.map((node) => [node.nodeId, node.data as NodeData]),
+    const nodeById = new Map<string, TrafficNodeData>(
+      nodes.map((node) => [node.nodeId, node.data as TrafficNodeData]),
     );
 
-    const isBlankNodeType = (nodeType?: string) =>
-      nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2";
+    // --------------------------------------------------
+    // 5. BLANK NODE CHECK
+    // --------------------------------------------------
+
+    const isBlankNodeType = (nodeType?: string) => {
+      return (
+        nodeType === "blank" || nodeType === "blank1" || nodeType === "blank2"
+      );
+    };
 
     const isBlankNode = (nodeId: string) => {
       return isBlankNodeType(nodeById.get(nodeId)?.nodeType);
     };
 
     // --------------------------------------------------
-    // 4. Collect interface IDs
+    // 6. HANDLE LOOKUP
+    // --------------------------------------------------
+
+    const getHandle = (
+      nodeId: string,
+      handleId: string | null | undefined,
+    ): TrafficHandle | undefined => {
+      if (!handleId) {
+        return undefined;
+      }
+
+      const nodeData = nodeById.get(nodeId);
+
+      if (!nodeData?.handles) {
+        return undefined;
+      }
+
+      for (const handles of Object.values(nodeData.handles)) {
+        const handle = handles?.find((item) => item.id === handleId);
+
+        if (handle) {
+          return handle;
+        }
+      }
+
+      return undefined;
+    };
+
+    // --------------------------------------------------
+    // 8. AGGREGATION LOOKUP
     //
-    // We collect:
+    // aggregationId -> {
+    //   nodeId,
+    //   aggregation
+    // }
+    // --------------------------------------------------
+
+    const aggregationById = new Map<
+      string,
+      {
+        nodeId: string;
+        aggregation: TrafficAggregation;
+      }
+    >();
+
+    for (const node of nodes) {
+      const nodeData = node.data as TrafficNodeData;
+
+      for (const aggregation of nodeData.aggregations ?? []) {
+        aggregationById.set(aggregation.id, {
+          nodeId: node.nodeId,
+          aggregation,
+        });
+      }
+    }
+
+    // --------------------------------------------------
+    // 9. RECURSIVELY RESOLVE AGGREGATION INTERFACES
     //
-    // - source interfaces
-    // - target interfaces
-    // - interfaces inside manual aggregations
+    // This is the NEW calculation.
+    //
+    // Direct interfaces:
+    //
+    // aggregation.interfaces
+    //
+    // PLUS:
+    //
+    // aggregation.connectedAggregations
+    //
+    // recursively.
+    // --------------------------------------------------
+
+    const getAggregationInterfaceIds = (
+      nodeId: string,
+      aggregationId: string,
+      visited = new Set<string>(),
+    ): Set<number> => {
+      const result = new Set<number>();
+
+      const visitKey = `${nodeId}:${aggregationId}`;
+
+      // ------------------------------------------------
+      // Prevent circular aggregation references
+      // ------------------------------------------------
+
+      if (visited.has(visitKey)) {
+        console.warn(`[AGGREGATION] Circular reference detected: ${visitKey}`);
+
+        return result;
+      }
+
+      const nextVisited = new Set(visited);
+      nextVisited.add(visitKey);
+
+      // ------------------------------------------------
+      // Find actual aggregation
+      // ------------------------------------------------
+
+      const aggregationRecord = aggregationById.get(aggregationId);
+
+      if (!aggregationRecord) {
+        console.warn(`[AGGREGATION] Aggregation not found`, {
+          nodeId,
+          aggregationId,
+        });
+
+        return result;
+      }
+
+      const aggregation = aggregationRecord.aggregation;
+
+      console.log(
+        `\n========== AGGREGATION ==========\n` +
+          `Node: ${aggregationRecord.nodeId}\n` +
+          `Aggregation: ${aggregation.name}\n` +
+          `ID: ${aggregation.id}`,
+      );
+
+      // ------------------------------------------------
+      // 1. DIRECT INTERFACES
+      // ------------------------------------------------
+
+      console.log(
+        `[AGGREGATION] Direct interfaces in "${aggregation.name}":`,
+        aggregation.interfaces ?? [],
+      );
+
+      for (const iface of aggregation.interfaces ?? []) {
+        if (typeof iface.interfaceId !== "number") {
+          continue;
+        }
+
+        result.add(iface.interfaceId);
+
+        console.log(`[AGGREGATION] + Interface`, {
+          interfaceId: iface.interfaceId,
+          interfaceName: iface.interfaceName,
+          nodeName: iface.nodeName,
+          aggregation: aggregation.name,
+        });
+      }
+
+      // ------------------------------------------------
+      // 2. CONNECTED AGGREGATIONS
+      // ------------------------------------------------
+
+      console.log(
+        `[AGGREGATION] Connected aggregations in "${aggregation.name}":`,
+        aggregation.connectedAggregations ?? [],
+      );
+
+      for (const connectedAggregation of aggregation.connectedAggregations ??
+        []) {
+        if (!connectedAggregation?.id) {
+          continue;
+        }
+
+        console.log(`[AGGREGATION] Looking for connected aggregation:`, {
+          id: connectedAggregation.id,
+          name: connectedAggregation.name,
+        });
+
+        const connectedRecord = aggregationById.get(connectedAggregation.id);
+
+        if (!connectedRecord) {
+          console.warn(
+            `[AGGREGATION] Connected aggregation NOT FOUND:`,
+            connectedAggregation.id,
+          );
+
+          continue;
+        }
+
+        console.log(`[AGGREGATION] Connected aggregation FOUND:`, {
+          id: connectedRecord.aggregation.id,
+          name: connectedRecord.aggregation.name,
+          nodeId: connectedRecord.nodeId,
+        });
+
+        // ------------------------------------------------
+        // RECURSIVELY GET INTERFACES
+        // ------------------------------------------------
+
+        const connectedInterfaceIds = getAggregationInterfaceIds(
+          connectedRecord.nodeId,
+          connectedRecord.aggregation.id,
+          nextVisited,
+        );
+
+        for (const interfaceId of connectedInterfaceIds) {
+          result.add(interfaceId);
+        }
+      }
+
+      console.log(
+        `[AGGREGATION] FINAL interfaces for "${aggregation.name}":`,
+        Array.from(result),
+      );
+
+      return result;
+    };
+
+    // --------------------------------------------------
+    // 10. COLLECT ALL INTERFACE IDS
+    //
+    // Includes:
+    //
+    // - normal edge sourceInterfaceId
+    // - blank handle interfaceId
+    // - explicit aggregation interfaces
+    // - recursively connected aggregations
+    // - automatic aggregation incoming interfaces
     // --------------------------------------------------
 
     const interfaceIds = new Set<number>();
@@ -159,58 +392,255 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     for (const edge of edges) {
       const data = edge.data as TopologyEdgeData;
 
+      // ==================================================
+      // NORMAL SOURCE INTERFACE
+      // ==================================================
+
       if (typeof data.sourceInterfaceId === "number") {
         interfaceIds.add(data.sourceInterfaceId);
       }
 
+      // ==================================================
+      // NORMAL TARGET INTERFACE
+      // ==================================================
+
       if (typeof data.targetInterfaceId === "number") {
         interfaceIds.add(data.targetInterfaceId);
       }
-    }
 
-    // Also collect interfaces from aggregation configuration.
-    for (const node of nodes) {
-      const nodeData = node.data as NodeData;
+      // ==================================================
+      // BLANK SOURCE HANDLE
+      // ==================================================
 
-      for (const aggregation of nodeData.aggregations ?? []) {
-        for (const iface of aggregation.interfaces ?? []) {
-          if (typeof iface.interfaceId === "number") {
-            interfaceIds.add(iface.interfaceId);
+      if (isBlankNode(edge.sourceNodeId)) {
+        const sourceHandle = getHandle(edge.sourceNodeId, edge.sourceHandle);
+
+        if (sourceHandle) {
+          // ----------------------------------------------
+          // Direct interface assigned to handle
+          // ----------------------------------------------
+
+          if (typeof sourceHandle.interfaceId === "number") {
+            interfaceIds.add(sourceHandle.interfaceId);
+          }
+
+          // ----------------------------------------------
+          // Explicit aggregation assigned to handle
+          // ----------------------------------------------
+
+          if (sourceHandle.aggregationId) {
+            const aggregationInterfaceIds = getAggregationInterfaceIds(
+              edge.sourceNodeId,
+              sourceHandle.aggregationId,
+            );
+
+            for (const interfaceId of aggregationInterfaceIds) {
+              interfaceIds.add(interfaceId);
+            }
+          }
+        }
+      }
+
+      // ==================================================
+      // BLANK TARGET HANDLE
+      // ==================================================
+
+      if (isBlankNode(edge.targetNodeId)) {
+        const targetHandle = getHandle(edge.targetNodeId, edge.targetHandle);
+
+        if (targetHandle) {
+          // ----------------------------------------------
+          // Direct interface assigned to handle
+          // ----------------------------------------------
+
+          if (typeof targetHandle.interfaceId === "number") {
+            interfaceIds.add(targetHandle.interfaceId);
+          }
+
+          // ----------------------------------------------
+          // Explicit aggregation assigned to handle
+          // ----------------------------------------------
+
+          if (targetHandle.aggregationId) {
+            const aggregationInterfaceIds = getAggregationInterfaceIds(
+              edge.targetNodeId,
+              targetHandle.aggregationId,
+            );
+
+            for (const interfaceId of aggregationInterfaceIds) {
+              interfaceIds.add(interfaceId);
+            }
           }
         }
       }
     }
 
+    // ==================================================
+    // AUTOMATIC AGGREGATION
+    //
+    // Collect the same interfaces that the updated
+    // calculateEdgeTraffic() will use.
+    // ==================================================
+
+    for (const edge of edges) {
+      if (!isBlankNode(edge.sourceNodeId)) {
+        continue;
+      }
+
+      const sourceHandle = getHandle(edge.sourceNodeId, edge.sourceHandle);
+
+      // ------------------------------------------------
+      // Explicit handle interface / aggregation already
+      // handled above.
+      // ------------------------------------------------
+
+      if (sourceHandle?.interfaceId != null) {
+        continue;
+      }
+
+      if (sourceHandle?.aggregationId) {
+        continue;
+      }
+
+      // ------------------------------------------------
+      // Find source node
+      // ------------------------------------------------
+
+      const sourceNode = nodeById.get(edge.sourceNodeId);
+
+      if (sourceNode?.aggregationMode !== "automatic") {
+        continue;
+      }
+
+      // ------------------------------------------------
+      // Incoming edges
+      // ------------------------------------------------
+
+      for (const incomingEdge of edges) {
+        if (incomingEdge.targetNodeId !== edge.sourceNodeId) {
+          continue;
+        }
+
+        // ----------------------------------------------
+        // Incoming normal node
+        // ----------------------------------------------
+
+        if (!isBlankNode(incomingEdge.sourceNodeId)) {
+          const incomingData = incomingEdge.data as TopologyEdgeData;
+
+          if (typeof incomingData.sourceInterfaceId === "number") {
+            interfaceIds.add(incomingData.sourceInterfaceId);
+          }
+
+          continue;
+        }
+
+        // ----------------------------------------------
+        // Incoming blank node
+        // ----------------------------------------------
+
+        const incomingHandle = getHandle(
+          incomingEdge.sourceNodeId,
+          incomingEdge.sourceHandle,
+        );
+
+        if (!incomingHandle) {
+          continue;
+        }
+
+        // ----------------------------------------------
+        // Incoming aggregation
+        // ----------------------------------------------
+
+        if (incomingHandle.aggregationId) {
+          const nestedInterfaceIds = getAggregationInterfaceIds(
+            incomingEdge.sourceNodeId,
+            incomingHandle.aggregationId,
+          );
+
+          for (const interfaceId of nestedInterfaceIds) {
+            interfaceIds.add(interfaceId);
+          }
+
+          continue;
+        }
+
+        // ----------------------------------------------
+        // Incoming direct interface
+        // ----------------------------------------------
+
+        if (typeof incomingHandle.interfaceId === "number") {
+          interfaceIds.add(incomingHandle.interfaceId);
+        }
+      }
+    }
+
+    // ==================================================
+    // ALSO RESOLVE ALL AGGREGATIONS
+    // ==================================================
+
+    for (const node of nodes) {
+      const nodeData = node.data as NodeData;
+
+      for (const aggregation of nodeData.aggregations ?? []) {
+        const aggregationInterfaceIds = getAggregationInterfaceIds(
+          node.nodeId,
+          aggregation.id,
+        );
+
+        for (const interfaceId of aggregationInterfaceIds) {
+          interfaceIds.add(interfaceId);
+        }
+      }
+    }
+
+    console.log(
+      "\n============================================================",
+    );
+
+    console.log("[INTERFACES] ALL INTERFACE IDs USED BY TOPOLOGY:");
+
+    console.log(Array.from(interfaceIds));
+
+    console.log(
+      "============================================================\n",
+    );
+
     // --------------------------------------------------
-    // 5. Load statistics
+    // 11. LOAD STATISTICS
     // --------------------------------------------------
 
-    const statistics = await prisma.interface_statistics.findMany({
-      where: {
-        interfaceId: {
-          in: Array.from(interfaceIds),
-        },
-      },
+    const interfaceIdList = Array.from(interfaceIds);
 
-      orderBy: [
-        {
-          interfaceId: "asc",
-        },
-        {
-          createdAt: "desc",
-        },
-      ],
+    const statistics =
+      interfaceIdList.length > 0
+        ? await prisma.interface_statistics.findMany({
+            where: {
+              interfaceId: {
+                in: interfaceIdList,
+              },
+            },
 
-      select: {
-        interfaceId: true,
-        inOctets: true,
-        outOctets: true,
-        createdAt: true,
-      },
-    });
+            orderBy: [
+              {
+                interfaceId: "asc",
+              },
+              {
+                createdAt: "desc",
+              },
+            ],
+
+            select: {
+              interfaceId: true,
+              inOctets: true,
+              outOctets: true,
+              createdAt: true,
+            },
+          })
+        : [];
 
     // --------------------------------------------------
-    // 6. Keep latest 2 statistics per interface
+    // 12. KEEP LATEST 2 SAMPLES
     // --------------------------------------------------
 
     const statisticsMap = new Map<number, InterfaceSample[]>();
@@ -220,6 +650,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
       if (!existing) {
         statisticsMap.set(sample.interfaceId, [sample]);
+
         continue;
       }
 
@@ -229,7 +660,11 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
 
     // --------------------------------------------------
-    // 7. Calculate interface traffic
+    // 13. CALCULATE INTERFACE RATE
+    // --------------------------------------------------
+
+    // --------------------------------------------------
+    // 13. CALCULATE INTERFACE RATE
     // --------------------------------------------------
 
     const getRate = (
@@ -243,6 +678,10 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
       const samples = statisticsMap.get(interfaceId);
 
       if (!samples || samples.length < 2) {
+        console.log(
+          `[TRAFFIC] Interface ${interfaceId}: insufficient statistics`,
+        );
+
         return 0;
       }
 
@@ -256,74 +695,315 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
         return 0;
       }
 
-      return direction === "in"
-        ? calculateRate(current.inOctets, previous.inOctets, elapsedSeconds)
-        : calculateRate(current.outOctets, previous.outOctets, elapsedSeconds);
+      const currentOctets =
+        direction === "in" ? current.inOctets : current.outOctets;
+
+      const previousOctets =
+        direction === "in" ? previous.inOctets : previous.outOctets;
+
+      if (currentOctets < previousOctets) {
+        console.warn(
+          `[TRAFFIC] Counter reset detected for interface ${interfaceId}`,
+        );
+
+        return 0;
+      }
+
+      return calculateRate(currentOctets, previousOctets, elapsedSeconds);
     };
 
     // --------------------------------------------------
-    // 8. Incoming edge map
+    // 14. GET SOURCE INTERFACE ID
     //
-    // targetNodeId -> edges entering that node
+    // Normal nodes use the edge's sourceInterfaceId.
     // --------------------------------------------------
 
-    const incomingEdges = new Map<string, typeof edges>();
+    const getSourceInterfaceId = (
+      edge: (typeof edges)[number],
+    ): number | undefined => {
+      const data = edge.data as TopologyEdgeData;
 
-    for (const edge of edges) {
-      const existing = incomingEdges.get(edge.targetNodeId);
-
-      if (existing) {
-        existing.push(edge);
-      } else {
-        incomingEdges.set(edge.targetNodeId, [edge]);
-      }
-    }
-
-    // --------------------------------------------------
-    // 9. Get aggregation assigned to a handle
-    // --------------------------------------------------
-
-    const getHandleAggregationId = (
-      nodeId: string,
-      handleId: string | null | undefined,
-    ): string | undefined => {
-      if (!handleId) {
-        return undefined;
-      }
-
-      const nodeData = nodeById.get(nodeId);
-
-      if (!nodeData) {
-        return undefined;
-      }
-
-      for (const handles of Object.values(nodeData.handles ?? {})) {
-        const handle = handles?.find((item) => item.id === handleId);
-
-        if (handle) {
-          return handle.aggregationId;
-        }
-      }
-
-      return undefined;
+      return typeof data.sourceInterfaceId === "number"
+        ? data.sourceInterfaceId
+        : undefined;
     };
 
     // --------------------------------------------------
-    // 10. Calculate traffic recursively
+    // 15. CALCULATE AGGREGATION TRAFFIC
     // --------------------------------------------------
 
-    const calculateEdgeTraffic = (
-      edge: (typeof edges)[number],
-      visited = new Set<string>(),
+    const calculateAggregationTraffic = (
+      nodeId: string,
+      aggregationId: string,
     ): {
       inbound: number;
       outbound: number;
       aggregatedInterfaces: AggregatedInterfaceTraffic[];
     } => {
-      const data = edge.data as TopologyEdgeData;
+      const aggregationInterfaceIds = getAggregationInterfaceIds(
+        nodeId,
+        aggregationId,
+      );
 
-      // Prevent cycles
-      if (visited.has(edge.edgeId)) {
+      let inbound = 0;
+      let outbound = 0;
+
+      const aggregatedInterfaces: AggregatedInterfaceTraffic[] = [];
+
+      console.log(
+        "\n============================================================",
+      );
+
+      console.log(`[AGGREGATION TRAFFIC] Calculating aggregation`);
+
+      console.log({
+        nodeId,
+        aggregationId,
+        interfaceIds: Array.from(aggregationInterfaceIds),
+      });
+
+      console.log(
+        "============================================================",
+      );
+
+      for (const interfaceId of aggregationInterfaceIds) {
+        const interfaceInbound = getRate(interfaceId, "in");
+
+        const interfaceOutbound = getRate(interfaceId, "out");
+
+        inbound += interfaceInbound;
+        outbound += interfaceOutbound;
+
+        // ------------------------------------------------
+        // Find interface metadata
+        // ------------------------------------------------
+
+        let interfaceName = "";
+
+        const aggregationRecord = aggregationById.get(aggregationId);
+
+        if (aggregationRecord) {
+          const directInterface =
+            aggregationRecord.aggregation.interfaces?.find(
+              (iface) => iface.interfaceId === interfaceId,
+            );
+
+          if (directInterface) {
+            interfaceName = directInterface.interfaceName ?? "";
+          }
+        }
+
+        // ------------------------------------------------
+        // Search nested aggregations if necessary
+        // ------------------------------------------------
+
+        if (!interfaceName) {
+          const visitedAggregations = new Set<string>();
+
+          const findInterfaceName = (currentAggregationId: string): string => {
+            if (visitedAggregations.has(currentAggregationId)) {
+              return "";
+            }
+
+            visitedAggregations.add(currentAggregationId);
+
+            const record = aggregationById.get(currentAggregationId);
+
+            if (!record) {
+              return "";
+            }
+
+            const direct = record.aggregation.interfaces?.find(
+              (iface) => iface.interfaceId === interfaceId,
+            );
+
+            if (direct) {
+              return direct.interfaceName ?? "";
+            }
+
+            for (const connected of record.aggregation.connectedAggregations ??
+              []) {
+              if (!connected?.id) {
+                continue;
+              }
+
+              const name = findInterfaceName(connected.id);
+
+              if (name) {
+                return name;
+              }
+            }
+
+            return "";
+          };
+
+          interfaceName = findInterfaceName(aggregationId);
+        }
+
+        aggregatedInterfaces.push({
+          interfaceId,
+          interfaceName,
+          inbound: interfaceInbound,
+          outbound: interfaceOutbound,
+        });
+
+        console.log(`[AGGREGATION TRAFFIC] Interface ${interfaceId}`, {
+          inbound: interfaceInbound,
+          outbound: interfaceOutbound,
+        });
+      }
+
+      console.log(`[AGGREGATION TRAFFIC] FINAL`, {
+        nodeId,
+        aggregationId,
+        interfaces: Array.from(aggregationInterfaceIds),
+        inbound,
+        outbound,
+      });
+
+      return {
+        inbound,
+        outbound,
+        aggregatedInterfaces,
+      };
+    };
+
+    // --------------------------------------------------
+    // 16. CALCULATE EDGE TRAFFIC
+    //
+    // THIS FOLLOWS YOUR UPDATED LOGIC EXACTLY.
+    // --------------------------------------------------
+
+    const calculateEdgeTraffic = (
+      edge: (typeof edges)[number],
+    ): {
+      inbound: number;
+      outbound: number;
+      aggregatedInterfaces: AggregatedInterfaceTraffic[];
+    } => {
+      const sourceIsBlank = isBlankNode(edge.sourceNodeId);
+
+      // ==========================================================
+      // NORMAL SOURCE NODE
+      // ==========================================================
+
+      if (!sourceIsBlank) {
+        const sourceInterfaceId = getSourceInterfaceId(edge);
+
+        const inbound = getRate(sourceInterfaceId, "in");
+
+        const outbound = getRate(sourceInterfaceId, "out");
+
+        const data = edge.data as TopologyEdgeData;
+
+        console.log(`[EDGE TRAFFIC] Normal node edge ${edge.edgeId}`, {
+          sourceInterfaceId,
+          inbound,
+          outbound,
+        });
+
+        return {
+          inbound,
+          outbound,
+
+          aggregatedInterfaces:
+            typeof sourceInterfaceId === "number"
+              ? [
+                  {
+                    interfaceId: sourceInterfaceId,
+                    interfaceName: data.sourceInterfaceName ?? "",
+                    inbound,
+                    outbound,
+                  },
+                ]
+              : [],
+        };
+      }
+
+      // ==========================================================
+      // BLANK SOURCE NODE
+      // ==========================================================
+
+      const sourceHandle = getHandle(edge.sourceNodeId, edge.sourceHandle);
+
+      // ==========================================================
+      // 1. EXPLICIT AGGREGATION
+      // ==========================================================
+
+      if (sourceHandle?.aggregationId) {
+        console.log(`\n[EDGE TRAFFIC] Edge ${edge.edgeId} uses aggregation`, {
+          nodeId: edge.sourceNodeId,
+          aggregationId: sourceHandle.aggregationId,
+        });
+
+        const traffic = calculateAggregationTraffic(
+          edge.sourceNodeId,
+          sourceHandle.aggregationId,
+        );
+
+        return {
+          inbound: traffic.inbound,
+          outbound: traffic.outbound,
+          aggregatedInterfaces: traffic.aggregatedInterfaces,
+        };
+      }
+
+      // ==========================================================
+      // 2. DIRECT SOURCE HANDLE INTERFACE
+      // ==========================================================
+
+      if (typeof sourceHandle?.interfaceId === "number") {
+        const interfaceId = sourceHandle.interfaceId;
+
+        const inbound = getRate(interfaceId, "in");
+
+        const outbound = getRate(interfaceId, "out");
+
+        console.log(`[EDGE TRAFFIC] Blank direct interface`, {
+          edgeId: edge.edgeId,
+          interfaceId,
+          interfaceName: sourceHandle.interfaceName,
+          inbound,
+          outbound,
+        });
+
+        return {
+          inbound,
+          outbound,
+
+          aggregatedInterfaces: [
+            {
+              interfaceId,
+              interfaceName: sourceHandle.interfaceName ?? "",
+              inbound,
+              outbound,
+            },
+          ],
+        };
+      }
+
+      // ==========================================================
+      // FIND SOURCE NODE
+      // ==========================================================
+
+      const sourceNode = nodes.find(
+        (node) => node.nodeId === edge.sourceNodeId,
+      );
+
+      const sourceNodeData = sourceNode?.data as {
+        aggregationMode?: string;
+      };
+
+      // ==========================================================
+      // 3. MANUAL NODE
+      // ==========================================================
+
+      if (sourceNodeData?.aggregationMode !== "automatic") {
+        console.log(`[EDGE TRAFFIC] Manual blank node - no aggregation`, {
+          edgeId: edge.edgeId,
+          nodeId: edge.sourceNodeId,
+        });
+
         return {
           inbound: 0,
           outbound: 0,
@@ -331,217 +1011,122 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
         };
       }
 
-      const nextVisited = new Set(visited);
-      nextVisited.add(edge.edgeId);
-
-      const sourceIsBlank = isBlankNode(edge.sourceNodeId);
-      const targetIsBlank = isBlankNode(edge.targetNodeId);
-
-      // ------------------------------------------------
-      // NORMAL → NORMAL
-      // ------------------------------------------------
-
-      if (!sourceIsBlank && !targetIsBlank) {
-        const inbound = getRate(data.sourceInterfaceId, "in");
-
-        const outbound = getRate(data.sourceInterfaceId, "out");
-
-        return {
-          inbound,
-          outbound,
-
-          aggregatedInterfaces:
-            typeof data.sourceInterfaceId === "number"
-              ? [
-                  {
-                    interfaceId: data.sourceInterfaceId,
-                    interfaceName: data.sourceInterfaceName ?? "",
-                    inbound,
-                    outbound,
-                  },
-                ]
-              : [],
-        };
-      }
-
-      // ------------------------------------------------
-      // NORMAL → BLANK
-      //
-      // This is an interface entering an aggregation
-      // node.
-      // ------------------------------------------------
-
-      if (!sourceIsBlank && targetIsBlank) {
-        const inbound = getRate(data.sourceInterfaceId, "in");
-
-        const outbound = getRate(data.sourceInterfaceId, "out");
-
-        return {
-          inbound,
-          outbound,
-
-          aggregatedInterfaces:
-            typeof data.sourceInterfaceId === "number"
-              ? [
-                  {
-                    interfaceId: data.sourceInterfaceId,
-                    interfaceName: data.sourceInterfaceName ?? "",
-                    inbound,
-                    outbound,
-                  },
-                ]
-              : [],
-        };
-      }
-
-      // ------------------------------------------------
-      // BLANK → NORMAL
+      // ==========================================================
+      // 4. AUTOMATIC AGGREGATION
       //
       // IMPORTANT:
       //
-      // Only interfaces belonging to the aggregation
-      // assigned to THIS source handle are included.
-      // ------------------------------------------------
+      // We collect interface IDs from incoming edges.
+      // We DO NOT recursively call calculateEdgeTraffic().
+      // ==========================================================
 
-      if (sourceIsBlank && !targetIsBlank) {
-        const sourceNode = nodeById.get(edge.sourceNodeId);
+      const automaticInterfaceIds = new Set<number>();
 
-        const aggregationMode = sourceNode?.aggregationMode;
+      for (const incomingEdge of edges) {
+        if (incomingEdge.targetNodeId !== edge.sourceNodeId) {
+          continue;
+        }
 
-        const aggregationId =
-          aggregationMode === "manual"
-            ? getHandleAggregationId(edge.sourceNodeId, edge.sourceHandle)
-            : undefined;
+        // --------------------------------------------------------
+        // Incoming normal node
+        // --------------------------------------------------------
 
-        const incoming = incomingEdges.get(edge.sourceNodeId) ?? [];
+        if (!isBlankNode(incomingEdge.sourceNodeId)) {
+          const incomingData = incomingEdge.data as TopologyEdgeData;
 
-        let inbound = 0;
-        let outbound = 0;
+          if (typeof incomingData.sourceInterfaceId === "number") {
+            automaticInterfaceIds.add(incomingData.sourceInterfaceId);
+          }
 
-        const aggregatedInterfaces: AggregatedInterfaceTraffic[] = [];
+          continue;
+        }
 
-        // ------------------------------------------------
-        // MANUAL AGGREGATION
-        // ------------------------------------------------
+        // --------------------------------------------------------
+        // Incoming blank node
+        // --------------------------------------------------------
 
-        if (aggregationMode === "manual" && aggregationId) {
-          const aggregation = sourceNode?.aggregations?.find(
-            (agg) => agg.id === aggregationId,
+        const incomingHandle = getHandle(
+          incomingEdge.sourceNodeId,
+          incomingEdge.sourceHandle,
+        );
+
+        if (!incomingHandle) {
+          continue;
+        }
+
+        // --------------------------------------------------------
+        // Incoming aggregation
+        // --------------------------------------------------------
+
+        if (incomingHandle.aggregationId) {
+          const nestedInterfaceIds = getAggregationInterfaceIds(
+            incomingEdge.sourceNodeId,
+            incomingHandle.aggregationId,
           );
 
-          if (aggregation) {
-            const allowedInterfaceIds = new Set<number>();
-
-            for (const iface of aggregation.interfaces) {
-              if (typeof iface.interfaceId === "number") {
-                allowedInterfaceIds.add(iface.interfaceId);
-              }
-            }
-
-            for (const incomingEdge of incoming) {
-              const incomingData = incomingEdge.data as TopologyEdgeData;
-
-              const interfaceId = incomingData.sourceInterfaceId;
-
-              if (typeof interfaceId !== "number") {
-                continue;
-              }
-
-              // ------------------------------------------
-              // THIS IS THE IMPORTANT FILTER
-              // ------------------------------------------
-
-              if (!allowedInterfaceIds.has(interfaceId)) {
-                continue;
-              }
-
-              const interfaceInbound = getRate(interfaceId, "in");
-
-              const interfaceOutbound = getRate(interfaceId, "out");
-
-              inbound += interfaceInbound;
-              outbound += interfaceOutbound;
-
-              const aggregationInterface = aggregation.interfaces.find(
-                (iface) => iface.interfaceId === interfaceId,
-              );
-
-              aggregatedInterfaces.push({
-                interfaceId,
-
-                interfaceName:
-                  aggregationInterface?.interfaceName ??
-                  incomingData.sourceInterfaceName ??
-                  "",
-
-                inbound: interfaceInbound,
-                outbound: interfaceOutbound,
-              });
-            }
+          for (const interfaceId of nestedInterfaceIds) {
+            automaticInterfaceIds.add(interfaceId);
           }
+
+          continue;
         }
 
-        // ------------------------------------------------
-        // AUTOMATIC AGGREGATION
-        // ------------------------------------------------
-        else {
-          for (const incomingEdge of incoming) {
-            const traffic = calculateEdgeTraffic(incomingEdge, nextVisited);
+        // --------------------------------------------------------
+        // Incoming direct interface
+        // --------------------------------------------------------
 
-            inbound += traffic.inbound;
-            outbound += traffic.outbound;
-
-            aggregatedInterfaces.push(...traffic.aggregatedInterfaces);
-          }
+        if (typeof incomingHandle.interfaceId === "number") {
+          automaticInterfaceIds.add(incomingHandle.interfaceId);
         }
-
-        return {
-          inbound,
-          outbound,
-          aggregatedInterfaces,
-        };
       }
 
-      // ------------------------------------------------
-      // BLANK → BLANK
-      //
-      // Pass aggregation traffic through another
-      // blank node.
-      // ------------------------------------------------
+      // ==========================================================
+      // CALCULATE AUTOMATIC TRAFFIC
+      // ==========================================================
 
-      if (sourceIsBlank && targetIsBlank) {
-        const incoming = incomingEdges.get(edge.sourceNodeId) ?? [];
+      let inbound = 0;
+      let outbound = 0;
 
-        let inbound = 0;
-        let outbound = 0;
+      const aggregatedInterfaces: AggregatedInterfaceTraffic[] = [];
 
-        const aggregatedInterfaces: AggregatedInterfaceTraffic[] = [];
+      console.log(`[EDGE TRAFFIC] Automatic aggregation`, {
+        edgeId: edge.edgeId,
+        nodeId: edge.sourceNodeId,
+        interfaceIds: Array.from(automaticInterfaceIds),
+      });
 
-        for (const incomingEdge of incoming) {
-          const traffic = calculateEdgeTraffic(incomingEdge, nextVisited);
+      for (const interfaceId of automaticInterfaceIds) {
+        const interfaceInbound = getRate(interfaceId, "in");
 
-          inbound += traffic.inbound;
-          outbound += traffic.outbound;
+        const interfaceOutbound = getRate(interfaceId, "out");
 
-          aggregatedInterfaces.push(...traffic.aggregatedInterfaces);
-        }
+        inbound += interfaceInbound;
+        outbound += interfaceOutbound;
 
-        return {
-          inbound,
-          outbound,
-          aggregatedInterfaces,
-        };
+        aggregatedInterfaces.push({
+          interfaceId,
+          interfaceName: "",
+          inbound: interfaceInbound,
+          outbound: interfaceOutbound,
+        });
       }
+
+      console.log(`[EDGE TRAFFIC] Automatic aggregation FINAL`, {
+        edgeId: edge.edgeId,
+        interfaceIds: Array.from(automaticInterfaceIds),
+        inbound,
+        outbound,
+      });
 
       return {
-        inbound: 0,
-        outbound: 0,
-        aggregatedInterfaces: [],
+        inbound,
+        outbound,
+        aggregatedInterfaces,
       };
     };
 
     // --------------------------------------------------
-    // 11. Calculate every topology edge
+    // 17. CALCULATE EVERY EDGE
     // --------------------------------------------------
 
     const traffic: Record<
@@ -558,7 +1143,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     }
 
     // --------------------------------------------------
-    // 12. Response
+    // 18. RESPONSE
     // --------------------------------------------------
 
     return NextResponse.json({

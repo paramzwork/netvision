@@ -35,9 +35,9 @@ export default async function DashboardLayout({
         <DnDProvider>
           <div className="flex w-full h-screen overflow-hidden bg-gray-100 font-sans">
             <SidebarComponent />
-            <div className="w-full flex flex-col">
+            <div className="w-full h-full min-h-0 flex flex-col">
               <HeaderComponent />
-              <div className="w-full p-6 overflow-y-auto">
+              <div className="w-full flex-1 min-h-0 p-6 overflow-y-auto">
                 <TooltipProvider delay={500}>{children}</TooltipProvider>
               </div>
             </div>
