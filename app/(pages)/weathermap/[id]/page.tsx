@@ -576,7 +576,7 @@ export default function ViewWeathermap() {
                   { color: "#bdbdbd", label: "0–1%" },
                   { color: "#f3f4f6", label: "1–10%" },
                   { color: "#8b00ff", label: "10–25%" },
-                  { color: "#6a00ff", label: "25–40%" },
+                  { color: "#2020ff", label: "25–40%" },
                   { color: "#00bfff", label: "40–55%" },
                   { color: "#ffff00", label: "55–70%" },
                   { color: "#ffa500", label: "70–85%" },
