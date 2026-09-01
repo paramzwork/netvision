@@ -1,7 +1,5 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
 export const runtime = "nodejs";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -53,75 +51,7 @@ export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const reqType = searchParams.get("type");
 
-  if (reqType === "sign-in") {
-    const targetUrl = "http://10.0.3.161/cacti/index.php";
-
-    // First GET request
-    const loginPage = await fetch(targetUrl);
-
-    const html = await loginPage.text();
-
-    const initialCookie = loginPage.headers.get("set-cookie");
-
-    const csrfInput = html.match(/<input[^>]*__csrf_magic[^>]*>/i)?.[0];
-
-    const csrf = csrfInput?.match(/value=["']([^"']+)["']/i)?.[1];
-
-    if (!csrf) {
-      return NextResponse.json(
-        { error: "Unable to retrieve Cacti CSRF token" },
-        { status: 500 },
-      );
-    }
-
-    const form = new URLSearchParams();
-
-    form.append("__csrf_magic", csrf);
-    form.append("action", "login");
-    form.append("login_username", "admin_nichole");
-    form.append("login_password", "Admin@101");
-    form.append("remember_me", "on");
-
-    const cactiRes = await fetch(targetUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Cookie: initialCookie ?? "",
-      },
-      body: form.toString(),
-      redirect: "manual",
-    });
-
-    const setCookie = cactiRes.headers.get("set-cookie");
-    const cactiMatches = [...(setCookie?.matchAll(/Cacti=([^;]+)/g) ?? [])];
-    const cactiCookie = cactiMatches.at(-1)?.[1];
-
-    const dir = path.join(process.cwd(), "public/data/logs/logins");
-    fs.mkdirSync(dir, { recursive: true });
-
-    const logsPath = path.join(dir, "logins.json");
-
-    let logs = [];
-
-    if (fs.existsSync(logsPath)) {
-      logs = JSON.parse(fs.readFileSync(logsPath, "utf8"));
-    }
-
-    fs.writeFileSync(logsPath, JSON.stringify(logs, null, 2));
-
-    const response = NextResponse.json({ message: "Sign in successful" });
-
-    if (cactiCookie) {
-      response.cookies.set("Cacti", cactiCookie, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-      });
-    }
-
-    return response;
-  } else if (reqType === "sign-out") {
+  if (reqType === "sign-out") {
     const cookieStore = await cookies();
     const kill = tripleEncode("kill");
     // Delete cookie
