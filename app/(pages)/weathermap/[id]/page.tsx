@@ -67,6 +67,11 @@ export default function ViewWeathermap() {
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   const [trafficEdgeId, setTrafficEdgeId] = useState<string | null>(null);
+  const [trafficPanelOffset, setTrafficPanelOffset] = useState({
+    x: 0,
+    y: 0,
+  });
+
   const trafficEdge = useMemo(() => {
     if (!trafficEdgeId) return null;
 
@@ -104,6 +109,11 @@ export default function ViewWeathermap() {
       event.preventDefault();
 
       const topologyEdge = edge as TopologyEdge;
+
+      setTrafficPanelOffset({
+        x: 0,
+        y: 0,
+      });
 
       setTrafficEdgeId(topologyEdge.id);
     },
@@ -432,10 +442,6 @@ export default function ViewWeathermap() {
       clearInterval(interval);
     };
   }, [topologyId, setEdges]);
-  const [trafficPanelOffset, setTrafficPanelOffset] = useState({
-    x: 0,
-    y: 0,
-  });
 
   const handleTrafficPanelMouseDown = (
     event: React.MouseEvent<HTMLDivElement>,

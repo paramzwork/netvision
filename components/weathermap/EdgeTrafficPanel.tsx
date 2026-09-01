@@ -103,80 +103,135 @@ const TrafficTooltip = ({
     return null;
   }
 
+  // ============================================================
+  // GROUP PAYLOAD BY INTERFACE
+  // ============================================================
+
+  const groupedInterfaces = new Map<
+    string,
+    {
+      inbound?: number;
+      outbound?: number;
+    }
+  >();
+
+  for (const entry of payload) {
+    const dataKey = String(entry.dataKey ?? "");
+
+    const isInbound = dataKey.startsWith("inbound_");
+
+    const interfaceId = dataKey
+      .replace("inbound_", "")
+      .replace("outbound_", "");
+
+    if (!groupedInterfaces.has(interfaceId)) {
+      groupedInterfaces.set(interfaceId, {});
+    }
+
+    const group = groupedInterfaces.get(interfaceId)!;
+
+    const value = Math.abs(Number(entry.value ?? 0));
+
+    if (isInbound) {
+      group.inbound = value;
+    } else {
+      group.outbound = value;
+    }
+  }
+
   return (
     <div className="min-w-20 rounded-lg border bg-white p-2 text-xs shadow-xl">
+      {/* ====================================================== */}
+      {/* HEADER */}
+      {/* ====================================================== */}
+
       <div className="mb-3 border-b pb-2">
         <div className="text-[8px] font-semibold">Traffic</div>
 
-        <div className="text-[8px] text-muted-foreground font-semibold">
+        <div className="text-[8px] font-semibold text-muted-foreground">
           {String(label ?? "")}
         </div>
       </div>
 
-      <div className="space-y-2">
-        {payload.map((entry, index) => {
-          const dataKey = String(entry.dataKey ?? "");
+      {/* ====================================================== */}
+      {/* INTERFACES */}
+      {/* ====================================================== */}
 
-          const isInbound = dataKey.startsWith("inbound_");
+      <div className="space-y-1">
+        {Array.from(groupedInterfaces.entries()).map(
+          ([interfaceId, traffic]) => {
+            const interfaceChart = chartData.find(
+              (item) => String(item.interfaceId) === interfaceId,
+            );
 
-          const interfaceId = dataKey
-            .replace("inbound_", "")
-            .replace("outbound_", "");
+            const interfaceIndex = chartData.findIndex(
+              (item) => String(item.interfaceId) === interfaceId,
+            );
 
-          const interfaceChart = chartData.find(
-            (item) => String(item.interfaceId) === interfaceId,
-          );
+            const interfaceColor =
+              chartData.length > 1
+                ? AGGREGATED_COLORS[interfaceIndex % AGGREGATED_COLORS.length]
+                : "#22c55e";
 
-          const rawValue = Number(entry.value ?? 0);
+            return (
+              <div
+                key={interfaceId}
+                className="flex flex-row items-center justify-between space-x-2"
+              >
+                {/* ================================================= */}
+                {/* INTERFACE NAME + SOURCE NODE */}
+                {/* ================================================= */}
 
-          const value = Math.abs(rawValue);
-          const interfaceIndex = chartData.findIndex(
-            (item) => String(item.interfaceId) === interfaceId,
-          );
+                <div className="flex min-w-0 items-center gap-1">
+                  <span
+                    className="h-1 w-1 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor: interfaceColor,
+                    }}
+                  />
 
-          const interfaceColor =
-            chartData.length > 1
-              ? AGGREGATED_COLORS[interfaceIndex % AGGREGATED_COLORS.length]
-              : "#22c55e";
-          return (
-            <div
-              key={`${dataKey}-${index}`}
-              className="flex items-center justify-between gap-4"
-            >
-              <div className="flex min-w-0 items-center gap-1">
-                <span
-                  className="h-1 w-1 shrink-0 rounded-full"
-                  style={{
-                    backgroundColor: interfaceColor,
-                  }}
-                />
+                  <div className="min-w-0">
+                    <div className="truncate text-[6px] font-medium">
+                      {interfaceChart?.interfaceName ?? "Interface"}
+                    </div>
 
-                <div className="min-w-0">
-                  <div className="text-[6px] truncate font-medium">
-                    {interfaceChart?.interfaceName ?? "Interface"}
+                    {interfaceChart?.sourceNodeName && (
+                      <div className="truncate text-[4px] font-semibold text-muted-foreground">
+                        {interfaceChart.sourceNodeName}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  {/* ================================================= */}
+                  {/* INBOUND */}
+                  {/* ================================================= */}
+                  <div className="flex items-center justify-end">
+                    <div className="text-end text-[6px] font-semibold text-green-500">
+                      {formatBandwidth(traffic.inbound ?? 0)}
+                      <div className="text-[4px] font-semibold text-muted-foreground">
+                        Inbound
+                      </div>
+                    </div>
                   </div>
 
-                  {interfaceChart?.sourceNodeName && (
-                    <div className="truncate text-[4px] text-muted-foreground font-semibold">
-                      {interfaceChart.sourceNodeName}
-                    </div>
-                  )}
-                </div>
-              </div>
+                  {/* ================================================= */}
+                  {/* OUTBOUND */}
+                  {/* ================================================= */}
 
-              <div
-                className={`text-end text-[6px] whitespace-nowrap font-semibold ${
-                  isInbound ? "text-green-500" : "text-blue-500"
-                }`}
-              >
-                {isInbound ? "↓" : "↑"} {formatBandwidth(Math.abs(value))}
-                <div className="text-[4px] text-muted-foreground">
-                  {isInbound ? "Inbound" : "Outbound"}
+                  <div className="flex items-center justify-end">
+                    <div className="text-end text-[6px] font-semibold text-blue-500">
+                      {formatBandwidth(traffic.outbound ?? 0)}
+                      <div className="text-[4px] font-semibold text-muted-foreground">
+                        Outbound
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          },
+        )}
       </div>
     </div>
   );
