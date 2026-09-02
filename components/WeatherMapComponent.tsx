@@ -957,6 +957,11 @@ export default function WeatherMapComponent() {
   }, [router, setDevice]);
 
   useEffect(() => {
+    const currentInterfaces = useInterfacesWeathermap.getState().interfaces;
+
+    if (currentInterfaces.length > 0) {
+      return;
+    }
     if (device.length === 0) return;
     if (hasFetchedInterfacesRef.current) return;
 

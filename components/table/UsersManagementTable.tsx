@@ -71,7 +71,7 @@ export default function UsersManagementTable({
   // 🔍 Filtered data
   const filteredData = useMemo(() => {
     return users.filter((item) => {
-      const matchSearch = `${item.roles?.role} ${item.id}`
+      const matchSearch = `${item.firstname}`
         .toLowerCase()
         .includes(search.toLowerCase());
 
@@ -160,7 +160,7 @@ export default function UsersManagementTable({
             limit={limit}
             setLimit={setLimit}
             setPage={setPage}
-            totalPages={filteredData.length}
+            totalPages={totalUsers}
           />
         </div>
       </div>
@@ -244,7 +244,7 @@ export default function UsersManagementTable({
             ) : (
               paginatedData.map((user, index) => (
                 <TableRow
-                  key={user.id}
+                  key={`${index}-${user.id}`}
                   className="group hover:bg-muted/30 transition-colors cursor-default"
                 >
                   <TableCell className="text-center text-muted-foreground text-xs">
