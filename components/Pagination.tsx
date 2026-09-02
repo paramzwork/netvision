@@ -1,7 +1,6 @@
 "use client";
 
 import { RoleTypes, UserTypes } from "@/lib/types";
-import { useState } from "react";
 import { Button } from "./ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -21,7 +20,6 @@ export default function Pagination({
   // data,
   total,
 }: Props) {
-  const [pageInput, setPageInput] = useState<string>(page.toString());
   const totalPages = Math.ceil(total / limit);
 
   const isFirstPage = page <= 1;
@@ -29,6 +27,7 @@ export default function Pagination({
 
   const start = total === 0 ? 0 : (page - 1) * limit + 1;
   const end = Math.min(page * limit, total);
+
   return (
     <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 w-full pt-2">
       {/* 📊 Info */}
@@ -48,21 +47,17 @@ export default function Pagination({
 
           <input
             type="text"
-            value={pageInput}
+            value={page}
             onFocus={(e) => e.target.select()}
             onChange={(e) => {
               const value = e.target.value;
 
               if (!/^\d*$/.test(value)) return;
-              if (value === "0") {
-                setPageInput("1");
-              } else if (Number(value) > totalPages) {
-                setPageInput(String(totalPages));
-              } else {
-                setPageInput(value);
-              }
 
-              if (value === "") return;
+              if (value === "") {
+                setPage(1);
+                return;
+              }
 
               let pageNumber = Number(value);
 
@@ -71,6 +66,8 @@ export default function Pagination({
               } else if (pageNumber > totalPages) {
                 pageNumber = totalPages;
               }
+
+              setPage(pageNumber);
               setPage(pageNumber);
             }}
             min={1}

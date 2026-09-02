@@ -2,6 +2,7 @@
 
 import Breadcrumbs from "@/components/Breadcrumbs";
 import OverviewWeathermapTable from "@/components/table/OverviewWeathermapTable";
+import { useData } from "@/context/DataContext";
 import { useTopologyStore } from "@/store/topology-store";
 import { Plus, Settings } from "lucide-react";
 import Link from "next/link";
@@ -14,6 +15,7 @@ export interface TopologyTypes {
   description: string;
 }
 export default function WeatherMapPage() {
+  const { currentUser } = useData();
   const { topologies, setTopologies } = useTopologyStore();
   const hasMountedRef = useRef<boolean>(false);
   const fetchWeathermap = useCallback(async () => {
@@ -55,20 +57,23 @@ export default function WeatherMapPage() {
           <div className="flex flex-row items-center gap-2">
             <h1 className="text-lg font-bold">Weathermap</h1>
           </div>
-          <div className="flex flex-row items-center gap-2">
-            <Link
-              href={"/create/weathermap"}
-              className="flex flex-row items-center gap-1 p-2 bg-[#3b3b3b] rounded-sm text-[#ebeaea] font-lexend text-xs transition-all hover:bg-[#525151] duration-200"
-            >
-              <Plus className="shrink-0 w-4 h-4" /> Create Weathermap
-            </Link>
-            <Link
-              href={"/settings/weathermap"}
-              className="flex flex-row items-center gap-1 p-2 bg-[#3b3b3b] rounded-sm text-[#ebeaea] font-lexend text-sm transition-all hover:bg-[#525151] duration-200"
-            >
-              <Settings className="shrink-0 w-4 h-4" />
-            </Link>
-          </div>
+          {(currentUser.roles.role.toLowerCase() === "admin" ||
+            currentUser.roles.role.toLowerCase() === "super admin") && (
+            <div className="flex flex-row items-center gap-2">
+              <Link
+                href={"/create/weathermap"}
+                className="flex flex-row items-center gap-1 p-2 bg-[#3b3b3b] rounded-sm text-[#ebeaea] font-lexend text-xs transition-all hover:bg-[#525151] duration-200"
+              >
+                <Plus className="shrink-0 w-4 h-4" /> Create Weathermap
+              </Link>
+              <Link
+                href={"/settings/weathermap"}
+                className="flex flex-row items-center gap-1 p-2 bg-[#3b3b3b] rounded-sm text-[#ebeaea] font-lexend text-sm transition-all hover:bg-[#525151] duration-200"
+              >
+                <Settings className="shrink-0 w-4 h-4" />
+              </Link>
+            </div>
+          )}
         </div>
       </div>
       <OverviewWeathermapTable

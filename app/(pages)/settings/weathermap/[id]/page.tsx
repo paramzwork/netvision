@@ -1335,9 +1335,11 @@ export default function ViewWeathermapSettings() {
             </div>
             <div className="absolute top-3 left-3 z-50">
               <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
-                <div className="mb-2 text-xs font-semibold">Traffic Load</div>
+                <div className="mb-1 text-[10px] font-semibold">
+                  Traffic Load
+                </div>
 
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {[
                     { color: "#ff0000", label: "0–0%" },
                     { color: "#bdbdbd", label: "0–1%" },
@@ -1357,7 +1359,7 @@ export default function ViewWeathermapSettings() {
                         }}
                       />
 
-                      <span className="text-[10px]">{item.label}</span>
+                      <span className="text-[8px]">{item.label}</span>
                     </div>
                   ))}
                 </div>

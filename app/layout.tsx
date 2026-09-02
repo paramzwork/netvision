@@ -32,7 +32,7 @@ export default function RootLayout({
         geist.variable,
       )}
     >
-      <body className="h-full font-lexend text-[#3b3b3b]">
+      <body className="h-full font-lexend text-[#3b3b3b] cursor-default">
         <main className="h-full min-h-0">{children}</main>
         <Toaster position="top-right" richColors />
       </body>
