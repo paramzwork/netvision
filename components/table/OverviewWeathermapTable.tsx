@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "../ConfirmationDialog";
+import { useData } from "@/context/DataContext";
 interface OverviewWeathermapTableProps {
   topologies: TopologyTypes[];
   setTopologies: React.Dispatch<React.SetStateAction<TopologyTypes[]>>;
@@ -23,6 +24,7 @@ export default function OverviewWeathermapTable({
   topologies,
   setTopologies,
 }: OverviewWeathermapTableProps) {
+  const { currentUser } = useData();
   const router = useRouter();
   // number
   const [selectedID, setSelectedID] = useState<number>();
@@ -74,7 +76,10 @@ export default function OverviewWeathermapTable({
             <TableRow className="bg-muted/40 hover:bg-muted/40 border-b">
               <TableHead className="font-medium">Name</TableHead>
               <TableHead className="font-medium">Description</TableHead>
-              <TableHead className="font-medium text-center">...</TableHead>
+              {(currentUser.roles.role.toLowerCase() === "admin" ||
+                currentUser.roles.role.toLowerCase() === "super admin") && (
+                <TableHead className="font-medium text-center">...</TableHead>
+              )}
             </TableRow>
           </TableHeader>
 
@@ -113,17 +118,20 @@ export default function OverviewWeathermapTable({
                       </div>
                     </TooltipComponent>
                   </TableCell>
-                  <TableCell className="text-center">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
-                      onClick={() => confirmDelete(dev.id)}
-                      title="Delete Weathermap"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
+                  {(currentUser.roles.role.toLowerCase() === "admin" ||
+                    currentUser.roles.role.toLowerCase() === "super admin") && (
+                    <TableCell className="text-center">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
+                        onClick={() => confirmDelete(dev.id)}
+                        title="Delete Weathermap"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

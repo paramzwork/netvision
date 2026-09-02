@@ -38,6 +38,7 @@ import { InterfaceTypes } from "@/lib/types";
 import ViewEdgeStartEnd from "@/components/ViewEdgeStartEnd";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useData } from "@/context/DataContext";
 
 const nodeTypes = {
   router: ViewRouterNode,
@@ -52,6 +53,8 @@ export const edgeTypes: EdgeTypes = {
   "start-end": ViewEdgeStartEnd,
 };
 export default function ViewWeathermap() {
+  const { currentUser } = useData();
+
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
   const topologyId = tripleDecode(raw);
@@ -529,9 +532,12 @@ export default function ViewWeathermap() {
         />
         <div className="flex flex-row items-center justify-between">
           <h1 className="text-lg font-bold">Weathermap</h1>
-          <Link href={`/settings/weathermap/${raw}`}>
-            <Settings className="shrink-0 w-5 h-5" />
-          </Link>
+          {(currentUser.roles.role.toLowerCase() === "admin" ||
+            currentUser.roles.role.toLowerCase() === "super admin") && (
+            <Link href={`/settings/weathermap/${raw}`}>
+              <Settings className="shrink-0 w-5 h-5" />
+            </Link>
+          )}
         </div>
       </div>
       <motion.div
@@ -574,9 +580,9 @@ export default function ViewWeathermap() {
           </div>
           <div className="absolute top-3 left-3 z-50">
             <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
-              <div className="mb-2 text-xs font-semibold">Traffic Load</div>
+              <div className="mb-1 text-[10px] font-semibold">Traffic Load</div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {[
                   { color: "#ff0000", label: "0–0%" },
                   { color: "#bdbdbd", label: "0–1%" },
@@ -596,7 +602,7 @@ export default function ViewWeathermap() {
                       }}
                     />
 
-                    <span className="text-[10px]">{item.label}</span>
+                    <span className="text-[8px]">{item.label}</span>
                   </div>
                 ))}
               </div>
