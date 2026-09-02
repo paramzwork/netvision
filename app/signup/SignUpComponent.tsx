@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff,  Lock, User, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Lock, User, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import Link from "next/link";
 
 export default function SignUpComponent() {
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -54,7 +53,7 @@ export default function SignUpComponent() {
     <div className="relative min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden px-4">
       {/* 
         ========================================
-        ANIMATION CSS (Grid, Orbs, Entrance)
+        ANIMATION CSS (Grid, Orbs, Entrance, TRAFFIC)
         ========================================
       */}
       <style>{`
@@ -80,35 +79,212 @@ export default function SignUpComponent() {
 
         /* 3. UI Entrance Animations */
         @keyframes fadeInUp {
-          from { 
-            opacity: 0; 
-            transform: translateY(24px); 
-            filter: blur(4px);
-          }
-          to { 
-            opacity: 1; 
-            transform: translateY(0); 
-            filter: blur(0);
-          }
+          from { opacity: 0; transform: translateY(24px); filter: blur(4px); }
+          to { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
         .animate-fade-in {
           opacity: 0;
           animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         
-        /* Stagger Delays */
         .delay-100 { animation-delay: 100ms; }
         .delay-200 { animation-delay: 200ms; }
         .delay-300 { animation-delay: 300ms; }
         .delay-400 { animation-delay: 400ms; }
         .delay-500 { animation-delay: 500ms; }
-        .delay-600 { animation-delay: 600ms; }
+
+        /* 4. TRAFFIC FLOW ANIMATIONS */
+        @keyframes traffic-flow {
+          0% { stroke-dashoffset: 1000; }
+          100% { stroke-dashoffset: 0; }
+        }
+        
+        /* Different speeds and dash lengths for realism */
+        .traffic-fast {
+          stroke-dasharray: 100 600; /* Long dash, very long gap */
+          animation: traffic-flow 3s linear infinite;
+        }
+        .traffic-medium {
+          stroke-dasharray: 60 400;
+          animation: traffic-flow 5s linear infinite reverse;
+        }
+        .traffic-slow {
+          stroke-dasharray: 40 300;
+          animation: traffic-flow 8s linear infinite;
+        }
+        .traffic-burst {
+          stroke-dasharray: 150 800;
+          animation: traffic-flow 2s linear infinite;
+        }
+
+        /* 5. Pulsing Intersections */
+        @keyframes hub-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.5); opacity: 1; }
+        }
+        .hub-node {
+          transform-origin: center;
+          animation: hub-pulse 3s ease-in-out infinite;
+        }
       `}</style>
 
       {/* 1. MOVING TECH GRID */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,#000_40%,transparent_100%)] pointer-events-none animate-grid" />
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,#000_40%,transparent_100%)] pointer-events-none animate-grid opacity-60" />
 
-      {/* 2. Floating glowing orbs (Blue, Indigo, Cyan) */}
+      {/* 2. FIBER OPTIC TRAFFIC FLOW SVG */}
+      <svg
+        className="absolute inset-0 h-full w-full pointer-events-none opacity-80"
+        viewBox="0 0 1920 1080"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          {/* Heavy glow filter for the traffic streaks */}
+          <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* --- BASE NETWORK TRACKS (Faint underlying wires) --- */}
+        <g stroke="rgba(255, 255, 255, 0.05)" strokeWidth="2" fill="none">
+          <path d="M -100 200 L 400 200 L 600 400 L 1200 400 L 1400 200 L 2000 200" />
+          <path d="M 200 -100 L 200 500 L 500 800 L 1500 800 L 1800 500 L 1800 -100" />
+          <path d="M -100 800 L 400 800 L 700 500 L 1300 500 L 1600 800 L 2000 800" />
+          <path d="M 600 400 L 700 500" />
+          <path d="M 1200 400 L 1300 500" />
+          <path d="M 500 800 L 400 800" />
+          <path d="M 1500 800 L 1600 800" />
+        </g>
+
+        {/* --- TRAFFIC STREAKS (Glowing moving lines) --- */}
+        <g filter="url(#neonGlow)" fill="none">
+          {/* Fast Cyan Burst */}
+          <path
+            d="M -100 200 L 400 200 L 600 400 L 1200 400 L 1400 200 L 2000 200"
+            stroke="#22d3ee"
+            strokeWidth="3"
+            className="traffic-burst"
+          />
+          {/* Medium Blue Flow */}
+          <path
+            d="M 200 -100 L 200 500 L 500 800 L 1500 800 L 1800 500 L 1800 -100"
+            stroke="#3b82f6"
+            strokeWidth="2.5"
+            className="traffic-medium"
+          />
+          {/* Slow Indigo Flow */}
+          <path
+            d="M -100 800 L 400 800 L 700 500 L 1300 500 L 1600 800 L 2000 800"
+            stroke="#6366f1"
+            strokeWidth="2"
+            className="traffic-slow"
+          />
+
+          {/* Secondary Fast Lane */}
+          <path
+            d="M 2000 800 L 1600 800 L 1300 500 L 700 500 L 400 800 L -100 800"
+            stroke="#38bdf8"
+            strokeWidth="2.5"
+            className="traffic-fast"
+          />
+        </g>
+
+        {/* --- INTERSECTION HUBS (Glowing Dots) --- */}
+        <g fill="#38bdf8" filter="url(#neonGlow)">
+          <circle
+            cx="400"
+            cy="200"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "0s" }}
+          />
+          <circle
+            cx="600"
+            cy="400"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "1s" }}
+          />
+          <circle
+            cx="1200"
+            cy="400"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "2s" }}
+          />
+          <circle
+            cx="1400"
+            cy="200"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "0.5s" }}
+          />
+
+          <circle
+            cx="200"
+            cy="500"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "1.5s" }}
+          />
+          <circle
+            cx="500"
+            cy="800"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "0.2s" }}
+          />
+          <circle
+            cx="1500"
+            cy="800"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "2.5s" }}
+          />
+          <circle
+            cx="1800"
+            cy="500"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "1.2s" }}
+          />
+
+          <circle
+            cx="400"
+            cy="800"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "0.8s" }}
+          />
+          <circle
+            cx="700"
+            cy="500"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "1.8s" }}
+          />
+          <circle
+            cx="1300"
+            cy="500"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "0.4s" }}
+          />
+          <circle
+            cx="1600"
+            cy="800"
+            r="4"
+            className="hub-node"
+            style={{ animationDelay: "2.2s" }}
+          />
+        </g>
+      </svg>
+
+      {/* 3. Ambient Background Orbs */}
       <div className="absolute top-[20%] left-[30%] w-75 h-75 sm:w-125 sm:h-125 bg-indigo-600/20 rounded-full blur-[100px] animate-float-1 mix-blend-screen pointer-events-none" />
       <div className="absolute bottom-[20%] right-[30%] w-75 h-75 sm:w-150 sm:h-150 bg-blue-600/20 rounded-full blur-[120px] animate-float-2 mix-blend-screen pointer-events-none" />
       <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-50 h-50 sm:w-100 sm:h-100 bg-cyan-500/20 rounded-full blur-[100px] animate-float-3 mix-blend-screen pointer-events-none" />
@@ -141,7 +317,10 @@ export default function SignUpComponent() {
           <form onSubmit={signUp} className="space-y-5">
             {/* Username */}
             <div className="space-y-2 animate-fade-in delay-300">
-              <Label htmlFor="username" className="text-sm font-medium text-zinc-300">
+              <Label
+                htmlFor="username"
+                className="text-sm font-medium text-zinc-300"
+              >
                 Username
               </Label>
               <div className="relative group">
@@ -161,7 +340,10 @@ export default function SignUpComponent() {
 
             {/* Password */}
             <div className="space-y-2 animate-fade-in delay-400">
-              <Label htmlFor="password" className="text-sm font-medium text-zinc-300">
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-zinc-300"
+              >
                 Password
               </Label>
               <div className="relative group">
@@ -197,18 +379,20 @@ export default function SignUpComponent() {
               type="submit"
               className="w-full h-12 mt-4 flex items-center justify-center gap-2 bg-white text-black font-semibold rounded-xl hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-70 disabled:pointer-events-none shadow-lg shadow-white/10 animate-fade-in delay-500"
             >
-              {loading && <Loader2 className="h-4 w-4 animate-spin text-black" />}
+              {loading && (
+                <Loader2 className="h-4 w-4 animate-spin text-black" />
+              )}
               {loading ? "Creating account..." : "Sign Up"}
             </button>
           </form>
 
           {/* Footer - Replaced commented out code with standard Sign In link */}
-          <p className="text-center text-sm mt-8 text-zinc-400 animate-fade-in delay-600">
+          {/* <p className="text-center text-sm mt-8 text-zinc-400 animate-fade-in delay-600">
             Already have an account?{" "}
             <Link href="/login" className="text-white hover:underline underline-offset-4 font-medium transition-colors">
               Sign In
             </Link>
-          </p>
+          </p> */}
         </CardContent>
       </Card>
     </div>
