@@ -71,7 +71,7 @@ export default function UsersManagementTable({
   // 🔍 Filtered data
   const filteredData = useMemo(() => {
     return users.filter((item) => {
-      const matchSearch = `${item.firstname}`
+      const matchSearch = `${item.firstname} ${item.roles.role}`
         .toLowerCase()
         .includes(search.toLowerCase());
 
@@ -107,7 +107,7 @@ export default function UsersManagementTable({
     );
   }, [filteredData, sortConfig]);
 
-  const paginatedData = sortedData;
+  const paginatedData = sortedData.filter((user) => user.roles.id !== 1);
   const handleDelete = async () => {
     if (!selectedID) return;
     const toastID = toast.loading("Deleting...");

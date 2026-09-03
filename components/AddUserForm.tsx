@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { tripleEncode } from "@/lib/utils";
+import { useData } from "@/context/DataContext";
 
 interface Props {
   roleData: RoleTypes[];
@@ -32,6 +33,8 @@ export default function AddUserForm({
   setData,
   setUsers,
 }: Props) {
+  const { currentUser } = useData();
+
   const [formData, setFormData] = useState({
     username: data?.username ?? "",
     firstname: data?.firstname ?? "",
@@ -118,7 +121,6 @@ export default function AddUserForm({
       });
     }
   };
-
   return (
     <div className="max-w-4xl mx-auto bg-background ">
       {/* Header */}
@@ -256,15 +258,26 @@ export default function AddUserForm({
                     : ""
                 }
               >
-                <SelectValue placeholder="Select a role" />
+                <SelectValue placeholder="Select a role">
+                  {roleData.find((role) => role.id === Number(formData.roleId))
+                    ?.role || "Select a role"}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">Select a role</SelectItem>
-                {roleData.map((role) => (
-                  <SelectItem key={role.id} value={String(role.id)}>
-                    {role.role}
-                  </SelectItem>
-                ))}
+                {roleData
+                  .filter(
+                    (role) =>
+                      !(
+                        currentUser.roles.role.toLowerCase() === "admin" &&
+                        role.id === 1
+                      ),
+                  )
+                  .map((role) => (
+                    <SelectItem key={role.id} value={String(role.id)}>
+                      {role.role}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             {errors.roleId && (
