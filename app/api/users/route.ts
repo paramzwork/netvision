@@ -18,8 +18,15 @@ export async function GET(req: NextRequest) {
     100,
   );
   const skip = (page - 1) * limit;
+  const where = {
+    role_id: {
+      not: 1,
+    },
+  };
+
   const [users, total] = await Promise.all([
     prisma.users.findMany({
+      where,
       skip,
       take: limit,
       select: {
@@ -39,7 +46,9 @@ export async function GET(req: NextRequest) {
       },
     }),
 
-    prisma.users.count(),
+    prisma.users.count({
+      where,
+    }),
   ]);
 
   return NextResponse.json({
