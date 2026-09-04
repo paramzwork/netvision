@@ -1,6 +1,8 @@
 "use client";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { ConfirmationDialog } from "@/components/ConfirmationDialog";
+import EntriesPerPage from "@/components/EntriesPerPage";
+import Pagination from "@/components/Pagination";
 import { TooltipComponent } from "@/components/TooltipComponent";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,24 +14,82 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useData } from "@/context/DataContext";
+import { DeviceInfoTypes } from "@/lib/types";
 import { tripleEncode } from "@/lib/utils";
 import { useDevicesStore } from "@/store/device-store";
-import { Settings, Trash2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
+  Search,
+  Settings,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function SystemDevices() {
   const { currentUser } = useData();
   const device = useDevicesStore((state) => state.device);
+  const totalDevices = useDevicesStore((state) => state.total);
+  const setTotalDevices = useDevicesStore((state) => state.setTotal);
   const setDevice = useDevicesStore((state) => state.setDevice);
 
   const [selectedID, setSelectedID] = useState<string>("");
   const [confirmDialog, setConfirmDialog] = useState<boolean>(false);
-  const router = useRouter();
   const hasFetchedDevicesRef = useRef<boolean>(false);
 
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<string>("10");
+  const [search, setSearch] = useState<string>("");
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: "asc" | "desc";
+  } | null>(null);
+  const router = useRouter();
+
+  // 🔍 Filtered data
+  const filteredData = useMemo(() => {
+    return device.filter((item) => {
+      const matchSearch = `${item.sysName} ${item.ipAddress}`
+        .toLowerCase()
+        .includes(search.toLowerCase().trim());
+
+      return matchSearch;
+    });
+  }, [device, search]);
+  const sortData = <T,>(
+    array: T[],
+    key: keyof T,
+    direction: "asc" | "desc",
+  ): T[] => {
+    return [...array].sort((a, b) => {
+      const aVal = a[key];
+      const bVal = b[key];
+
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return direction === "asc" ? aVal - bVal : bVal - aVal;
+      }
+
+      return direction === "asc"
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal));
+    });
+  };
+
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return filteredData;
+
+    return sortData(
+      filteredData,
+      sortConfig.key as keyof DeviceInfoTypes,
+      sortConfig.direction,
+    );
+  }, [filteredData, sortConfig]);
+
+  const paginatedData = sortedData;
   useEffect(() => {
     const currentDevices = useDevicesStore.getState().device;
 
@@ -58,8 +118,8 @@ export default function SystemDevices() {
         }
 
         setDevice(resData.data);
-
-        toast.success("Devices loaded successfully!");
+        setTotalDevices(resData.total);
+        toast.success(resData.message);
       } catch {
         hasFetchedDevicesRef.current = false;
         toast.error("Internal Server Error.", {
@@ -69,7 +129,8 @@ export default function SystemDevices() {
     };
 
     fetchDevice();
-  }, [router, setDevice]);
+  }, [router, setDevice, setTotalDevices]);
+
   const handleDelete = async () => {
     try {
       const toastID = toast.loading("Deleting device...");
@@ -120,11 +181,57 @@ export default function SystemDevices() {
           </Link>
         </div>
       </div>
-      <div className="rounded-sm border">
+      <div className="flex flex-col w-full bg-background border rounded-xl shadow-sm overflow-hidden">
+        {/* TOP TOOLBAR: Search & Filters */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 lg:p-5 border-b bg-muted/20">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search users..."
+              className="w-full h-10 pl-9 pr-4 text-xs bg-background border border-input rounded-md ring-offset-background  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+
+          <div className="w-full sm:w-auto">
+            <EntriesPerPage
+              limit={limit}
+              setLimit={setLimit}
+              setPage={setPage}
+            />
+          </div>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>System Name</TableHead>
+              <TableHead
+                className="font-medium cursor-pointer select-none group hidden md:table-cell"
+                onClick={() =>
+                  setSortConfig((prev) =>
+                    prev?.key === "sysName" && prev.direction === "asc"
+                      ? { key: "sysName", direction: "desc" }
+                      : { key: "sysName", direction: "asc" },
+                  )
+                }
+              >
+                <div className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                  System Name
+                  {sortConfig?.key === "sysName" ? (
+                    sortConfig.direction === "asc" ? (
+                      <ChevronUp className="w-4 h-4 text-primary" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-primary" />
+                    )
+                  ) : (
+                    <ArrowUpDown className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                  )}
+                </div>
+              </TableHead>
               <TableHead>IP Address</TableHead>
               <TableHead>Uptime</TableHead>
               <TableHead>Poll Time</TableHead>
@@ -140,7 +247,7 @@ export default function SystemDevices() {
           </TableHeader>
 
           <TableBody>
-            {device.length === 0 ? (
+            {paginatedData.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={5}
@@ -150,7 +257,7 @@ export default function SystemDevices() {
                 </TableCell>
               </TableRow>
             ) : (
-              device.map((device, index) => (
+              paginatedData.map((device, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">
                     {device.sysName}
@@ -207,6 +314,17 @@ export default function SystemDevices() {
             )}
           </TableBody>
         </Table>
+        {/* BOTTOM PAGINATION */}
+        <div className="p-4 border-t bg-muted/10">
+          <Pagination
+            page={page}
+            setPage={setPage}
+            limit={limit}
+            data={device}
+            filteredData={filteredData}
+            total={totalDevices}
+          />
+        </div>
       </div>
       <ConfirmationDialog
         confirmDialog={confirmDialog}

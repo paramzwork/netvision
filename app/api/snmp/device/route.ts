@@ -18,14 +18,18 @@ export async function GET(req: NextRequest) {
 
     // No id -> return all devices
     if (!id) {
-      const devices = await prisma.devices.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-
+      const [devices, total] = await Promise.all([
+        prisma.devices.findMany({
+          orderBy: {
+            createdAt: "desc",
+          },
+        }),
+        prisma.devices.count(),
+      ]);
+      console.log("TRIGGERED");
       return NextResponse.json({
         data: devices,
+        total,
         message: "Loaded devices successfully.",
       });
     }
@@ -96,17 +100,6 @@ export async function GET(req: NextRequest) {
         );
       }
       return NextResponse.json(device);
-    } else {
-      const devices = await prisma.devices.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-
-      return NextResponse.json({
-        data: devices,
-        message: "Loaded devices successfully.",
-      });
     }
   } catch (error) {
     console.error(error);

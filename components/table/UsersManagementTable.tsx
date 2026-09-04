@@ -60,9 +60,9 @@ export default function UsersManagementTable({
     setUserFormType("edit");
     setOpenDrawer(true);
   };
-  const [search, setSearch] = useState<string>("");
   const [confirmDialog, setConfirmDialog] = useState<boolean>(false);
   const [selectedID, setSelectedID] = useState<number>();
+  const [search, setSearch] = useState<string>("");
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: "asc" | "desc";
