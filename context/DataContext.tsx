@@ -1,6 +1,7 @@
 "use client";
 import { DeviceInfoTypes, UserTypes } from "@/lib/types";
 import { tripleEncode } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import React, {
   createContext,
   useCallback,
@@ -15,6 +16,7 @@ interface DataContextType {
   isLoading: boolean;
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
   activeDevices: DeviceInfoTypes[];
+  setDevices: React.Dispatch<React.SetStateAction<DeviceInfoTypes[]>>;
   currentUser: UserTypes;
 }
 interface DataProviderProps {
@@ -27,6 +29,7 @@ export function DataProvider({ children, currentUser }: DataProviderProps) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeDevices, setDevices] = useState<DeviceInfoTypes[]>([]);
   const hasMountedRef = useRef<boolean>(false);
+  const router = useRouter();
 
   const fetchDevices = useCallback(async () => {
     try {
@@ -34,6 +37,10 @@ export function DataProvider({ children, currentUser }: DataProviderProps) {
       const res = await fetch(`/api/snmp/device?id=${val}`, { method: "GET" });
 
       const resData = await res.json();
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
       if (!res.ok) {
         toast.error(resData.message);
         return;
@@ -44,7 +51,7 @@ export function DataProvider({ children, currentUser }: DataProviderProps) {
         description: "Server error please contact admin.",
       });
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (hasMountedRef.current) return;
@@ -55,9 +62,10 @@ export function DataProvider({ children, currentUser }: DataProviderProps) {
     <DataContext.Provider
       value={{
         isLoading,
-        setIsLoading,
         activeDevices,
         currentUser,
+        setIsLoading,
+        setDevices,
       }}
     >
       {children}

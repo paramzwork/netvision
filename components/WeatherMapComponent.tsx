@@ -202,6 +202,7 @@ export default function WeatherMapComponent() {
 
   const router = useRouter();
   const hasFetchedInterfacesRef = useRef<boolean>(false);
+  const hasFetchedDevicesRef = useRef<boolean>(false);
   const [topologyName, setTopologyName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [selectedDevice, setSelectedDevice] = useState<string>("");
@@ -924,7 +925,9 @@ export default function WeatherMapComponent() {
     if (currentDevices.length > 0) {
       return;
     }
+    if (hasFetchedDevicesRef.current) return;
 
+    hasFetchedDevicesRef.current = true;
     const fetchDevice = async () => {
       try {
         const res = await fetch("/api/snmp/device", {
@@ -947,6 +950,7 @@ export default function WeatherMapComponent() {
 
         toast.success("Devices loaded successfully!");
       } catch {
+        hasFetchedDevicesRef.current = false;
         toast.error("Internal Server Error.", {
           description: "Server error please contact admin.",
         });
@@ -957,6 +961,11 @@ export default function WeatherMapComponent() {
   }, [router, setDevice]);
 
   useEffect(() => {
+    const currentInterfaces = useInterfacesWeathermap.getState().interfaces;
+
+    if (currentInterfaces.length > 0) {
+      return;
+    }
     if (device.length === 0) return;
     if (hasFetchedInterfacesRef.current) return;
 
@@ -973,7 +982,13 @@ export default function WeatherMapComponent() {
             const resData = await res.json();
 
             if (!res.ok) {
-              throw new Error(resData.message || "Failed fetching interface");
+              if (res.status === 401) {
+                router.replace("/");
+                return;
+              }
+
+              toast.error(resData.message);
+              return;
             }
 
             return resData.interfaces.map((iface: InterfaceTypes) => ({
@@ -997,7 +1012,7 @@ export default function WeatherMapComponent() {
     };
 
     fetchInterfaces();
-  }, [device, setInterfaces]);
+  }, [device, router, setInterfaces]);
 
   const saveTopology = useCallback(async () => {
     const name = topologyName.trim();
@@ -1046,7 +1061,6 @@ export default function WeatherMapComponent() {
 
       const response = await fetch("/api/topology", {
         method: "POST",
-
         headers: {
           "Content-Type": "application/json",
         },
@@ -1057,6 +1071,11 @@ export default function WeatherMapComponent() {
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 401) {
+          router.replace("/");
+          return;
+        }
+
         toast.error(result.message);
         return;
       }

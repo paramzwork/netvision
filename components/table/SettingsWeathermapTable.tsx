@@ -314,13 +314,17 @@ export default function SettingsWeathermapTable() {
                       {item.name}
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <TooltipComponent value={item.description}>
-                        <div className="max-w-md truncate cursor-pointer text-sm">
-                          {item.description.length > 20
-                            ? `${item.description.slice(0, 20)}...`
-                            : item.description}
-                        </div>
-                      </TooltipComponent>
+                      {item.description.length > 20 ? (
+                        <TooltipComponent value={item.description}>
+                          <div className="max-w-md truncate cursor-pointer text-sm">
+                            {item.description.length > 20
+                              ? `${item.description.slice(0, 20)}...`
+                              : item.description}
+                          </div>
+                        </TooltipComponent>
+                      ) : (
+                        item.description
+                      )}
                     </TableCell>
                     <TableCell className="text-sm">
                       {item.speedMbps.toLocaleString()}{" "}

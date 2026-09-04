@@ -2,7 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createUserLog } from "@/lib/logs";
+export function getRequestInfo(req: NextRequest) {
+  return {
+    ipAddress:
+      req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+      req.headers.get("x-real-ip") ??
+      null,
 
+    userAgent: req.headers.get("user-agent") ?? null,
+  };
+}
 export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser();
 
@@ -18,8 +28,18 @@ export async function GET(req: NextRequest) {
     100,
   );
   const skip = (page - 1) * limit;
+  const where =
+    currentUser.roles.id === 1
+      ? {}
+      : {
+          role_id: {
+            not: 1,
+          },
+        };
+  console.log(where);
   const [users, total] = await Promise.all([
     prisma.users.findMany({
+      where,
       skip,
       take: limit,
       select: {
@@ -39,7 +59,9 @@ export async function GET(req: NextRequest) {
       },
     }),
 
-    prisma.users.count(),
+    prisma.users.count({
+      where,
+    }),
   ]);
 
   return NextResponse.json({
@@ -108,6 +130,15 @@ export async function POST(req: NextRequest) {
         updatedAt: true,
         roles: true,
       },
+    });
+    const { ipAddress, userAgent } = getRequestInfo(req);
+
+    await createUserLog({
+      userId: currentUser.id,
+      action: "CREATE_USER",
+      description: `Created user "${user.username}"`,
+      ipAddress,
+      userAgent,
     });
     return NextResponse.json(
       {

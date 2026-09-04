@@ -38,6 +38,7 @@ import { InterfaceTypes } from "@/lib/types";
 import ViewEdgeStartEnd from "@/components/ViewEdgeStartEnd";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useData } from "@/context/DataContext";
 
 const nodeTypes = {
   router: ViewRouterNode,
@@ -52,6 +53,8 @@ export const edgeTypes: EdgeTypes = {
   "start-end": ViewEdgeStartEnd,
 };
 export default function ViewWeathermap() {
+  const { currentUser } = useData();
+
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
   const topologyId = tripleDecode(raw);
@@ -67,6 +70,11 @@ export default function ViewWeathermap() {
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   const [trafficEdgeId, setTrafficEdgeId] = useState<string | null>(null);
+  const [trafficPanelOffset, setTrafficPanelOffset] = useState({
+    x: 0,
+    y: 0,
+  });
+
   const trafficEdge = useMemo(() => {
     if (!trafficEdgeId) return null;
 
@@ -105,6 +113,11 @@ export default function ViewWeathermap() {
 
       const topologyEdge = edge as TopologyEdge;
 
+      setTrafficPanelOffset({
+        x: 0,
+        y: 0,
+      });
+
       setTrafficEdgeId(topologyEdge.id);
     },
     [],
@@ -135,7 +148,12 @@ export default function ViewWeathermap() {
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.message ?? "Failed to load topology");
+          if (response.status === 401) {
+            router.replace("/");
+            return;
+          }
+          toast.error(result.message);
+          return;
         }
 
         // ---------------------------------------------
@@ -238,7 +256,7 @@ export default function ViewWeathermap() {
         console.error("LOAD TOPOLOGY ERROR:", error);
       }
     },
-    [setNodes, setEdges],
+    [setNodes, setEdges, router],
   );
   const fetchDevice = useCallback(async () => {
     if (device.length > 0) {
@@ -282,7 +300,12 @@ export default function ViewWeathermap() {
           const resData = await res.json();
 
           if (!res.ok) {
-            throw new Error(resData.message || "Failed fetching interface");
+            if (res.status === 401) {
+              router.replace("/");
+              return;
+            }
+            toast.error(resData.message);
+            return;
           }
 
           return resData.interfaces.map((iface: InterfaceTypes) => ({
@@ -302,7 +325,7 @@ export default function ViewWeathermap() {
 
       toast.error("Failed loading interfaces");
     }
-  }, [device, interfaces, setInterfaces]);
+  }, [device, interfaces, router, setInterfaces]);
   useEffect(() => {
     if (hasMountedRef.current) return;
     fetchDevice();
@@ -331,12 +354,15 @@ export default function ViewWeathermap() {
           cache: "no-store",
         });
 
+        const result = await res.json();
         if (!res.ok) {
-          console.error("Failed to fetch topology traffic");
+          if (res.status === 401) {
+            router.replace("/");
+            return;
+          }
+          toast.error(result.message);
           return;
         }
-
-        const result = await res.json();
 
         if (cancelled) return;
 
@@ -431,11 +457,7 @@ export default function ViewWeathermap() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [topologyId, setEdges]);
-  const [trafficPanelOffset, setTrafficPanelOffset] = useState({
-    x: 0,
-    y: 0,
-  });
+  }, [topologyId, setEdges, router]);
 
   const handleTrafficPanelMouseDown = (
     event: React.MouseEvent<HTMLDivElement>,
@@ -523,9 +545,12 @@ export default function ViewWeathermap() {
         />
         <div className="flex flex-row items-center justify-between">
           <h1 className="text-lg font-bold">Weathermap</h1>
-          <Link href={`/settings/weathermap/${raw}`}>
-            <Settings className="shrink-0 w-5 h-5" />
-          </Link>
+          {(currentUser.roles.role.toLowerCase() === "admin" ||
+            currentUser.roles.role.toLowerCase() === "super admin") && (
+            <Link href={`/settings/weathermap/${raw}`}>
+              <Settings className="shrink-0 w-5 h-5" />
+            </Link>
+          )}
         </div>
       </div>
       <motion.div
@@ -568,15 +593,15 @@ export default function ViewWeathermap() {
           </div>
           <div className="absolute top-3 left-3 z-50">
             <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
-              <div className="mb-2 text-xs font-semibold">Traffic Load</div>
+              <div className="mb-1 text-[10px] font-semibold">Traffic Load</div>
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {[
                   { color: "#ff0000", label: "0–0%" },
                   { color: "#bdbdbd", label: "0–1%" },
                   { color: "#f3f4f6", label: "1–10%" },
                   { color: "#8b00ff", label: "10–25%" },
-                  { color: "#6a00ff", label: "25–40%" },
+                  { color: "#2020ff", label: "25–40%" },
                   { color: "#00bfff", label: "40–55%" },
                   { color: "#ffff00", label: "55–70%" },
                   { color: "#ffa500", label: "70–85%" },
@@ -590,7 +615,7 @@ export default function ViewWeathermap() {
                       }}
                     />
 
-                    <span className="text-[10px]">{item.label}</span>
+                    <span className="text-[8px]">{item.label}</span>
                   </div>
                 ))}
               </div>

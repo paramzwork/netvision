@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock, Loader2, User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,85 +51,283 @@ export default function SignInComponent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#2b2a2a]">
-      {/* <DotLottieReact src="/images/network.lottie" loop autoplay className="w-[1600px] h-[930px]"/> */}
-      <Card className="w-full max-w-md rounded-sm! transition-all duration-300 bg-[#5c5c5c] backdrop-blur-2xl">
-        <CardHeader className="w-full space-y-2 text-center">
-          <div className="flex flex-col justify-center items-center gap-2">
-            <div className="relative h-35 w-40">
+    <div className="relative min-h-screen flex items-center justify-center bg-[#050505] overflow-hidden px-4">
+      {/* 
+        ========================================
+        ANIMATION CSS (Grid, Orbs, Entrance, TRAFFIC)
+        ========================================
+      */}
+      <style>{`
+        /* 1. Moving Background Grid */
+        @keyframes pan-grid {
+          0% { background-position: 0px 0px; }
+          100% { background-position: 48px 48px; }
+        }
+        .animate-grid {
+          animation: pan-grid 4s linear infinite;
+        }
+
+        /* 2. Background Floating Orbs */
+        @keyframes float {
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-float-1 { animation: float 15s infinite ease-in-out; }
+        .animate-float-2 { animation: float 18s infinite ease-in-out; animation-delay: -5s; }
+        .animate-float-3 { animation: float 20s infinite ease-in-out; animation-delay: -10s; }
+
+        /* 3. UI Entrance Animations */
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(24px); filter: blur(4px); }
+          to { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+        .animate-fade-in {
+          opacity: 0;
+          animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+        .delay-500 { animation-delay: 500ms; }
+
+        /* 
+          4. SEAMLESS TRAFFIC FLOW ANIMATIONS 
+          The offset must EXACTLY match the sum of stroke-dasharray (Dash + Gap)
+        */
+        
+        /* Burst: 150 dash + 800 gap = 950 total */
+        @keyframes flow-burst {
+          to { stroke-dashoffset: -950; }
+        }
+        .traffic-burst {
+          stroke-dasharray: 150 800;
+          animation: flow-burst 2.5s linear infinite;
+        }
+
+        /* Fast: 100 dash + 600 gap = 700 total */
+        @keyframes flow-fast {
+          to { stroke-dashoffset: -700; }
+        }
+        .traffic-fast {
+          stroke-dasharray: 100 600;
+          animation: flow-fast 3s linear infinite;
+        }
+
+        /* Medium (Reverse): 60 dash + 400 gap = 460 total */
+        /* Positive offset moves the line backwards */
+        @keyframes flow-medium {
+          to { stroke-dashoffset: 460; } 
+        }
+        .traffic-medium {
+          stroke-dasharray: 60 400;
+          animation: flow-medium 4s linear infinite;
+        }
+
+        /* Slow: 40 dash + 300 gap = 340 total */
+        @keyframes flow-slow {
+          to { stroke-dashoffset: -340; }
+        }
+        .traffic-slow {
+          stroke-dasharray: 40 300;
+          animation: flow-slow 6s linear infinite;
+        }
+
+        /* 5. Pulsing Intersections */
+        @keyframes hub-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.5; }
+          50% { transform: scale(1.5); opacity: 1; }
+        }
+        .hub-node {
+          transform-origin: center;
+          animation: hub-pulse 3s ease-in-out infinite;
+        }
+      `}</style>
+
+      {/* 1. MOVING TECH GRID */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-size-[24px_24px] mask-[radial-gradient(ellipse_80%_50%_at_50%_50%,#000_40%,transparent_100%)] pointer-events-none animate-grid opacity-60" />
+
+      {/* 2. FIBER OPTIC TRAFFIC FLOW SVG */}
+      <svg
+        className="absolute inset-0 h-full w-full pointer-events-none opacity-80"
+        viewBox="0 0 1920 1080"
+        preserveAspectRatio="xMidYMid slice"
+      >
+        <defs>
+          <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {/* --- BASE NETWORK TRACKS (Faint underlying wires) --- */}
+        <g stroke="rgba(255, 255, 255, 0.05)" strokeWidth="2" fill="none">
+          <path d="M -100 200 L 400 200 L 600 400 L 1200 400 L 1400 200 L 2000 200" />
+          <path d="M 200 -100 L 200 500 L 500 800 L 1500 800 L 1800 500 L 1800 -100" />
+          <path d="M -100 800 L 400 800 L 700 500 L 1300 500 L 1600 800 L 2000 800" />
+          <path d="M 600 400 L 700 500" />
+          <path d="M 1200 400 L 1300 500" />
+          <path d="M 500 800 L 400 800" />
+          <path d="M 1500 800 L 1600 800" />
+        </g>
+
+        {/* --- TRAFFIC STREAKS (Glowing moving lines) --- */}
+        <g filter="url(#neonGlow)" fill="none">
+          {/* Fast Cyan Burst */}
+          <path
+            d="M -100 200 L 400 200 L 600 400 L 1200 400 L 1400 200 L 2000 200"
+            stroke="#22d3ee"
+            strokeWidth="3"
+            className="traffic-burst"
+          />
+          {/* Medium Blue Flow (Reverse) */}
+          <path
+            d="M 200 -100 L 200 500 L 500 800 L 1500 800 L 1800 500 L 1800 -100"
+            stroke="#3b82f6"
+            strokeWidth="2.5"
+            className="traffic-medium"
+          />
+          {/* Slow Indigo Flow */}
+          <path
+            d="M -100 800 L 400 800 L 700 500 L 1300 500 L 1600 800 L 2000 800"
+            stroke="#6366f1"
+            strokeWidth="2"
+            className="traffic-slow"
+          />
+          {/* Secondary Fast Lane */}
+          <path
+            d="M 2000 800 L 1600 800 L 1300 500 L 700 500 L 400 800 L -100 800"
+            stroke="#38bdf8"
+            strokeWidth="2.5"
+            className="traffic-fast"
+          />
+        </g>
+
+        {/* --- INTERSECTION HUBS (Glowing Dots) --- */}
+        <g fill="#38bdf8" filter="url(#neonGlow)">
+          <circle cx="400" cy="200" r="4" className="hub-node" style={{ animationDelay: "0s" }} />
+          <circle cx="600" cy="400" r="4" className="hub-node" style={{ animationDelay: "1s" }} />
+          <circle cx="1200" cy="400" r="4" className="hub-node" style={{ animationDelay: "2s" }} />
+          <circle cx="1400" cy="200" r="4" className="hub-node" style={{ animationDelay: "0.5s" }} />
+          
+          <circle cx="200" cy="500" r="4" className="hub-node" style={{ animationDelay: "1.5s" }} />
+          <circle cx="500" cy="800" r="4" className="hub-node" style={{ animationDelay: "0.2s" }} />
+          <circle cx="1500" cy="800" r="4" className="hub-node" style={{ animationDelay: "2.5s" }} />
+          <circle cx="1800" cy="500" r="4" className="hub-node" style={{ animationDelay: "1.2s" }} />
+          
+          <circle cx="400" cy="800" r="4" className="hub-node" style={{ animationDelay: "0.8s" }} />
+          <circle cx="700" cy="500" r="4" className="hub-node" style={{ animationDelay: "1.8s" }} />
+          <circle cx="1300" cy="500" r="4" className="hub-node" style={{ animationDelay: "0.4s" }} />
+          <circle cx="1600" cy="800" r="4" className="hub-node" style={{ animationDelay: "2.2s" }} />
+        </g>
+      </svg>
+
+      {/* 3. Ambient Background Orbs */}
+      <div className="absolute top-[20%] left-[30%] w-75 h-75 sm:w-125 sm:h-125 bg-indigo-600/20 rounded-full blur-[100px] animate-float-1 mix-blend-screen pointer-events-none" />
+      <div className="absolute bottom-[20%] right-[30%] w-75 h-75 sm:w-150 sm:h-150 bg-blue-600/20 rounded-full blur-[120px] animate-float-2 mix-blend-screen pointer-events-none" />
+      <div className="absolute top-[40%] left-[50%] -translate-x-1/2 w-50 h-50 sm:w-100 sm:h-100 bg-cyan-500/20 rounded-full blur-[100px] animate-float-3 mix-blend-screen pointer-events-none" />
+
+      {/* 
+        ========================================
+        LOGIN CARD SECTION
+        ========================================
+      */}
+      <Card className="w-full max-w-105 border-white/10 bg-black/40 backdrop-blur-2xl shadow-2xl rounded-2xl z-10 animate-fade-in">
+        <CardHeader className="pt-10 pb-6 space-y-4 text-center">
+          <div className="flex justify-center items-center animate-fade-in delay-100">
+            <div className="relative h-28 w-36 drop-shadow-2xl hover:scale-105 transition-transform duration-500">
               <Image
                 src="/images/nv-logo.png"
                 alt="NetVision Logo"
                 fill
                 priority
-                sizes="500px"
+                sizes="(max-width: 768px) 100vw, 300px"
                 className="object-contain"
               />
             </div>
           </div>
-          <CardTitle className="text-2xl font-lexend! -mt-10 text-white">
-            Sign In
+          <CardTitle className="text-2xl font-semibold tracking-tight text-white font-lexend animate-fade-in delay-200">
+            Welcome Back
           </CardTitle>
-          {/* <CardDescription>
-            Enter your credentials to access the dashboard
-          </CardDescription> */}
         </CardHeader>
 
-        <CardContent className="pb-5">
-          <form onSubmit={handleLogin} className="space-y-4 p-5">
+        <CardContent className="px-8 pb-10">
+          <form onSubmit={handleLogin} className="space-y-5">
             {/* Username */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-white">
+            <div className="space-y-2 animate-fade-in delay-300">
+              <Label
+                htmlFor="username"
+                className="text-sm font-medium text-zinc-300"
+              >
                 Username
               </Label>
-              <div className="relative text-white">
-                <Mail className="absolute left-3 top-3.25 h-4 w-4 text-white" />
+              <div className="relative group">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within:text-white transition-colors" />
                 <Input
-                  id="text"
+                  id="username"
                   type="text"
                   required
-                  className="pl-9 h-11! focus-within:border! focus-within:border-white! focus-within:shadow-white focus-within:shadow-sm! rounded-sm"
+                  autoComplete="off"
+                  placeholder="Enter your username"
+                  className="h-12 pl-10 bg-white/5 border-white/10 text-white placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-white/30 focus-visible:border-white/50 rounded-xl transition-all"
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-white">
+            <div className="space-y-2 animate-fade-in delay-400">
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-zinc-300"
+              >
                 Password
               </Label>
-              <div className="relative text-white">
-                <Lock className="absolute left-3 top-3.25 h-4 w-4 text-white" />
+              <div className="relative group">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within:text-white transition-colors" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="pl-9 h-11! focus-within:border! focus-within:border-white! focus-within:shadow-white focus-within:shadow-sm! rounded-sm"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  className="h-12 pl-10 pr-12 bg-white/5 border-white/10 text-white placeholder:text-zinc-600 focus-visible:ring-1 focus-visible:ring-white/30 focus-visible:border-white/50 rounded-xl transition-all"
+                  onChange={(e) => setPassword(e.target.value)}
                 />
                 <button
                   type="button"
+                  tabIndex={-1}
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors outline-none focus-visible:text-white"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-white" />
+                    <EyeOff className="h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 text-white w-4" />
+                    <Eye className="h-4 w-4" />
                   )}
                 </button>
               </div>
             </div>
 
-            {/* Remember + Forgot
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="accent-primary" />
-                Remember me
+            {/* Remember + Forgot */}
+            {/* <div className="flex items-center justify-between text-sm py-1 animate-fade-in delay-500">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-white/20 bg-black/20 accent-white text-black focus:ring-white/30 focus:ring-offset-0 transition-all cursor-pointer"
+                />
+                <span className="text-zinc-400 group-hover:text-zinc-300 transition-colors">
+                  Remember me
+                </span>
               </label>
-
-              <Link href="#" className="text-primary hover:underline">
+              <Link href="#" className="text-zinc-400 hover:text-white transition-colors">
                 Forgot password?
               </Link>
             </div> */}
@@ -138,18 +336,22 @@ export default function SignInComponent() {
             <button
               disabled={loading}
               type="submit"
-              className={`w-full bg-white text-[#5c5c5c] py-3 rounded-sm border
-                       transition-all duration-200 font-medium
-                       disabled:opacity-60 ${loading ? "cursor-not-allowed" : "cursor-pointer hover:bg-transparent hover:text-white hover:border-white"}`}
+              className="w-full h-12 mt-2 flex items-center justify-center gap-2 bg-white text-black font-semibold rounded-xl hover:bg-zinc-200 active:scale-[0.98] transition-all disabled:opacity-70 disabled:pointer-events-none shadow-lg shadow-white/10 animate-fade-in delay-500"
             >
+              {loading && (
+                <Loader2 className="h-4 w-4 animate-spin text-black" />
+              )}
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
           {/* Footer */}
-          <p className="text-center text-sm mt-6 text-white">
+          <p className="text-center text-sm mt-8 text-zinc-400 animate-fade-in delay-500">
             Don’t have an account?{" "}
-            <Link href="#" className="underline">
+            <Link
+              href="/signup"
+              className="text-white hover:underline underline-offset-4 font-medium transition-colors"
+            >
               Contact Admin
             </Link>
           </p>

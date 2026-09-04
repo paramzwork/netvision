@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
   if (!currentUser) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
+
   const { searchParams } = new URL(req.url);
 
   const page = Math.max(Number(searchParams.get("page")) || 1, 1);
@@ -16,19 +17,35 @@ export async function GET(req: NextRequest) {
     Math.max(Number(searchParams.get("limit")) || 20, 1),
     100,
   );
+
   const skip = (page - 1) * limit;
+  const where =
+    currentUser.roles.id === 1
+      ? {}
+      : {
+          id: {
+            not: 1,
+          },
+        };
   const [roles, total] = await Promise.all([
     prisma.roles.findMany({
+      where,
       skip,
       take: limit,
       orderBy: {
         id: "desc",
       },
     }),
-    prisma.roles.count(),
+
+    prisma.roles.count({
+      where,
+    }),
   ]);
 
-  return NextResponse.json({ data: roles, total });
+  return NextResponse.json({
+    data: roles,
+    total,
+  });
 }
 
 export async function POST(req: Request) {

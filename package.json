@@ -11,10 +11,11 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
-    "@lottiefiles/dotlottie-react": "^0.19.12",
-    "@prisma/adapter-pg": "^7.9.0",
-    "@prisma/client": "^7.9.1",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "@prisma/engines": "^7.10.0",
     "@xyflow/react": "^12.11.2",
+    "approve": "^0.0.12",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.2.0",
     "class-variance-authority": "^0.7.1",
@@ -24,12 +25,13 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.24.0",
     "net-snmp": "^3.26.3",
-    "next": "16.2.10",
+    "next": "^16.3.4",
     "next-themes": "^0.4.6",
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "recharts": "^3.9.2",
+    "scripts": "^0.1.0",
     "shadcn": "^4.13.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
@@ -45,18 +47,18 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "prisma": "^7.9.1",
+    "eslint-config-next": "^16.3.4",
+    "prisma": "^7.10.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.5",
     "typescript": "^5"
   },
   "allowScripts": {
-    "@prisma/engines@7.9.1": true,
     "bcrypt@6.0.0": true,
     "esbuild@0.28.1": true,
-    "prisma@7.9.1": true,
     "sharp@0.34.5": true,
-    "unrs-resolver@1.12.2": true
+    "unrs-resolver@1.12.2": true,
+    "@prisma/engines@7.10.0": true,
+    "prisma@7.10.0": true
   }
 }

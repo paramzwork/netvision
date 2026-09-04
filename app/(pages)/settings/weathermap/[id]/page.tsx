@@ -892,32 +892,6 @@ export default function ViewWeathermapSettings() {
     return interfaces.find((iface) => iface.id === interfaceId);
   }, [trafficEdge, interfaces]);
 
-  const fetchDevice = useCallback(async () => {
-    if (device.length > 0) {
-      setDevice(device);
-      return;
-    }
-    try {
-      // const raw = tripleEncode("all");
-      const res = await fetch(`/api/snmp/device`, { method: "GET" });
-      const resData = await res.json();
-      if (!res.ok) {
-        if (res.status === 401) {
-          router.replace("/");
-          return;
-        }
-        toast.error(resData.message);
-        return;
-      }
-      setDevice(resData.data);
-      toast.success("Devices loaded successfully!");
-    } catch {
-      toast.error("Internal Server Error.", {
-        description: "Server error please contact admin.",
-      });
-    }
-  }, [device, router, setDevice]);
-
   const fetchInterfaces = useCallback(async () => {
     if (device.length === 0) return;
     if (interfaces.length > 0) {
@@ -932,9 +906,13 @@ export default function ViewWeathermapSettings() {
           const res = await fetch(`/api/snmp/traffic?id=${raw}`);
 
           const resData = await res.json();
-
           if (!res.ok) {
-            throw new Error(resData.message || "Failed fetching interface");
+            if (res.status === 401) {
+              router.replace("/");
+              return;
+            }
+            toast.error(resData.message);
+            return;
           }
 
           return resData.interfaces.map((iface: InterfaceTypes) => ({
@@ -954,12 +932,47 @@ export default function ViewWeathermapSettings() {
 
       toast.error("Failed loading interfaces");
     }
-  }, [device, interfaces, setInterfaces]);
+  }, [device, interfaces, router, setInterfaces]);
   useEffect(() => {
+    const currentDevices = useDevicesStore.getState().device;
+
+    if (currentDevices.length > 0) {
+      return;
+    }
     if (hasMountedRef.current) return;
-    fetchDevice();
+
     hasMountedRef.current = true;
-  }, [fetchDevice]);
+    const fetchDevice = async () => {
+      try {
+        const res = await fetch("/api/snmp/device", {
+          method: "GET",
+        });
+
+        const resData = await res.json();
+
+        if (!res.ok) {
+          if (res.status === 401) {
+            router.replace("/");
+            return;
+          }
+
+          toast.error(resData.message);
+          return;
+        }
+
+        setDevice(resData.data);
+
+        toast.success("Devices loaded successfully!");
+      } catch {
+        hasMountedRef.current = false;
+        toast.error("Internal Server Error.", {
+          description: "Server error please contact admin.",
+        });
+      }
+    };
+
+    fetchDevice();
+  }, [router, setDevice]);
 
   useEffect(() => {
     if (device.length === 0) return;
@@ -983,7 +996,12 @@ export default function ViewWeathermapSettings() {
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.message ?? "Failed to load topology");
+          if (response.status === 401) {
+            router.replace("/");
+            return;
+          }
+          toast.error(result.message);
+          return;
         }
 
         // ---------------------------------------------
@@ -1087,17 +1105,23 @@ export default function ViewWeathermapSettings() {
         console.error("LOAD TOPOLOGY ERROR:", error);
       }
     },
-    [setNodes, setEdges],
+    [setNodes, setEdges, router],
   );
 
   const params = useParams();
   const raw = decodeURIComponent(params.id as string);
   const topologyId = tripleDecode(raw);
+  const [isUpdating, setIsUpdating] = useState<boolean>(false);
   const updateTopology = useCallback(async () => {
     if (topologyId === null) {
       console.error("No topology ID");
       return;
     }
+    if (isUpdating) {
+      return;
+    }
+
+    setIsUpdating(true);
     const name = topologyName.trim();
     const description = topoDescription.trim();
     try {
@@ -1137,11 +1161,9 @@ export default function ViewWeathermapSettings() {
 
       const response = await fetch(`/api/topology/${topologyId}`, {
         method: "PUT",
-
         headers: {
           "Content-Type": "application/json",
         },
-
         body: JSON.stringify(payload),
       });
 
@@ -1155,15 +1177,16 @@ export default function ViewWeathermapSettings() {
       return result;
     } catch (error) {
       console.error("UPDATE TOPOLOGY ERROR:", error);
+    } finally {
+      setIsUpdating(false);
     }
-  }, [topologyId, topologyName, topoDescription, nodes, edges]);
+  }, [topologyId, isUpdating, topologyName, topoDescription, nodes, edges]);
   const hasLoadedRef = useRef<boolean>(false);
   useEffect(() => {
     if (topologyId === null) return;
     if (hasLoadedRef.current) return;
-
     loadTopology(topologyId);
-    hasLoadedRef.current = false;
+    hasLoadedRef.current = true;
   }, [topologyId, loadTopology]);
   const [trafficPanelOffset, setTrafficPanelOffset] = useState({
     x: 0,
@@ -1335,9 +1358,11 @@ export default function ViewWeathermapSettings() {
             </div>
             <div className="absolute top-3 left-3 z-50">
               <div className="rounded-md border bg-background/95 p-2 shadow-md backdrop-blur-sm">
-                <div className="mb-2 text-xs font-semibold">Traffic Load</div>
+                <div className="mb-1 text-[10px] font-semibold">
+                  Traffic Load
+                </div>
 
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {[
                     { color: "#ff0000", label: "0–0%" },
                     { color: "#bdbdbd", label: "0–1%" },
@@ -1357,7 +1382,7 @@ export default function ViewWeathermapSettings() {
                         }}
                       />
 
-                      <span className="text-[10px]">{item.label}</span>
+                      <span className="text-[8px]">{item.label}</span>
                     </div>
                   ))}
                 </div>

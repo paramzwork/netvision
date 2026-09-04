@@ -27,6 +27,8 @@ import {
   Zap,
 } from "lucide-react";
 import { useData } from "@/context/DataContext";
+import { tripleEncode } from "@/lib/utils";
+import Link from "next/link";
 
 /* ─────────────────────────────────────────── */
 /* MOCK DATA — 2 devices                       */
@@ -362,59 +364,64 @@ export default function DashboardPage() {
         </div>
 
         {/* Device 1 summary */}
-        {activeDevices.map((device, index) => (
-          <div
-            key={`${index}-${device.id}`}
-            className="bg-white rounded-xl border border-slate-200 shadow-sm p-5"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-                  <Server className="size-4 text-indigo-500" />
+        {activeDevices.map((device, index) => {
+          const ipAdd = tripleEncode(device.ipAddress);
+          const href = `/devices/${ipAdd}`;
+
+          return (
+            <Link
+              key={`${index}-${device.id}`}
+              href={href}
+              className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 transition-all hover:border-sky-400 hover:shadow-sky-300 duration-200 cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
+                    <Server className="size-4 text-indigo-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800 leading-tight">
+                      {device.sysName}
+                    </p>
+                    <p className="text-xs text-slate-400 leading-tight">
+                      {device.sysDescr} · {device.sysLocation}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <StatusDot status={device.status} />
+                  <span className="text-xs font-medium text-emerald-600 capitalize">
+                    {device.status === "1" ? "up" : "down"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <p className="text-[10px] text-slate-400 mb-0.5">
+                    Total Interfaces
+                  </p>
+                  <p className="text-xl font-bold text-slate-900">
+                    {device.interfaceCount}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    IP: {device.ipAddress}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-slate-800 leading-tight">
-                    {device.sysName}
+                  <p className="text-[10px] text-slate-400 mb-0.5">Uptime</p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {device.uptime}
                   </p>
-                  <p className="text-xs text-slate-400 leading-tight">
-                    {device.sysDescr} · {device.sysLocation}
+                  <p className="text-[10px] text-slate-400">
+                    Last seen: {new Date(device.updatedAt).toLocaleString()}
+                    {/* Last seen: {device.lastSeen} */}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <StatusDot status={device.status} />
-                <span className="text-xs font-medium text-emerald-600 capitalize">
-                  {device.status === "1" ? "up" : "down"}
-                </span>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <p className="text-[10px] text-slate-400 mb-0.5">
-                  Total Interfaces
-                </p>
-                <p className="text-xl font-bold text-slate-900">
-                  {device.interfaceCount}
-                </p>
-                <p className="text-[10px] text-slate-400">
-                  IP: {device.ipAddress}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-400 mb-0.5">Uptime</p>
-                <p className="text-sm font-semibold text-slate-700">
-                  {device.uptime}
-                </p>
-                <p className="text-[10px] text-slate-400">
-                  Last seen: {new Date(device.updatedAt).toLocaleString()}
-                  {/* Last seen: {device.lastSeen} */}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {/* <div>
+              <div className="space-y-2">
+                {/* <div>
                 <div className="flex justify-between mb-0.5">
                   <span className="text-[10px] text-slate-400">CPU</span>
                   <span className="text-[10px] font-medium text-slate-600">
@@ -438,9 +445,10 @@ export default function DashboardPage() {
                   color={device.memory > 80 ? "#f87171" : "#818cf8"}
                 />
               </div> */}
-            </div>
-          </div>
-        ))}
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
       {/* ── Row 2: Activity Chart + Donut Charts ── */}
@@ -457,20 +465,27 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                <span
-                  className="inline-block w-2.5 h-2.5 rounded-sm"
-                  style={{ background: "#38bdf8" }}
-                />
-                Core Router
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                <span
-                  className="inline-block w-2.5 h-2.5 rounded-sm"
-                  style={{ background: "#818cf8" }}
-                />
-                Edge Switch
-              </span>
+              {activeDevices.slice(0, 8).map((device, index) => (
+                <div
+                  key={device.id ?? index}
+                  className="flex items-start gap-1.5 text-xs text-slate-500"
+                >
+                  <span
+                    className="inline-block mt-1 h-2.5 w-2.5 rounded-sm"
+                    style={{ background: "#38bdf8" }}
+                  />
+                  <div className="flex flex-col">
+                    <p>{device.sysName}</p>
+                    <p className="text-gray-400 text-[10px] font-medium">{device.ipAddress}</p>
+                  </div>
+                </div>
+              ))}
+
+              {activeDevices.length > 8 && (
+                <span className="text-xs font-medium text-slate-500">
+                  +{activeDevices.length - 8}
+                </span>
+              )}
             </div>
           </div>
           <div className="h-50">

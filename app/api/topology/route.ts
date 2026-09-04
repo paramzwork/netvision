@@ -5,6 +5,9 @@ import type {
   TopologyEdge,
 } from "@/components/WeatherMapComponent";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
+import { getRequestInfo } from "../users/route";
+import { createUserLog } from "@/lib/logs";
 
 interface SaveTopologyRequest {
   name: string;
@@ -42,6 +45,13 @@ export async function GET() {
   }
 }
 export async function POST(request: NextRequest) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 },
+    );
+  }
   try {
     const body = (await request.json()) as SaveTopologyRequest;
 
@@ -169,7 +179,14 @@ export async function POST(request: NextRequest) {
         return newTopology;
       },
     );
-
+    const { ipAddress, userAgent } = getRequestInfo(request);
+    await createUserLog({
+      userId: currentUser.id,
+      action: "CREATE_TOPOLOGY",
+      description: `Created topology "${topology.name}" with ${nodes.length} node(s) and ${edges.length} edge(s).`,
+      ipAddress,
+      userAgent,
+    });
     return NextResponse.json(
       {
         success: true,
