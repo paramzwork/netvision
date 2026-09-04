@@ -28,7 +28,6 @@ import {
   TopologyEdgeData,
   TopologyNode,
   TopologyNodeData,
-  TrafficHistoryPoint,
 } from "@/components/WeatherMapComponent";
 import ViewServerNode from "@/components/weathermap/view/ViewServerNode";
 import EdgeTrafficPanel from "@/components/weathermap/EdgeTrafficPanel";
@@ -39,6 +38,7 @@ import ViewEdgeStartEnd from "@/components/ViewEdgeStartEnd";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useData } from "@/context/DataContext";
+import { AggregatedInterfaceTraffic } from "@/app/api/topology/[id]/traffic/route";
 
 const nodeTypes = {
   router: ViewRouterNode,
@@ -373,19 +373,6 @@ export default function ViewWeathermap() {
             if (!traffic) {
               return edge;
             }
-            const history = Array.isArray(edge.data?.trafficHistory)
-              ? edge.data.trafficHistory
-              : [];
-
-            const newHistory: TrafficHistoryPoint[] = [
-              ...history,
-              {
-                inbound: Number(traffic.inbound ?? 0),
-                outbound: Number(traffic.outbound ?? 0),
-                timestamp: Date.now(),
-              },
-            ].slice(-60);
-
             return {
               ...edge,
 
@@ -403,11 +390,6 @@ export default function ViewWeathermap() {
 
                 sourceDesc: edge.data?.sourceDesc ?? "",
                 targetDesc: edge.data?.targetDesc ?? "",
-
-                // ----------------------------------------
-                // Traffic history
-                // ----------------------------------------
-                trafficHistory: newHistory,
 
                 // ----------------------------------------
                 // Source status
@@ -444,6 +426,33 @@ export default function ViewWeathermap() {
             };
           }),
         );
+        setInterfaces((currentInterfaces) =>
+          currentInterfaces.map((iface) => {
+            console.log("TRIGGERED: NEW TRAFFIC FOR EDGETRAFFIC PANEL")
+            for (const traffic of Object.values(result.data ?? {})) {
+              const aggregatedInterfaces =
+                (
+                  traffic as {
+                    aggregatedInterfaces?: AggregatedInterfaceTraffic[];
+                  }
+                ).aggregatedInterfaces ?? [];
+
+              const match = aggregatedInterfaces.find(
+                (aggregated) => aggregated.interfaceId === iface.id,
+              );
+
+              if (match) {
+                return {
+                  ...iface,
+                  liveInbound: match.inbound,
+                  liveOutbound: match.outbound,
+                };
+              }
+            }
+
+            return iface;
+          }),
+        );
       } catch (error) {
         console.error("TRAFFIC UPDATE ERROR:", error);
       }
@@ -457,7 +466,7 @@ export default function ViewWeathermap() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [topologyId, setEdges, router]);
+  }, [topologyId, setEdges, router, setInterfaces]);
 
   const handleTrafficPanelMouseDown = (
     event: React.MouseEvent<HTMLDivElement>,

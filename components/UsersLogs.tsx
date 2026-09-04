@@ -31,7 +31,7 @@ import EntriesPerPage from "./EntriesPerPage";
 
 export default function UsersLogsPage() {
   const { currentUser } = useData();
-  
+
   const { userLogs, setUserLogs, total, setTotal } = useUserLogsStore();
   const [confirmDialog, setConfirmDialog] = useState<boolean>(false);
   const [selectedID, setSelectedID] = useState<number>();
@@ -208,30 +208,34 @@ export default function UsersLogsPage() {
           View user activities and system actions.
         </p>
       </div>
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 lg:p-5 border-b bg-muted/20">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search users..."
-            className="w-full h-10 pl-9 pr-4 text-xs bg-background border border-input rounded-md ring-offset-background  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
+      <div className="flex flex-col w-full bg-background border rounded-xl shadow-sm overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 lg:p-5 border-b bg-muted/20">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search users..."
+              className="w-full h-10 pl-9 pr-4 text-xs bg-background border border-input rounded-md ring-offset-background  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
 
-        <div className="w-full sm:w-auto">
-          <EntriesPerPage limit={limit} setLimit={setLimit} setPage={setPage} />
+          <div className="w-full sm:w-auto">
+            <EntriesPerPage
+              limit={limit}
+              setLimit={setLimit}
+              setPage={setPage}
+            />
+          </div>
         </div>
-      </div>
-      {/* Logs Table */}
-      <div className="rounded-md border">
+        {/* Logs Table */}
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/40 hover:bg-muted/40 transition-none border-b">
               <TableHead className="w-16 text-center font-medium">No</TableHead>
               <TableHead>User</TableHead>
               <TableHead>Role</TableHead>
@@ -367,24 +371,24 @@ export default function UsersLogsPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-      {/* BOTTOM PAGINATION */}
-      <div className="p-4 border-t bg-muted/10">
-        <Pagination
-          page={page}
-          setPage={setPage}
-          limit={limit}
-          data={userLogs}
-          filteredData={filteredData}
-          total={total}
+        {/* BOTTOM PAGINATION */}
+        <div className="p-4 border-t bg-muted/10">
+          <Pagination
+            page={page}
+            setPage={setPage}
+            limit={limit}
+            data={userLogs}
+            filteredData={filteredData}
+            total={total}
+          />
+        </div>
+
+        <ConfirmationDialog
+          confirmDialog={confirmDialog}
+          setConfirmDialog={setConfirmDialog}
+          onConfirm={handleDelete}
         />
       </div>
-
-      <ConfirmationDialog
-        confirmDialog={confirmDialog}
-        setConfirmDialog={setConfirmDialog}
-        onConfirm={handleDelete}
-      />
     </div>
   );
 }

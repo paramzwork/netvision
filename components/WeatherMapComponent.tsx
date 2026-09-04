@@ -87,11 +87,7 @@ export interface HandleLayout {
   bottom: NodeHandle[];
   left: NodeHandle[];
 }
-export interface TrafficHistoryPoint {
-  inbound: number;
-  outbound: number;
-  timestamp: number;
-}
+
 export interface TopologyNodeData extends Record<string, unknown> {
   interfaceId?: number;
   deviceId?: number;
