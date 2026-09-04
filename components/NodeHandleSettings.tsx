@@ -287,11 +287,13 @@ export default function NodeHandleSettings({
       name: "None",
       description: "",
     },
-    ...filteredData.map((iface) => ({
-      id: String(iface.id),
-      name: iface.name,
-      description: iface.description,
-    })),
+    ...filteredData
+      .filter((i) => i.status === "1")
+      .map((iface) => ({
+        id: String(iface.id),
+        name: iface.name,
+        description: iface.description,
+      })),
   ];
   return (
     <Dialog open={open} onOpenChange={handleClose}>

@@ -35,11 +35,11 @@ export default function UsersManagement() {
   };
 
   const [userPage, setUserPage] = useState<number>(1);
-  const [userLimit, setUserLimit] = useState<number>(10);
+  const [userLimit, setUserLimit] = useState<string>("10");
   const [totalUsers, setTotalUsers] = useState<number>(0);
 
   const [rolePage, setRolePage] = useState<number>(1);
-  const [roleLimit, setRoleLimit] = useState<number>(10);
+  const [roleLimit, setRoleLimit] = useState<string>("10");
   const [totalRoles, setTotalRoles] = useState<number>(0);
   // const fetchData = useCallback(async () => {
   //   if (Object.keys(users).length > 0) {

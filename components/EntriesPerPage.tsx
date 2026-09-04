@@ -9,22 +9,16 @@ import {
 } from "./ui/select";
 
 interface Props {
-  limit: number;
-  setLimit: React.Dispatch<React.SetStateAction<number>>;
+  limit: string;
+  setLimit: React.Dispatch<React.SetStateAction<string>>;
   setPage: React.Dispatch<React.SetStateAction<number>>;
-  totalPages: number;
 }
-export default function EntriesPerPage({
-  limit,
-  setLimit,
-  setPage,
-  totalPages,
-}: Props) {
+export default function EntriesPerPage({ limit, setLimit, setPage }: Props) {
   return (
     <Select
       value={String(limit)}
       onValueChange={(e) => {
-        setLimit(e === "all" ? totalPages : Number(e));
+        setLimit(String(e));
         setPage(1);
       }}
     >

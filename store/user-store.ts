@@ -1,4 +1,4 @@
-import { RoleTypes, UserTypes } from "@/lib/types";
+import { RoleTypes, UserLog, UserTypes } from "@/lib/types";
 import { create } from "zustand";
 
 interface UserStore {
@@ -54,4 +54,24 @@ export const useRoleStore = create<RoleStore>((set) => ({
     set((state) => ({
       roles: typeof value === "function" ? value(state.roles) : value,
     })),
+}));
+// USER LOGS _________________________________________________________________
+interface UserLogsStore {
+  userLogs: UserLog[];
+  total: number;
+
+  setUserLogs: React.Dispatch<React.SetStateAction<UserLog[]>>;
+  setTotal: (total: number) => void;
+}
+
+export const useUserLogsStore = create<UserLogsStore>((set) => ({
+  userLogs: [],
+  total: 0,
+
+  setUserLogs: (value) =>
+    set((state) => ({
+      userLogs: typeof value === "function" ? value(state.userLogs) : value,
+    })),
+
+  setTotal: (total) => set({ total }),
 }));

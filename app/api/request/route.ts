@@ -1,5 +1,8 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { getRequestInfo } from "../users/route";
+import { createUserLog } from "@/lib/logs";
+import { getCurrentUser } from "@/lib/auth";
 export const runtime = "nodejs";
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -50,20 +53,41 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const reqType = searchParams.get("type");
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   if (reqType === "sign-out") {
     const cookieStore = await cookies();
     const kill = tripleEncode("kill");
-    // Delete cookie
+
+    // Delete authentication cookie
     cookieStore.set(kill, "", {
       httpOnly: true,
-      // secure: process.env.NODE_ENV === "production",
       secure: false,
       sameSite: "lax",
       path: "/",
       expires: new Date(0),
     });
+
     cookieStore.delete(kill);
-    return NextResponse.json({ message: "Logged out successfully" });
+
+    const { ipAddress, userAgent } = getRequestInfo(req);
+
+    if (currentUser) {
+      await createUserLog({
+        userId: currentUser.id,
+        action: "SIGN_OUT",
+        description: "Successfully signed out of the system.",
+        ipAddress,
+        userAgent,
+      });
+    }
+
+    return NextResponse.json({
+      message: "Logged out successfully",
+    });
   }
 }

@@ -1,12 +1,14 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { tripleEncode } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { getRequestInfo } from "../../users/route";
+import { createUserLog } from "@/lib/logs";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { username, password } = await req.json();
 
@@ -80,7 +82,15 @@ export async function POST(req: Request) {
       path: "/",
       maxAge,
     });
+    const { ipAddress, userAgent } = getRequestInfo(req);
 
+    await createUserLog({
+      userId: user.id,
+      action: "SIGN_IN",
+      description: `Successfully signed in to the system.`,
+      ipAddress,
+      userAgent,
+    });
     return response;
   } catch (error) {
     console.error(error);

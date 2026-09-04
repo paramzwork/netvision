@@ -13,6 +13,7 @@ import {
   Monitor,
   UserIcon,
   Network,
+  Logs,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -63,12 +64,18 @@ export const menuItems: MenuItemTypes[] = [
   {
     name: "System", // Renamed to avoid duplicate name conflict
     icon: Server,
-    roles: ["super admin"],
+    roles: ["admin", "super admin"],
     subMenu: [
       {
         name: "Devices",
         icon: BarChart,
         href: "/system/devices",
+        roles: ["super admin"],
+      },
+      {
+        name: "Logs",
+        icon: Logs,
+        href: "/system/logs",
         roles: ["super admin"],
       },
     ],

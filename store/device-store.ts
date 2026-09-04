@@ -9,7 +9,6 @@ export interface Device {
 
 interface DeviceStore {
   devices: Record<string, DeviceInfoTypes>;
-
   selectedDevice: DeviceInfoTypes | null;
 
   setDevice: (id: string, device: DeviceInfoTypes) => void;
@@ -18,7 +17,6 @@ interface DeviceStore {
 
 export const useDeviceStore = create<DeviceStore>((set) => ({
   devices: {},
-
   selectedDevice: null,
 
   setDevice: (id, device) =>
