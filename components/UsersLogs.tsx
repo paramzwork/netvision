@@ -31,12 +31,12 @@ import EntriesPerPage from "./EntriesPerPage";
 
 export default function UsersLogsPage() {
   const { currentUser } = useData();
+  
+  const { userLogs, setUserLogs, total, setTotal } = useUserLogsStore();
+  const [confirmDialog, setConfirmDialog] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<string>("10");
-
-  const { userLogs, setUserLogs, total, setTotal } = useUserLogsStore();
   const [search, setSearch] = useState<string>("");
-  const [confirmDialog, setConfirmDialog] = useState<boolean>(false);
   const [selectedID, setSelectedID] = useState<number>();
   const [sortConfig, setSortConfig] = useState<{
     key: string;

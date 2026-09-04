@@ -1,15 +1,34 @@
 "use client";
 
-import { RoleTypes, UserLog, UserTypes } from "@/lib/types";
+import {
+  DeviceInfoTypes,
+  InterfaceTypes,
+  RoleTypes,
+  UserLog,
+  UserTypes,
+} from "@/lib/types";
 import { Button } from "./ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { TopologyTypes } from "@/app/(pages)/weathermap/page";
 
 interface Props {
   page: number;
   setPage: React.Dispatch<React.SetStateAction<number>>;
   limit: string;
-  filteredData: RoleTypes[] | UserTypes[] | UserLog[];
-  data: RoleTypes[] | UserTypes[] | UserLog[];
+  filteredData:
+    | RoleTypes[]
+    | UserTypes[]
+    | UserLog[]
+    | TopologyTypes[]
+    | DeviceInfoTypes[]
+    | InterfaceTypes[];
+  data:
+    | RoleTypes[]
+    | UserTypes[]
+    | UserLog[]
+    | TopologyTypes[]
+    | DeviceInfoTypes[]
+    | InterfaceTypes[];
   total: number;
 }
 export default function Pagination({

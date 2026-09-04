@@ -18,18 +18,21 @@ interface SaveTopologyRequest {
 
 export async function GET() {
   try {
-    const topology = await prisma.topologies.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-      },
-      orderBy: {
-        id: "desc",
-      },
-    });
+    const [topology, total] = await Promise.all([
+      prisma.topologies.findMany({
+        select: {
+          id: true,
+          name: true,
+          description: true,
+        },
+        orderBy: {
+          id: "desc",
+        },
+      }),
+      prisma.topologies.count(),
+    ]);
 
-    return NextResponse.json(topology);
+    return NextResponse.json({ data: topology, total });
   } catch (error) {
     console.error("LOAD TOPOLOGY ERROR:", error);
 

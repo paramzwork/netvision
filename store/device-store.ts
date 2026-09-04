@@ -18,6 +18,7 @@ interface DeviceStore {
 export const useDeviceStore = create<DeviceStore>((set) => ({
   devices: {},
   selectedDevice: null,
+  total: 0,
 
   setDevice: (id, device) =>
     set((state) => ({
@@ -34,15 +35,18 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
 
 interface DevicesStore {
   device: DeviceInfoTypes[];
-  setDevice: React.Dispatch<React.SetStateAction<DeviceInfoTypes[]>>;
   selectedDevice: DeviceInfoTypes | null;
+  total: number;
+
+  setTotal: (total: number) => void;
+  setDevice: React.Dispatch<React.SetStateAction<DeviceInfoTypes[]>>;
   setSelectedDevice: (user: DeviceInfoTypes | null) => void;
 }
 
 export const useDevicesStore = create<DevicesStore>((set) => ({
   device: [],
-
   selectedDevice: null,
+  total: 0,
 
   setDevice: (value) =>
     set((state) => ({
@@ -52,6 +56,7 @@ export const useDevicesStore = create<DevicesStore>((set) => ({
     set({
       selectedDevice: device,
     }),
+  setTotal: (total) => set({ total }),
 }));
 
 interface InterfaceStore {
