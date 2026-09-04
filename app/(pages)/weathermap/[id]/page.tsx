@@ -148,7 +148,12 @@ export default function ViewWeathermap() {
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.message ?? "Failed to load topology");
+          if (response.status === 401) {
+            router.replace("/");
+            return;
+          }
+          toast.error(result.message);
+          return;
         }
 
         // ---------------------------------------------
@@ -251,7 +256,7 @@ export default function ViewWeathermap() {
         console.error("LOAD TOPOLOGY ERROR:", error);
       }
     },
-    [setNodes, setEdges],
+    [setNodes, setEdges, router],
   );
   const fetchDevice = useCallback(async () => {
     if (device.length > 0) {
@@ -295,7 +300,12 @@ export default function ViewWeathermap() {
           const resData = await res.json();
 
           if (!res.ok) {
-            throw new Error(resData.message || "Failed fetching interface");
+            if (res.status === 401) {
+              router.replace("/");
+              return;
+            }
+            toast.error(resData.message);
+            return;
           }
 
           return resData.interfaces.map((iface: InterfaceTypes) => ({
@@ -315,7 +325,7 @@ export default function ViewWeathermap() {
 
       toast.error("Failed loading interfaces");
     }
-  }, [device, interfaces, setInterfaces]);
+  }, [device, interfaces, router, setInterfaces]);
   useEffect(() => {
     if (hasMountedRef.current) return;
     fetchDevice();
@@ -344,12 +354,15 @@ export default function ViewWeathermap() {
           cache: "no-store",
         });
 
+        const result = await res.json();
         if (!res.ok) {
-          console.error("Failed to fetch topology traffic");
+          if (res.status === 401) {
+            router.replace("/");
+            return;
+          }
+          toast.error(result.message);
           return;
         }
-
-        const result = await res.json();
 
         if (cancelled) return;
 
@@ -444,7 +457,7 @@ export default function ViewWeathermap() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [topologyId, setEdges]);
+  }, [topologyId, setEdges, router]);
 
   const handleTrafficPanelMouseDown = (
     event: React.MouseEvent<HTMLDivElement>,

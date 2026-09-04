@@ -1,32 +1,47 @@
 "use client";
 
-import { RoleTypes, UserTypes } from "@/lib/types";
+import { RoleTypes, UserLog, UserTypes } from "@/lib/types";
 import { Button } from "./ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   page: number;
   setPage: React.Dispatch<React.SetStateAction<number>>;
-  limit: number;
-  filteredData: RoleTypes[] | UserTypes[];
-  data: RoleTypes[] | UserTypes[];
+  limit: string;
+  filteredData: RoleTypes[] | UserTypes[] | UserLog[];
+  data: RoleTypes[] | UserTypes[] | UserLog[];
   total: number;
 }
 export default function Pagination({
   page,
   setPage,
   limit,
-  // filteredData,
+  filteredData,
   // data,
   total,
 }: Props) {
-  const totalPages = Math.ceil(total / limit);
+  const isAll = limit === "all";
+
+  const numericLimit = isAll ? total : Number(limit);
+
+  const totalPages = isAll
+    ? 1
+    : numericLimit > 0
+      ? Math.ceil(total / numericLimit)
+      : 0;
 
   const isFirstPage = page <= 1;
-  const isLastPage = page >= totalPages;
+  const isLastPage = isAll || page >= totalPages;
 
-  const start = total === 0 ? 0 : (page - 1) * limit + 1;
-  const end = Math.min(page * limit, total);
+  const start =
+    filteredData.length === 0 ? 0 : isAll ? 1 : (page - 1) * numericLimit + 1;
+
+  const end =
+    filteredData.length === 0
+      ? 0
+      : isAll
+        ? filteredData.length
+        : Math.min((page - 1) * numericLimit + filteredData.length, total);
 
   return (
     <div className="flex flex-col-reverse sm:flex-row justify-between items-center gap-4 w-full pt-2">

@@ -19,14 +19,17 @@ export async function GET(req: NextRequest) {
   );
 
   const skip = (page - 1) * limit;
-
+  const where =
+    currentUser.roles.id === 1
+      ? {}
+      : {
+          id: {
+            not: 1,
+          },
+        };
   const [roles, total] = await Promise.all([
     prisma.roles.findMany({
-      where: {
-        id: {
-          not: 1,
-        },
-      },
+      where,
       skip,
       take: limit,
       orderBy: {
@@ -35,11 +38,7 @@ export async function GET(req: NextRequest) {
     }),
 
     prisma.roles.count({
-      where: {
-        id: {
-          not: 1,
-        },
-      },
+      where,
     }),
   ]);
 

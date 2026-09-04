@@ -18,7 +18,9 @@ model users {
   role_id    Int
   suffix     String?
   updatedAt  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
   roles      roles    @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_logs  user_logs[]
 }
 
 model roles {
@@ -59,11 +61,6 @@ model system_settings {
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @db.Timestamptz(6)
 }
-
-
-
-
-
 
 model interfaces {
   id          Int      @id @default(autoincrement())
@@ -149,6 +146,7 @@ model topology_nodes {
 
   @@unique([topologyId, nodeId])
   @@index([topologyId])
+  @@index([interfaceId])
   @@map("topology_nodes")
 }
 
@@ -176,4 +174,19 @@ model topology_edges {
   @@unique([topologyId, edgeId])
   @@index([topologyId])
   @@map("topology_edges")
+}
+
+model user_logs {
+  id          Int      @id @default(autoincrement())
+  user_id     Int?
+  action      String
+  description String?
+  ip_address  String?
+  user_agent  String?
+  createdAt   DateTime @default(now())
+
+  users       users?   @relation(fields: [user_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@index([createdAt])
 }

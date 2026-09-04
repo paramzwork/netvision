@@ -26,6 +26,7 @@ import { ConfirmationDialog } from "../ConfirmationDialog";
 import { useMemo, useState } from "react";
 import { tripleEncode } from "@/lib/utils";
 import EntriesPerPage from "../EntriesPerPage";
+import { useRouter } from "next/navigation";
 
 interface Props {
   users: UserTypes[];
@@ -35,9 +36,9 @@ interface Props {
   setOpenDrawer: React.Dispatch<React.SetStateAction<boolean>>;
 
   page: number;
-  limit: number;
+  limit: string;
   setPage: React.Dispatch<React.SetStateAction<number>>;
-  setLimit: React.Dispatch<React.SetStateAction<number>>;
+  setLimit: React.Dispatch<React.SetStateAction<string>>;
   totalUsers: number;
 }
 
@@ -60,13 +61,14 @@ export default function UsersManagementTable({
     setOpenDrawer(true);
   };
   const [search, setSearch] = useState<string>("");
-
   const [confirmDialog, setConfirmDialog] = useState<boolean>(false);
   const [selectedID, setSelectedID] = useState<number>();
   const [sortConfig, setSortConfig] = useState<{
     key: string;
     direction: "asc" | "desc";
   } | null>(null);
+
+  const router = useRouter();
 
   // 🔍 Filtered data
   const filteredData = useMemo(() => {
@@ -107,7 +109,7 @@ export default function UsersManagementTable({
     );
   }, [filteredData, sortConfig]);
 
-  const paginatedData = sortedData.filter((user) => user.roles.id !== 1);
+  const paginatedData = sortedData;
   const handleDelete = async () => {
     if (!selectedID) return;
     const toastID = toast.loading("Deleting...");
@@ -117,7 +119,10 @@ export default function UsersManagementTable({
         method: "DELETE",
       });
       const resData = await res.json();
-
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
       if (!res.ok) {
         setConfirmDialog(false);
         toast.error(resData.message, { id: toastID });
@@ -160,7 +165,6 @@ export default function UsersManagementTable({
             limit={limit}
             setLimit={setLimit}
             setPage={setPage}
-            totalPages={totalUsers}
           />
         </div>
       </div>
@@ -248,7 +252,7 @@ export default function UsersManagementTable({
                   className="group hover:bg-muted/30 transition-colors cursor-default"
                 >
                   <TableCell className="text-center text-muted-foreground text-xs">
-                    {(page - 1) * limit + index + 1}
+                    {(page - 1) * Number(limit) + index + 1}
                   </TableCell>
 
                   {/* Combined Name and Email for better hierarchy */}

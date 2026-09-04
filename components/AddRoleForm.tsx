@@ -2,6 +2,7 @@
 
 import { RoleTypes } from "@/lib/types";
 import { tripleDecode, tripleEncode } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 interface Props {
@@ -16,6 +17,7 @@ export default function AddRoleForm({
   setData,
   setOpenRoleForm,
 }: Props) {
+  const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     role: data?.role ?? "",
@@ -52,6 +54,10 @@ export default function AddRoleForm({
         body: JSON.stringify(formData),
       });
       const resData = await res.json();
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
       if (!res.ok) {
         toast.error(resData.message);
         setLoading(false);
