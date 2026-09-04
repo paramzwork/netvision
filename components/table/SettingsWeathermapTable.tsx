@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Table,
   TableBody,
@@ -14,18 +14,72 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "../ui/checkbox";
 import { TooltipComponent } from "../TooltipComponent";
-import { Search } from "lucide-react";
+import { ArrowUpDown, ChevronDown, ChevronUp, Search } from "lucide-react";
+import EntriesPerPage from "../EntriesPerPage";
+import { DeviceInfoTypes, InterfaceTypes } from "@/lib/types";
+import Pagination from "../Pagination";
 
 export default function SettingsWeathermapTable() {
   const device = useDevicesStore((state) => state.device);
   const setDevice = useDevicesStore((state) => state.setDevice);
+  const totalDevices = useDevicesStore((state) => state.total);
+  const setTotalDevices = useDevicesStore((state) => state.setTotal);
   const setInterfaces = useInterfaceStore((state) => state.setInterfaces);
   const { getInterfaces } = useInterfaceStore();
-  const router = useRouter();
 
   const [fetchSelectedDev, setFetchSelectedDev] = useState<string>("");
-  const [search, setSearch] = useState<string>("");
+  const [pageInt, setPageInt] = useState<number>(1);
+  const [limitInt, setLimitInt] = useState<string>("10");
 
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<string>("10");
+  const [search, setSearch] = useState<string>("");
+  const router = useRouter();
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: "asc" | "desc";
+  } | null>(null);
+
+  // 🔍 Filtered data
+  const filteredData = useMemo(() => {
+    return device.filter((item) => {
+      const matchSearch = `${item.sysName} ${item.ipAddress}`
+        .toLowerCase()
+        .includes(search.toLowerCase().trim());
+
+      return matchSearch;
+    });
+  }, [device, search]);
+  const sortData = <T,>(
+    array: T[],
+    key: keyof T,
+    direction: "asc" | "desc",
+  ): T[] => {
+    return [...array].sort((a, b) => {
+      const aVal = a[key];
+      const bVal = b[key];
+
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return direction === "asc" ? aVal - bVal : bVal - aVal;
+      }
+
+      return direction === "asc"
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal));
+    });
+  };
+
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return filteredData;
+
+    return sortData(
+      filteredData,
+      sortConfig.key as keyof DeviceInfoTypes,
+      sortConfig.direction,
+    );
+  }, [filteredData, sortConfig]);
+
+  const paginatedData = sortedData;
   const getStatusBadge = (status: number) => {
     switch (status) {
       case 1:
@@ -67,7 +121,7 @@ export default function SettingsWeathermapTable() {
         }
 
         setDevice(resData.devices);
-
+        setTotalDevices(resData.totalDevices);
         toast.success("Devices loaded successfully!");
       } catch {
         toast.error("Internal Server Error.", {
@@ -77,7 +131,7 @@ export default function SettingsWeathermapTable() {
     };
 
     fetchDevice();
-  }, [router, setDevice]);
+  }, [router, setDevice, setTotalDevices]);
 
   useEffect(() => {
     if (!fetchSelectedDev) return;
@@ -136,7 +190,7 @@ export default function SettingsWeathermapTable() {
     }
   };
   const deviceInterfaces = getInterfaces(fetchSelectedDev);
-  const filteredData = deviceInterfaces.filter((item) => {
+  const filteredDataInt = deviceInterfaces.filter((item) => {
     const keyword = search.toLowerCase();
 
     return (
@@ -145,6 +199,28 @@ export default function SettingsWeathermapTable() {
       item.index.toString().includes(keyword)
     );
   });
+  const sortedDataInt = useMemo(() => {
+    if (!sortConfig) return filteredDataInt;
+
+    return sortData(
+      filteredDataInt,
+      sortConfig.key as keyof InterfaceTypes,
+      sortConfig.direction,
+    );
+  }, [filteredDataInt, sortConfig]);
+
+  const paginatedDataInt = useMemo(() => {
+    if (limitInt === "all") {
+      return sortedDataInt;
+    }
+
+    const limit = Number(limitInt);
+
+    const start = (pageInt - 1) * limit;
+    const end = start + limit;
+
+    return sortedDataInt.slice(start, end);
+  }, [sortedDataInt, pageInt, limitInt]);
   return (
     <div className="w-full flex flex-col gap-6">
       {/* ============ DEVICE TABLE ============ */}
@@ -154,13 +230,58 @@ export default function SettingsWeathermapTable() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {device.length} devices found
           </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search users..."
+                className="w-full h-10 pl-9 pr-4 text-xs bg-background border border-input rounded-md ring-offset-background  placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+
+            <div className="w-full sm:w-auto">
+              <EntriesPerPage
+                limit={limit}
+                setLimit={setLimit}
+                setPage={setPage}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40 hover:bg-muted/40 border-b">
-                <TableHead className="font-medium">System Name</TableHead>
+                <TableHead
+                  className="font-medium cursor-pointer select-none group hidden md:table-cell"
+                  onClick={() =>
+                    setSortConfig((prev) =>
+                      prev?.key === "sysName" && prev.direction === "asc"
+                        ? { key: "sysName", direction: "desc" }
+                        : { key: "sysName", direction: "asc" },
+                    )
+                  }
+                >
+                  <div className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    System Name
+                    {sortConfig?.key === "sysName" ? (
+                      sortConfig.direction === "asc" ? (
+                        <ChevronUp className="w-4 h-4 text-primary" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-primary" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
                 <TableHead className="font-medium">IP Address</TableHead>
                 <TableHead className="font-medium">Community</TableHead>
                 <TableHead className="font-medium">Uptime</TableHead>
@@ -174,7 +295,7 @@ export default function SettingsWeathermapTable() {
             </TableHeader>
 
             <TableBody>
-              {device.length === 0 ? (
+              {paginatedData.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={10}
@@ -187,7 +308,7 @@ export default function SettingsWeathermapTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                device.map((dev, index) => (
+                paginatedData.map((dev, index) => (
                   <TableRow
                     key={index}
                     className="group hover:bg-muted/30 transition-colors cursor-default"
@@ -235,8 +356,18 @@ export default function SettingsWeathermapTable() {
             </TableBody>
           </Table>
         </div>
+        {/* BOTTOM PAGINATION */}
+        <div className="p-4 border-t bg-muted/10">
+          <Pagination
+            page={page}
+            setPage={setPage}
+            limit={limit}
+            data={device}
+            filteredData={filteredData}
+            total={totalDevices}
+          />
+        </div>
       </div>
-
       {/* ============ INTERFACES TABLE ============ */}
       <div className="border rounded-xl shadow-sm bg-background overflow-hidden">
         {/* Toolbar with Search */}
@@ -258,6 +389,13 @@ export default function SettingsWeathermapTable() {
                 className="w-full h-9 pl-9 pr-4 text-sm bg-background border border-input rounded-md ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
               />
             </div>
+            <div className="w-full sm:w-auto">
+              <EntriesPerPage
+                limit={limitInt}
+                setLimit={setLimitInt}
+                setPage={setPageInt}
+              />
+            </div>
           </div>
         </div>
 
@@ -268,16 +406,104 @@ export default function SettingsWeathermapTable() {
               <TableRow className="bg-muted/40 hover:bg-muted/40 border-b">
                 <TableHead className="font-medium w-16">Status</TableHead>
                 <TableHead className="font-medium w-16">#</TableHead>
-                <TableHead className="font-medium">Interface</TableHead>
+                <TableHead
+                  className="font-medium cursor-pointer select-none group hidden md:table-cell"
+                  onClick={() =>
+                    setSortConfig((prev) =>
+                      prev?.key === "name" && prev.direction === "asc"
+                        ? { key: "name", direction: "desc" }
+                        : { key: "name", direction: "asc" },
+                    )
+                  }
+                >
+                  <div className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    Interface
+                    {sortConfig?.key === "name" ? (
+                      sortConfig.direction === "asc" ? (
+                        <ChevronUp className="w-4 h-4 text-primary" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-primary" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
                 <TableHead className="font-medium">Description</TableHead>
-                <TableHead className="font-medium">Speed</TableHead>
-                <TableHead className="font-medium">Admin Status</TableHead>
-                <TableHead className="font-medium">Oper Status</TableHead>
+                <TableHead
+                  className="font-medium cursor-pointer select-none group hidden md:table-cell"
+                  onClick={() =>
+                    setSortConfig((prev) =>
+                      prev?.key === "speedMbps" && prev.direction === "asc"
+                        ? { key: "speedMbps", direction: "desc" }
+                        : { key: "speedMbps", direction: "asc" },
+                    )
+                  }
+                >
+                  <div className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    Interface
+                    {sortConfig?.key === "speedMbps" ? (
+                      sortConfig.direction === "asc" ? (
+                        <ChevronUp className="w-4 h-4 text-primary" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-primary" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="font-medium cursor-pointer select-none group hidden md:table-cell"
+                  onClick={() =>
+                    setSortConfig((prev) =>
+                      prev?.key === "adminStatus" && prev.direction === "asc"
+                        ? { key: "adminStatus", direction: "desc" }
+                        : { key: "adminStatus", direction: "asc" },
+                    )
+                  }
+                >
+                  <div className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    Admin Status
+                    {sortConfig?.key === "adminStatus" ? (
+                      sortConfig.direction === "asc" ? (
+                        <ChevronUp className="w-4 h-4 text-primary" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-primary" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
+                <TableHead
+                  className="font-medium cursor-pointer select-none group hidden md:table-cell"
+                  onClick={() =>
+                    setSortConfig((prev) =>
+                      prev?.key === "operStatus" && prev.direction === "asc"
+                        ? { key: "operStatus", direction: "desc" }
+                        : { key: "operStatus", direction: "asc" },
+                    )
+                  }
+                >
+                  <div className="flex items-center gap-1.5 hover:text-foreground transition-colors">
+                    Oper Status
+                    {sortConfig?.key === "operStatus" ? (
+                      sortConfig.direction === "asc" ? (
+                        <ChevronUp className="w-4 h-4 text-primary" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-primary" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    )}
+                  </div>
+                </TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
-              {filteredData.length === 0 ? (
+              {paginatedDataInt.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={7}
@@ -290,7 +516,7 @@ export default function SettingsWeathermapTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredData.map((item) => (
+                paginatedDataInt.map((item) => (
                   <TableRow
                     key={item.index}
                     className="group hover:bg-muted/30 transition-colors cursor-default"
@@ -339,6 +565,17 @@ export default function SettingsWeathermapTable() {
               )}
             </TableBody>
           </Table>
+        </div>
+        {/* BOTTOM PAGINATION */}
+        <div className="p-4 border-t bg-muted/10">
+          <Pagination
+            page={pageInt}
+            setPage={setPageInt}
+            limit={limitInt}
+            data={deviceInterfaces}
+            filteredData={filteredDataInt}
+            total={deviceInterfaces.length}
+          />
         </div>
       </div>
     </div>

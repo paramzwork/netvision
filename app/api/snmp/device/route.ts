@@ -6,43 +6,6 @@ import { prisma } from "@/lib/prisma";
 import { getRequestInfo } from "../../users/route";
 import { createUserLog } from "@/lib/logs";
 
-// export async function GET() {
-//   const host = process.env.SNMP_HOST!;
-//   const community = process.env.SNMP_COMMUNITY!;
-
-//   const session = snmp.createSession(host, community);
-
-//   const results: SnmpResult[] = [];
-
-//   return new Promise<Response>((resolve) => {
-//     session.subtree(
-//       "1.3.6.1.4.1",
-//       (varbinds) => {
-//         for (const varbind of varbinds) {
-//           if (snmp.isVarbindError(varbind)) continue;
-
-//           results.push({
-//             oid: varbind.oid,
-//             type: varbind.type ?? 0,
-//             value: String(varbind.value),
-//           });
-//         }
-//       },
-//       (error) => {
-//         session.close();
-
-//         if (error) {
-//           resolve(
-//             NextResponse.json({ message: error.message }, { status: 500 }),
-//           );
-//           return;
-//         }
-
-//         resolve(NextResponse.json(results));
-//       },
-//     );
-//   });
-// }
 export async function GET(req: NextRequest) {
   const currentUser = await getCurrentUser();
 
@@ -70,7 +33,7 @@ export async function GET(req: NextRequest) {
     const ipAddress = tripleDecode(id);
     console.log("Request", ipAddress);
     if (ipAddress === "all") {
-      const [devices, totalInterfaces] = await Promise.all([
+      const [devices, totalInterfaces, totalDevices] = await Promise.all([
         prisma.devices.findMany({
           select: {
             ipAddress: true,
@@ -100,6 +63,7 @@ export async function GET(req: NextRequest) {
         }),
 
         prisma.interfaces.count(),
+        prisma.devices.count(),
       ]);
 
       const result = devices.map(({ _count, ...device }) => ({
@@ -110,6 +74,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         devices: result,
         totalInterfaces,
+        totalDevices,
         message: "Loaded devices successfully!",
       });
     } else if (ipAddress) {

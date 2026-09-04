@@ -100,7 +100,7 @@ export default function SystemDevices() {
     setConfirmDialog(true);
   };
   return (
-    <div className="w-full space-y-5">
+    <div className="w-full min-w-0 space-y-5">
       <div className="space-y-2">
         <Breadcrumbs
           items={[
@@ -120,7 +120,7 @@ export default function SystemDevices() {
           </Link>
         </div>
       </div>
-      <div className="border rounded-sm">
+      <div className="rounded-sm border">
         <Table>
           <TableHeader>
             <TableRow>
