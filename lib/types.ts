@@ -158,6 +158,9 @@ export interface InterfaceTypes {
     left: number;
   };
   statistics: InterfaceStatistic[];
+
+  liveInbound?: number;
+  liveOutbound?: number;
 }
 export interface InterfaceStatistic {
   id: number;

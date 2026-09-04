@@ -34,6 +34,7 @@ export default function SettingsWeathermapTable() {
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<string>("10");
   const [search, setSearch] = useState<string>("");
+  const [searchInt, setSearchInt] = useState<string>("");
   const router = useRouter();
   const [sortConfig, setSortConfig] = useState<{
     key: string;
@@ -191,7 +192,7 @@ export default function SettingsWeathermapTable() {
   };
   const deviceInterfaces = getInterfaces(fetchSelectedDev);
   const filteredDataInt = deviceInterfaces.filter((item) => {
-    const keyword = search.toLowerCase();
+    const keyword = searchInt.toLowerCase();
 
     return (
       item.name.toLowerCase().includes(keyword) ||
@@ -383,8 +384,8 @@ export default function SettingsWeathermapTable() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInt}
+                onChange={(e) => setSearchInt(e.target.value)}
                 placeholder="Search interfaces..."
                 className="w-full h-9 pl-9 pr-4 text-sm bg-background border border-input rounded-md ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all"
               />

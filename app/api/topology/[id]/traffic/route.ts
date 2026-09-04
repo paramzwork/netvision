@@ -46,7 +46,7 @@ interface TrafficNodeData {
   handles?: Record<string, TrafficHandle[]>;
   aggregations?: TrafficAggregation[];
 }
-interface AggregatedInterfaceTraffic {
+export interface AggregatedInterfaceTraffic {
   interfaceId: number;
   interfaceName: string;
   inbound: number;

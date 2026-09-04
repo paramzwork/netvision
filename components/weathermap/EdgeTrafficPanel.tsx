@@ -635,8 +635,8 @@ export default function EdgeTrafficPanel({
           interfaceName: iface.name,
           sourceNodeName,
 
-          currentInbound: latest?.inbound ?? 0,
-          currentOutbound: latest?.outbound ?? 0,
+          currentInbound: iface.liveInbound ?? latest?.inbound ?? 0,
+          currentOutbound: iface.liveOutbound ?? latest?.outbound ?? 0,
 
           averageInbound:
             inboundValues.length > 0
