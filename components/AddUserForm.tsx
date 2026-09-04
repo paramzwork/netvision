@@ -16,6 +16,7 @@ import {
 } from "./ui/select";
 import { tripleEncode } from "@/lib/utils";
 import { useData } from "@/context/DataContext";
+import { useRouter } from "next/navigation";
 
 interface Props {
   roleData: RoleTypes[];
@@ -34,6 +35,7 @@ export default function AddUserForm({
   setUsers,
 }: Props) {
   const { currentUser } = useData();
+  const router = useRouter();
 
   const [formData, setFormData] = useState({
     username: data?.username ?? "",
@@ -91,6 +93,10 @@ export default function AddUserForm({
         body: JSON.stringify(formData),
       });
       const resData = await res.json();
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
       if (!res.ok) {
         toast.error(resData.message);
         return;

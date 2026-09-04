@@ -94,28 +94,46 @@ export default function SignInComponent() {
         .delay-400 { animation-delay: 400ms; }
         .delay-500 { animation-delay: 500ms; }
 
-        /* 4. TRAFFIC FLOW ANIMATIONS */
-        @keyframes traffic-flow {
-          0% { stroke-dashoffset: 1000; }
-          100% { stroke-dashoffset: 0; }
-        }
+        /* 
+          4. SEAMLESS TRAFFIC FLOW ANIMATIONS 
+          The offset must EXACTLY match the sum of stroke-dasharray (Dash + Gap)
+        */
         
-        /* Different speeds and dash lengths for realism */
-        .traffic-fast {
-          stroke-dasharray: 100 600; /* Long dash, very long gap */
-          animation: traffic-flow 3s linear infinite;
-        }
-        .traffic-medium {
-          stroke-dasharray: 60 400;
-          animation: traffic-flow 5s linear infinite reverse;
-        }
-        .traffic-slow {
-          stroke-dasharray: 40 300;
-          animation: traffic-flow 8s linear infinite;
+        /* Burst: 150 dash + 800 gap = 950 total */
+        @keyframes flow-burst {
+          to { stroke-dashoffset: -950; }
         }
         .traffic-burst {
           stroke-dasharray: 150 800;
-          animation: traffic-flow 2s linear infinite;
+          animation: flow-burst 2.5s linear infinite;
+        }
+
+        /* Fast: 100 dash + 600 gap = 700 total */
+        @keyframes flow-fast {
+          to { stroke-dashoffset: -700; }
+        }
+        .traffic-fast {
+          stroke-dasharray: 100 600;
+          animation: flow-fast 3s linear infinite;
+        }
+
+        /* Medium (Reverse): 60 dash + 400 gap = 460 total */
+        /* Positive offset moves the line backwards */
+        @keyframes flow-medium {
+          to { stroke-dashoffset: 460; } 
+        }
+        .traffic-medium {
+          stroke-dasharray: 60 400;
+          animation: flow-medium 4s linear infinite;
+        }
+
+        /* Slow: 40 dash + 300 gap = 340 total */
+        @keyframes flow-slow {
+          to { stroke-dashoffset: -340; }
+        }
+        .traffic-slow {
+          stroke-dasharray: 40 300;
+          animation: flow-slow 6s linear infinite;
         }
 
         /* 5. Pulsing Intersections */
@@ -139,7 +157,6 @@ export default function SignInComponent() {
         preserveAspectRatio="xMidYMid slice"
       >
         <defs>
-          {/* Heavy glow filter for the traffic streaks */}
           <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="6" result="blur" />
             <feMerge>
@@ -170,7 +187,7 @@ export default function SignInComponent() {
             strokeWidth="3"
             className="traffic-burst"
           />
-          {/* Medium Blue Flow */}
+          {/* Medium Blue Flow (Reverse) */}
           <path
             d="M 200 -100 L 200 500 L 500 800 L 1500 800 L 1800 500 L 1800 -100"
             stroke="#3b82f6"
@@ -184,7 +201,6 @@ export default function SignInComponent() {
             strokeWidth="2"
             className="traffic-slow"
           />
-
           {/* Secondary Fast Lane */}
           <path
             d="M 2000 800 L 1600 800 L 1300 500 L 700 500 L 400 800 L -100 800"
@@ -196,92 +212,20 @@ export default function SignInComponent() {
 
         {/* --- INTERSECTION HUBS (Glowing Dots) --- */}
         <g fill="#38bdf8" filter="url(#neonGlow)">
-          <circle
-            cx="400"
-            cy="200"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "0s" }}
-          />
-          <circle
-            cx="600"
-            cy="400"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "1s" }}
-          />
-          <circle
-            cx="1200"
-            cy="400"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "2s" }}
-          />
-          <circle
-            cx="1400"
-            cy="200"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "0.5s" }}
-          />
-
-          <circle
-            cx="200"
-            cy="500"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "1.5s" }}
-          />
-          <circle
-            cx="500"
-            cy="800"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "0.2s" }}
-          />
-          <circle
-            cx="1500"
-            cy="800"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "2.5s" }}
-          />
-          <circle
-            cx="1800"
-            cy="500"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "1.2s" }}
-          />
-
-          <circle
-            cx="400"
-            cy="800"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "0.8s" }}
-          />
-          <circle
-            cx="700"
-            cy="500"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "1.8s" }}
-          />
-          <circle
-            cx="1300"
-            cy="500"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "0.4s" }}
-          />
-          <circle
-            cx="1600"
-            cy="800"
-            r="4"
-            className="hub-node"
-            style={{ animationDelay: "2.2s" }}
-          />
+          <circle cx="400" cy="200" r="4" className="hub-node" style={{ animationDelay: "0s" }} />
+          <circle cx="600" cy="400" r="4" className="hub-node" style={{ animationDelay: "1s" }} />
+          <circle cx="1200" cy="400" r="4" className="hub-node" style={{ animationDelay: "2s" }} />
+          <circle cx="1400" cy="200" r="4" className="hub-node" style={{ animationDelay: "0.5s" }} />
+          
+          <circle cx="200" cy="500" r="4" className="hub-node" style={{ animationDelay: "1.5s" }} />
+          <circle cx="500" cy="800" r="4" className="hub-node" style={{ animationDelay: "0.2s" }} />
+          <circle cx="1500" cy="800" r="4" className="hub-node" style={{ animationDelay: "2.5s" }} />
+          <circle cx="1800" cy="500" r="4" className="hub-node" style={{ animationDelay: "1.2s" }} />
+          
+          <circle cx="400" cy="800" r="4" className="hub-node" style={{ animationDelay: "0.8s" }} />
+          <circle cx="700" cy="500" r="4" className="hub-node" style={{ animationDelay: "1.8s" }} />
+          <circle cx="1300" cy="500" r="4" className="hub-node" style={{ animationDelay: "0.4s" }} />
+          <circle cx="1600" cy="800" r="4" className="hub-node" style={{ animationDelay: "2.2s" }} />
         </g>
       </svg>
 

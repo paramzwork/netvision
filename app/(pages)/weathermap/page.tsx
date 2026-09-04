@@ -6,6 +6,7 @@ import { useData } from "@/context/DataContext";
 import { useTopologyStore } from "@/store/topology-store";
 import { Plus, Settings } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +19,8 @@ export default function WeatherMapPage() {
   const { currentUser } = useData();
   const { topologies, setTopologies } = useTopologyStore();
   const hasMountedRef = useRef<boolean>(false);
+  const router = useRouter();
+
   const fetchWeathermap = useCallback(async () => {
     if (topologies.length !== 0) {
       return setTopologies(topologies);
@@ -25,13 +28,21 @@ export default function WeatherMapPage() {
     try {
       const res = await fetch("/api/topology", { method: "GET" });
       const resData = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          router.replace("/");
+          return;
+        }
+        toast.error(resData.message);
+        return;
+      }
       setTopologies(resData);
     } catch {
       toast.error("Internal Server Error.", {
         description: "Server error please contact admin.",
       });
     }
-  }, [setTopologies, topologies]);
+  }, [router, setTopologies, topologies]);
 
   useEffect(() => {
     if (hasMountedRef.current) return;

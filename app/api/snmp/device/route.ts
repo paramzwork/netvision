@@ -3,6 +3,8 @@ import { DeviceInfoTypes } from "@/lib/types";
 import { getCurrentUser } from "@/lib/auth";
 import { tripleDecode } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { getRequestInfo } from "../../users/route";
+import { createUserLog } from "@/lib/logs";
 
 // export async function GET() {
 //   const host = process.env.SNMP_HOST!;
@@ -165,44 +167,80 @@ export async function POST(req: NextRequest) {
   try {
     const devices: DeviceInfoTypes[] = await req.json();
 
-    await prisma.$transaction(
-      devices.map((device) =>
-        prisma.devices.upsert({
-          where: {
-            ipAddress: device.ipAddress,
-          },
+    if (!Array.isArray(devices)) {
+      return NextResponse.json(
+        { message: "Invalid device data." },
+        { status: 400 },
+      );
+    }
 
-          // Existing device
-          update: {
-            sysContact: device.sysContact,
-            sysDescr: device.sysDescr,
-            sysLocation: device.sysLocation,
-            sysName: device.sysName,
-            sysObjectID: device.sysObjectID,
-            pollTime: device.pollTime,
-            uptime: device.uptime,
-            currentMs: String(device.currentMs),
-            community: device.community,
-            status: "1",
-          },
+    let createdCount = 0;
+    let updatedCount = 0;
 
-          // New device
-          create: {
-            sysContact: device.sysContact,
-            sysDescr: device.sysDescr,
-            sysLocation: device.sysLocation,
-            sysName: device.sysName,
-            sysObjectID: device.sysObjectID,
-            ipAddress: device.ipAddress,
-            pollTime: device.pollTime,
-            uptime: device.uptime,
-            currentMs: String(device.currentMs),
-            community: device.community,
-            status: "1",
-          },
-        }),
-      ),
-    );
+    for (const device of devices) {
+      const existingDevice = await prisma.devices.findUnique({
+        where: {
+          ipAddress: device.ipAddress,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      await prisma.devices.upsert({
+        where: {
+          ipAddress: device.ipAddress,
+        },
+
+        // Existing device
+        update: {
+          sysContact: device.sysContact,
+          sysDescr: device.sysDescr,
+          sysLocation: device.sysLocation,
+          sysName: device.sysName,
+          sysObjectID: device.sysObjectID,
+          pollTime: device.pollTime,
+          uptime: device.uptime,
+          currentMs: String(device.currentMs),
+          community: device.community,
+          status: "1",
+        },
+
+        // New device
+        create: {
+          sysContact: device.sysContact,
+          sysDescr: device.sysDescr,
+          sysLocation: device.sysLocation,
+          sysName: device.sysName,
+          sysObjectID: device.sysObjectID,
+          ipAddress: device.ipAddress,
+          pollTime: device.pollTime,
+          uptime: device.uptime,
+          currentMs: String(device.currentMs),
+          community: device.community,
+          status: "1",
+        },
+      });
+
+      if (existingDevice) {
+        updatedCount++;
+      } else {
+        createdCount++;
+      }
+    }
+
+    const { ipAddress, userAgent } = getRequestInfo(req);
+
+    await createUserLog({
+      userId: currentUser.id,
+      action: "SYNC_DEVICES",
+      description:
+        `Synchronized ${devices.length} device(s): ` +
+        `${createdCount} created, ${updatedCount} updated. ` +
+        `Devices: ${devices.map((device) => device.sysName ?? "Unknown").join(", ")}.`,
+      ipAddress,
+      userAgent,
+    });
 
     return NextResponse.json(
       {
@@ -211,7 +249,7 @@ export async function POST(req: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error(error);
+    console.error("DEVICE SYNC ERROR:", error);
 
     return NextResponse.json(
       { message: "Internal Server Error." },

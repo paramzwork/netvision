@@ -2,9 +2,11 @@ import { AggregationGroup } from "@/components/DnDContext";
 import { NodeHandle, TopologyEdgeData } from "@/components/WeatherMapComponent";
 import { getCurrentUser } from "@/lib/auth";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { createUserLog } from "@/lib/logs";
 import { prisma } from "@/lib/prisma";
 import { tripleDecode } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
+import { getRequestInfo } from "../../users/route";
 
 type UpdateTopologyRequest = {
   name: string;
@@ -54,6 +56,13 @@ interface RouteContext {
 }
 
 export async function GET(_request: NextRequest, { params }: RouteContext) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 },
+    );
+  }
   try {
     const { id } = await params;
     const topologyId = Number(id);
@@ -1048,7 +1057,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
       let inbound = 0;
       let outbound = 0;
-   const aggregatedInterfaces: AggregatedInterface[] = [];
+      const aggregatedInterfaces: AggregatedInterface[] = [];
       console.log(`[EDGE TRAFFIC] Automatic aggregation`, {
         edgeId: edge.edgeId,
         nodeId: edge.sourceNodeId,
@@ -1244,6 +1253,13 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 }
 
 export async function PUT(request: NextRequest, { params }: RouteContext) {
+  const currentUser = await getCurrentUser();
+  if (!currentUser) {
+    return NextResponse.json(
+      { success: false, message: "Unauthorized" },
+      { status: 401 },
+    );
+  }
   try {
     const { id } = await params;
 
@@ -1438,7 +1454,14 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
         return updatedTopology;
       },
     );
-
+    const { ipAddress, userAgent } = getRequestInfo(request);
+    await createUserLog({
+      userId: currentUser.id,
+      action: "UPDATE_TOPOLOGY",
+      description: `Updated topology "${topology.name}" (ID: ${topology.id}), including its nodes and connections.`,
+      ipAddress,
+      userAgent,
+    });
     // ---------------------------------------------
     // Response
     // ---------------------------------------------
@@ -1479,14 +1502,36 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const decodedID = tripleDecode(id);
+  const decodedID = Number(tripleDecode(id));
 
+  const topology = await prisma.topologies.findUnique({
+    where: {
+      id: decodedID,
+    },
+  });
+
+  if (!topology) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Topology not found",
+      },
+      { status: 404 },
+    );
+  }
   await prisma.topologies.delete({
     where: {
       id: Number(decodedID),
     },
   });
-
+  const { ipAddress, userAgent } = getRequestInfo(req);
+  await createUserLog({
+    userId: currentUser.id,
+    action: "DELETE_TOPOLOGY",
+    description: `Deleted topology "${topology.name}" (ID: ${topology.id}).`,
+    ipAddress,
+    userAgent,
+  });
   return NextResponse.json({
     message: "Topology deleted successfully.",
   });

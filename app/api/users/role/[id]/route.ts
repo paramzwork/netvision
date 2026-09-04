@@ -1,10 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { tripleDecode, tripleEncode } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getRequestInfo } from "../../route";
+import { createUserLog } from "@/lib/logs";
 
 export async function PUT(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const currentUser = await getCurrentUser();
@@ -25,6 +27,15 @@ export async function PUT(
     },
   });
   const encodedID = tripleEncode(String(role.id));
+  const { ipAddress, userAgent } = getRequestInfo(req);
+
+  await createUserLog({
+    userId: currentUser.id,
+    action: "UPDATE_ROLE",
+    description: `Update role "${role.role}"`,
+    ipAddress,
+    userAgent,
+  });
   return NextResponse.json({
     data: encodedID,
     role: role.role,
@@ -35,7 +46,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const currentUser = await getCurrentUser();
@@ -45,12 +56,20 @@ export async function DELETE(
   }
   const { id } = await params;
   const decodedID = tripleDecode(id);
-  await prisma.roles.delete({
+  const role = await prisma.roles.delete({
     where: {
       id: Number(decodedID),
     },
   });
+  const { ipAddress, userAgent } = getRequestInfo(req);
 
+  await createUserLog({
+    userId: currentUser.id,
+    action: "DELETE_ROLE",
+    description: `Deleted role "${role.role}"`,
+    ipAddress,
+    userAgent,
+  });
   return NextResponse.json({
     message: "Role deleted successfully.",
   });

@@ -58,6 +58,11 @@ export default function ViewDevice() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 401) {
+          router.replace("/");
+          return;
+        }
+
         toast.error(data.message);
         return;
       }
@@ -66,7 +71,7 @@ export default function ViewDevice() {
     } catch {
       toast.error("Internal Server Error");
     }
-  }, [selectedDevice]);
+  }, [router, selectedDevice]);
 
   useEffect(() => {
     if (hasMountedRef.current) return;
@@ -86,12 +91,6 @@ export default function ViewDevice() {
         console.log("Already fetching, skipping");
         return;
       }
-
-      console.log(
-        "%cLoad new data",
-        "color: green",
-        new Date().toLocaleTimeString(),
-      );
 
       isFetching.current = true;
 

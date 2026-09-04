@@ -51,13 +51,34 @@ export interface UserTypes {
   updatedAt: Date | null;
   roles: RoleTypes;
 }
-export interface Log {
-  userId: string;
-  name: string;
+export interface UserLogUser {
+  id: number;
   username: string;
-  email: string;
-  role: string;
-  timestamp: string;
+  firstname: string | null;
+  lastname: string | null;
+  role_id: number;
+  roles: {
+    id: number;
+    role: string;
+  };
+}
+
+export interface UserLog {
+  id: number;
+  user_id: number | null;
+  action: string;
+  description: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  createdAt: string;
+  users: UserLogUser | null;
+}
+
+export interface UserLogsResponse {
+  data: UserLog[];
+  total: number;
+  page: number;
+  limit: number;
 }
 // SNMP
 

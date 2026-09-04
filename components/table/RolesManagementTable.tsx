@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { ConfirmationDialog } from "../ConfirmationDialog";
 import { tripleEncode } from "@/lib/utils";
 import EntriesPerPage from "../EntriesPerPage";
+import { useRouter } from "next/navigation";
 
 interface Props {
   roleData: RoleTypes[];
@@ -34,9 +35,9 @@ interface Props {
   handleForm: (type: string) => void;
 
   page: number;
-  limit: number;
+  limit: string;
   setPage: React.Dispatch<React.SetStateAction<number>>;
-  setLimit: React.Dispatch<React.SetStateAction<number>>;
+  setLimit: React.Dispatch<React.SetStateAction<string>>;
   totalRoles: number;
 }
 
@@ -63,6 +64,7 @@ export default function RolesManagementTable({
     key: string;
     direction: "asc" | "desc";
   } | null>(null);
+  const router = useRouter();
 
   // 🔍 Filtered data
   const filteredData = useMemo(() => {
@@ -115,7 +117,10 @@ export default function RolesManagementTable({
         method: "DELETE",
       });
       const resData = await res.json();
-
+      if (res.status === 401) {
+        router.replace("/");
+        return;
+      }
       if (!res.ok) {
         setConfirmDialog(false);
         toast.error(resData.message, { id: toastID });
@@ -154,12 +159,7 @@ export default function RolesManagementTable({
         </div>
 
         <div className="w-full sm:w-auto">
-          <EntriesPerPage
-            limit={limit}
-            setLimit={setLimit}
-            setPage={setPage}
-            totalPages={filteredData.length}
-          />
+          <EntriesPerPage limit={limit} setLimit={setLimit} setPage={setPage} />
         </div>
       </div>
 
@@ -227,7 +227,9 @@ export default function RolesManagementTable({
                   className="group hover:bg-muted/30 transition-colors cursor-default text-xs"
                 >
                   <TableCell className="text-center text-muted-foreground">
-                    {(page - 1) * limit + index + 1}
+                    {limit === "all"
+                      ? index + 1
+                      : (page - 1) * Number(limit) + index + 1}
                   </TableCell>
 
                   <TableCell>
